@@ -1,0 +1,13 @@
+[package]
+name = "collectd-rust-plugin"
+version = "0.1.0"
+authors = ["Nick Babcock <nbabcock19@hotmail.com>"]
+
+[lib]
+name = "myplugin"
+crate-type = ["dylib"]
+
+[dependencies]
+
+[build-dependencies]
+bindgen = "0.29"
