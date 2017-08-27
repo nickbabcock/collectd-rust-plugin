@@ -7,6 +7,8 @@ use std::ptr;
 use bindings::{plugin_register_read,plugin_dispatch_values,LOG_WARNING,plugin_log};
 use api::{ValueListBuilder, Value};
 
+/// Collectd hooks into our plugin by calling the `module_register` function, so we let collectd
+/// know about our read function.
 #[no_mangle]
 pub extern "C" fn module_register() {
     let s = CString::new("myplugin").unwrap();
