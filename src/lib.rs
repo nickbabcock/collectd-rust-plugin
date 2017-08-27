@@ -31,10 +31,8 @@ pub extern "C" fn my_read() -> c_int {
 
 	let r = ValueListBuilder::new("myplugin", "load")
 		.values(values)
-		.plugin_instance(String::from("testing"))
-		.type_instance(String::from("CpuUsage"))
 		.build()
-		.expect("it to work");
+		.expect("value list to be constructed correctly");
 	unsafe { plugin_dispatch_values(&r) } 
 }
 
