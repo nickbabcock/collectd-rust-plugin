@@ -7,7 +7,7 @@ fn main() {
     let bindings = bindgen::Builder::default()
         .header("wrapper.h")
         .clang_arg("-DHAVE_CONFIG_H")
-        .unstable_rust(true)
+        .rust_target(bindgen::RustTarget::Stable_1_19)
         .hide_type("FP_NAN")
         .hide_type("FP_INFINITE")
         .hide_type("FP_ZERO")

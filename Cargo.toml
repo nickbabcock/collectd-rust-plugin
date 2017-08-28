@@ -10,4 +10,4 @@ crate-type = ["dylib"]
 [dependencies]
 
 [build-dependencies]
-bindgen = "0.29"
+bindgen = "0.30"
