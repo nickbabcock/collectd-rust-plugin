@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
-use bindings::{value_list_t, value_t};
-use std::os::raw::c_char;
+use bindings::{value_list_t, value_t, plugin_dispatch_values};
+use std::os::raw::{c_char, c_int};
 use std::ffi::{CString, NulError};
 use std::fmt;
 use std::error::Error;
@@ -39,6 +39,7 @@ impl From<NulError> for CArrayError {
     }
 }
 
+#[derive(Debug)]
 pub enum Value {
     Counter(u64),
     Gauge(f64),
@@ -112,7 +113,7 @@ impl ValueListBuilder {
         self
     }
 
-    pub fn build(self) -> Result<value_list_t, CArrayError> {
+    pub fn submit(self) -> Result<c_int, CArrayError> {
         let mut v: Vec<value_t> = self.values.iter().map(|x| x.to_value_t()).collect();
         let plugin_instance = self.plugin_instance
             .map(|x| to_array_res(&x))
@@ -126,7 +127,8 @@ impl ValueListBuilder {
             .map(|x| to_array_res(&x))
             .unwrap_or_else(|| Ok([0i8; 128]))?;
 
-        Ok(value_list_t {
+
+        let list = value_list_t {
             values: v.as_mut_ptr(),
             values_len: v.len(),
             plugin_instance: plugin_instance,
@@ -137,7 +139,9 @@ impl ValueListBuilder {
             time: self.time.unwrap_or(0),
             interval: self.interval.unwrap_or(0),
             meta: ptr::null_mut(),
-        })
+        };
+
+        Ok(unsafe { plugin_dispatch_values(&list) })
     }
 }
 
