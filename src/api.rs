@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use bindings::{value_list_t, value_t, plugin_dispatch_values};
+use bindings::{plugin_dispatch_values, value_list_t, value_t};
 use std::os::raw::{c_char, c_int};
 use std::ffi::{CString, NulError};
 use std::fmt;
