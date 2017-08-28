@@ -1,8 +1,8 @@
 # A Collectd Plugin Written in Rust
 
-This repo demonstrates how to create a Collectd plugin written in Rust that uses [bindgen](https://github.com/rust-lang-nursery/rust-bindgen) to generate the ffi functions and an ergonomic rust structure ontop of `value_list_t`. 
+This repo demonstrates how to create a Collectd plugin written in Rust that uses [bindgen](https://github.com/rust-lang-nursery/rust-bindgen) to generate the ffi functions and an ergonomic rust structure ontop of `value_list_t`.
 
-Currently this plugin needs nightly so that bindgen generates Rust unions (but no Rust nightly features are used).
+Rust 1.19 or later is needed to build.
 
 ## To Build
 
@@ -11,7 +11,7 @@ Currently this plugin needs nightly so that bindgen generates Rust unions (but n
 apt install collectd-dev
 
 # Install rust toolchain (not needed if already installed)
-curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly
+curl https://sh.rustup.rs -sSf | sh -s
 
 # Build the library
 cargo build
