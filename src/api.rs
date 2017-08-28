@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use bindings::{value_t, value_list_t};
+use bindings::{value_list_t, value_t};
 use std::os::raw::c_char;
 use std::ffi::{CString, NulError};
 use std::fmt;
@@ -16,7 +16,9 @@ pub enum CArrayError {
 impl fmt::Display for CArrayError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            CArrayError::TooLong(l) => write!(f, "Length of {} is too long for collectd's max of 128", l),
+            CArrayError::TooLong(l) => {
+                write!(f, "Length of {} is too long for collectd's max of 128", l)
+            }
             CArrayError::NullPresent(ref err) => err.fmt(f),
         }
     }
@@ -33,7 +35,7 @@ impl Error for CArrayError {
 
 impl From<NulError> for CArrayError {
     fn from(e: NulError) -> Self {
-		CArrayError::NullPresent(e)
+        CArrayError::NullPresent(e)
     }
 }
 
