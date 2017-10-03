@@ -64,18 +64,15 @@ pub extern "C" fn module_register() {
 }
 
 #[no_mangle]
-pub extern "C" fn my_config(key: *const c_char, value: *const c_char) -> c_int {
-    let (key, value) = unsafe {
-        (CStr::from_ptr(key).to_owned(), CStr::from_ptr(value).to_owned())
-    };
+pub unsafe extern "C" fn my_config(key: *const c_char, value: *const c_char) -> c_int {
+    let key = CStr::from_ptr(key).to_owned();
+    let value = CStr::from_ptr(value).to_owned();
 
     match parse_config(key.clone(), value.clone()) {
         Ok(ret) => ret,
         Err(ref e) => {
             let cs = CString::new(e.to_string()).unwrap();
-            unsafe {
-                plugin_log(LOG_WARNING as i32, cs.as_ptr());
-            };
+            plugin_log(LOG_WARNING as i32, cs.as_ptr());
             -1
         }
     }
@@ -101,7 +98,7 @@ pub extern "C" fn my_read() -> c_int {
 fn parse_config(key: CString, value: CString) -> Result<c_int> {
     let key = key.into_string()?;
     let value = value.into_string()?;
-    let mut keyed = unsafe {
+    let keyed = unsafe {
         match key.as_str() {
             "Short" => Ok(&mut SHORT_VALUE),
             "Mid" => Ok(&mut MID_VALUE),
