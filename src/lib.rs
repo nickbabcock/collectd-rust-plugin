@@ -7,10 +7,10 @@ extern crate error_chain;
 mod bindings;
 mod api;
 
-use std::os::raw::{c_int, c_char};
-use std::ffi::{CString, CStr};
+use std::os::raw::{c_char, c_int};
+use std::ffi::{CStr, CString};
 use std::ptr;
-use bindings::{plugin_log, plugin_register_read, plugin_register_config, LOG_INFO, LOG_WARNING};
+use bindings::{plugin_log, plugin_register_config, plugin_register_read, LOG_INFO, LOG_WARNING};
 use api::{Value, ValueListBuilder};
 
 pub mod errors {
@@ -53,13 +53,16 @@ pub extern "C" fn module_register() {
     let s = CString::new("myplugin").unwrap();
 
     // Convert our configuration keys into a pointer to c-strings
-    let mut ks: Vec<*const i8> = KEYS.iter()
-        .map(|arg| arg.as_ptr() as *const i8)
-        .collect();
+    let mut ks: Vec<*const i8> = KEYS.iter().map(|arg| arg.as_ptr() as *const i8).collect();
 
     unsafe {
         plugin_register_read(s.as_ptr(), Some(my_read));
-        plugin_register_config(s.as_ptr(), Some(my_config), ks.as_mut_ptr(), KEYS.len() as i32);
+        plugin_register_config(
+            s.as_ptr(),
+            Some(my_config),
+            ks.as_mut_ptr(),
+            KEYS.len() as i32,
+        );
     }
 }
 
@@ -82,11 +85,13 @@ pub unsafe extern "C" fn my_config(key: *const c_char, value: *const c_char) -> 
 pub extern "C" fn my_read() -> c_int {
     log_entrance();
 
-    let values: Vec<Value> = unsafe {vec![
-        Value::Gauge(SHORT_VALUE.unwrap_or(15.0)),
-        Value::Gauge(MID_VALUE.unwrap_or(10.0)),
-        Value::Gauge(LONG_VALUE.unwrap_or(12.0))
-    ]};
+    let values: Vec<Value> = unsafe {
+        vec![
+            Value::Gauge(SHORT_VALUE.unwrap_or(15.0)),
+            Value::Gauge(MID_VALUE.unwrap_or(10.0)),
+            Value::Gauge(LONG_VALUE.unwrap_or(12.0)),
+        ]
+    };
 
     ValueListBuilder::new("myplugin", "load")
         .values(values)
@@ -103,11 +108,12 @@ fn parse_config(key: CString, value: CString) -> Result<c_int> {
             "Short" => Ok(&mut SHORT_VALUE),
             "Mid" => Ok(&mut MID_VALUE),
             "Long" => Ok(&mut LONG_VALUE),
-            _ => Err(ErrorKind::UnrecognizedKey(key.clone()))
+            _ => Err(ErrorKind::UnrecognizedKey(key.clone())),
         }
     }?;
 
-    let val = value.parse::<f64>()
+    let val = value
+        .parse::<f64>()
         .chain_err(|| ErrorKind::InvalidValue(key.clone(), value.clone()))?;
     *keyed = Some(val);
     Ok(0)
