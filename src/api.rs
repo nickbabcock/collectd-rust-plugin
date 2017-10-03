@@ -2,42 +2,26 @@
 
 use bindings::{plugin_dispatch_values, value_list_t, value_t};
 use std::os::raw::{c_char, c_int};
-use std::ffi::{CString, NulError};
-use std::fmt;
-use std::error::Error;
+use std::ffi::CString;
 use ptr;
 
-#[derive(Debug)]
-pub enum CArrayError {
-    TooLong(usize),
-    NullPresent(NulError),
-}
+pub mod errors {
+    use std::ffi::NulError;
+    error_chain! {
+        foreign_links {
+            NullPresent(NulError);
+        }
 
-impl fmt::Display for CArrayError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            CArrayError::TooLong(l) => {
-                write!(f, "Length of {} is too long for collectd's max of 128", l)
+        errors {
+            TooLong(t: usize) {
+                description("String must be less than 128 bytes")
+                display("Length of {} is too long", t)
             }
-            CArrayError::NullPresent(ref err) => err.fmt(f),
         }
     }
 }
 
-impl Error for CArrayError {
-    fn description(&self) -> &str {
-        match *self {
-            CArrayError::TooLong(_) => "String must be less than 128 bytes long",
-            CArrayError::NullPresent(_) => "String must not contain a null character",
-        }
-    }
-}
-
-impl From<NulError> for CArrayError {
-    fn from(e: NulError) -> Self {
-        CArrayError::NullPresent(e)
-    }
-}
+use self::errors::*;
 
 #[derive(Debug)]
 pub enum Value {
@@ -113,7 +97,7 @@ impl ValueListBuilder {
         self
     }
 
-    pub fn submit(self) -> Result<c_int, CArrayError> {
+    pub fn submit(self) -> Result<c_int> {
         let mut v: Vec<value_t> = self.values.iter().map(|x| x.to_value_t()).collect();
         let plugin_instance = self.plugin_instance
             .map(|x| to_array_res(&x))
@@ -145,11 +129,11 @@ impl ValueListBuilder {
     }
 }
 
-fn to_array_res(s: &str) -> Result<[c_char; 128], CArrayError> {
+fn to_array_res(s: &str) -> Result<[c_char; 128]> {
     let value = CString::new(s)?;
     let data = value.as_bytes_with_nul();
     if data.len() > 128 {
-        return Err(CArrayError::TooLong(s.len()));
+        return Err(ErrorKind::TooLong(s.len()).into());
     }
 
     let mut arr = [0; 128];
