@@ -54,12 +54,13 @@ pub extern "C" fn module_register() {
     let s = CString::new("myplugin").unwrap();
 
     // Convert our configuration keys into valid c-strings
-    let cstrs: Vec<CString> = KEYS.clone().into_iter()
-        .map(|arg| CString::new(arg).unwrap()).collect();
+    let cstrs: Vec<CString> = KEYS.clone()
+        .into_iter()
+        .map(|arg| CString::new(arg).unwrap())
+        .collect();
 
     // Now grab all the pointers to the c strings for ffi
-    let mut pointers: Vec<*const c_char> = cstrs.iter()
-        .map(|arg| arg.as_ptr()).collect();
+    let mut pointers: Vec<*const c_char> = cstrs.iter().map(|arg| arg.as_ptr()).collect();
 
     unsafe {
         plugin_register_read(s.as_ptr(), Some(my_read));
