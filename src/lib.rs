@@ -12,6 +12,7 @@ use std::ffi::{CStr, CString};
 use std::ptr;
 use bindings::{plugin_log, plugin_register_config, plugin_register_read, LOG_INFO, LOG_WARNING};
 use api::{Value, ValueListBuilder};
+use std::mem;
 
 pub mod errors {
     use std::ffi::IntoStringError;
@@ -64,6 +65,10 @@ pub extern "C" fn module_register() {
             KEYS.len() as i32,
         );
     }
+
+    // We must forget the vector as collectd hangs on to the info and if we were to drop it,
+    // collectd would segfault trying to read the newly freed up data structure
+    mem::forget(ks);
 }
 
 #[no_mangle]
