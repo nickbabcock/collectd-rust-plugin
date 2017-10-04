@@ -53,12 +53,12 @@ static mut LONG_VALUE: Option<f64> = None;
 pub extern "C" fn module_register() {
     let s = CString::new("myplugin").unwrap();
 
-    // Convert our configuration keys into a pointer to c-strings
-    let ks: Vec<CString> = KEYS.clone().into_iter()
+    // Convert our configuration keys into valid c-strings
+    let cstrs: Vec<CString> = KEYS.clone().into_iter()
         .map(|arg| CString::new(arg).unwrap()).collect();
 
-
-    let mut ks2: Vec<*const c_char> = ks.iter()
+    // Now grab all the pointers to the c strings for ffi
+    let mut pointers: Vec<*const c_char> = cstrs.iter()
         .map(|arg| arg.as_ptr()).collect();
 
     unsafe {
@@ -66,15 +66,15 @@ pub extern "C" fn module_register() {
         plugin_register_config(
             s.as_ptr(),
             Some(my_config),
-            ks2.as_mut_ptr(),
-            ks2.len() as i32,
+            pointers.as_mut_ptr(),
+            pointers.len() as i32,
         );
     }
 
     // We must forget the vector as collectd hangs on to the info and if we were to drop it,
     // collectd would segfault trying to read the newly freed up data structure
-    mem::forget(ks);
-    mem::forget(ks2);
+    mem::forget(pointers);
+    mem::forget(cstrs);
 }
 
 #[no_mangle]
