@@ -1,7 +1,4 @@
 #[macro_use]
-extern crate lazy_static;
-
-#[macro_use]
 extern crate error_chain;
 
 mod bindings;
@@ -37,12 +34,6 @@ pub mod errors {
 
 use self::errors::*;
 
-lazy_static! {
-    static ref KEYS: Vec<&'static str> = {
-        vec!["Short", "Mid", "Long"]
-    };
-}
-
 static mut SHORT_VALUE: Option<f64> = None;
 static mut MID_VALUE: Option<f64> = None;
 static mut LONG_VALUE: Option<f64> = None;
@@ -54,13 +45,14 @@ pub extern "C" fn module_register() {
     let s = CString::new("myplugin").unwrap();
 
     // Convert our configuration keys into valid c-strings
-    let cstrs: Vec<CString> = KEYS.clone()
-        .into_iter()
-        .map(|arg| CString::new(arg).unwrap())
-        .collect();
+    let config_keys: Vec<CString> = vec![
+        CString::new("Short").unwrap(),
+        CString::new("Mid").unwrap(),
+        CString::new("Long").unwrap()
+    ];
 
     // Now grab all the pointers to the c strings for ffi
-    let mut pointers: Vec<*const c_char> = cstrs.iter().map(|arg| arg.as_ptr()).collect();
+    let mut pointers: Vec<*const c_char> = config_keys.iter().map(|arg| arg.as_ptr()).collect();
 
     unsafe {
         plugin_register_read(s.as_ptr(), Some(my_read));
@@ -75,7 +67,7 @@ pub extern "C" fn module_register() {
     // We must forget the vector as collectd hangs on to the info and if we were to drop it,
     // collectd would segfault trying to read the newly freed up data structure
     mem::forget(pointers);
-    mem::forget(cstrs);
+    mem::forget(config_keys);
 }
 
 #[no_mangle]
