@@ -122,7 +122,7 @@ impl ValueListBuilder {
         let len = v.len();
 
         #[cfg(not(feature = "collectd-57"))]
-        let len = v.len() as usize;
+        let len = v.len() as i32;
 
         let list = value_list_t {
             values: v.as_mut_ptr(),
