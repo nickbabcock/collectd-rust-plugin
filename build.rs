@@ -4,7 +4,7 @@ use std::env;
 use std::path::PathBuf;
 
 fn main() {
-    let bindings = bindgen::Builder::default()
+    let bindings_builder = bindgen::Builder::default()
         .header("wrapper.h")
         .clang_arg("-DHAVE_CONFIG_H")
         .rust_target(bindgen::RustTarget::Stable_1_19)
@@ -14,7 +14,12 @@ fn main() {
         .hide_type("FP_SUBNORMAL")
         .hide_type("FP_NORMAL")
         .hide_type("max_align_t")
-        .hide_type("module_register")
+        .hide_type("module_register");
+
+    #[cfg(feature = "collectd-57")]
+    let bindings_builder = bindings_builder.clang_arg("-DCOLLECTD_NEW");
+
+    let bindings = bindings_builder
         .generate()
         .expect("Unable to generate bindings");
 

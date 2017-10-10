@@ -5,8 +5,15 @@ use std::os::raw::{c_char, c_int};
 use std::ffi::CString;
 use ptr;
 
+#[cfg(feature = "collectd-57")]
+const ARR_LENGTH: usize = 128;
+
+#[cfg(not(feature = "collectd-57"))]
+const ARR_LENGTH: usize = 64;
+
 pub mod errors {
     use std::ffi::NulError;
+    use api::ARR_LENGTH;
     error_chain! {
         foreign_links {
             NullPresent(NulError);
@@ -14,8 +21,8 @@ pub mod errors {
 
         errors {
             TooLong(t: usize) {
-                description("String must be less than 128 bytes")
-                display("Length of {} is too long", t)
+                description("String is too long")
+                display("Length of {} is too long. Max: {}", t, ARR_LENGTH)
             }
         }
     }
@@ -101,20 +108,25 @@ impl ValueListBuilder {
         let mut v: Vec<value_t> = self.values.iter().map(|x| x.to_value_t()).collect();
         let plugin_instance = self.plugin_instance
             .map(|x| to_array_res(&x))
-            .unwrap_or_else(|| Ok([0i8; 128]))?;
+            .unwrap_or_else(|| Ok([0i8; ARR_LENGTH]))?;
 
         let type_instance = self.type_instance
             .map(|x| to_array_res(&x))
-            .unwrap_or_else(|| Ok([0i8; 128]))?;
+            .unwrap_or_else(|| Ok([0i8; ARR_LENGTH]))?;
 
         let host = self.host
             .map(|x| to_array_res(&x))
-            .unwrap_or_else(|| Ok([0i8; 128]))?;
+            .unwrap_or_else(|| Ok([0i8; ARR_LENGTH]))?;
 
+        #[cfg(feature = "collectd-57")]
+        let len = v.len();
+
+        #[cfg(not(feature = "collectd-57"))]
+        let len = v.len() as usize;
 
         let list = value_list_t {
             values: v.as_mut_ptr(),
-            values_len: v.len(),
+            values_len: len,
             plugin_instance: plugin_instance,
             plugin: to_array_res(&self.plugin)?,
             type_: to_array_res(&self.type_)?,
@@ -129,14 +141,14 @@ impl ValueListBuilder {
     }
 }
 
-fn to_array_res(s: &str) -> Result<[c_char; 128]> {
+fn to_array_res(s: &str) -> Result<[c_char; ARR_LENGTH]> {
     let value = CString::new(s)?;
     let data = value.as_bytes_with_nul();
-    if data.len() > 128 {
+    if data.len() > ARR_LENGTH {
         return Err(ErrorKind::TooLong(s.len()).into());
     }
 
-    let mut arr = [0; 128];
+    let mut arr = [0; ARR_LENGTH];
     for (i, &c) in data.into_iter().enumerate() {
         arr[i] = c as c_char;
     }

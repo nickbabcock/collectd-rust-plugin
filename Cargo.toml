@@ -12,3 +12,7 @@ error-chain = "0.11.0"
 [lib]
 crate-type = ["dylib"]
 name = "myplugin"
+
+[features]
+default = []
+collectd-57 = []
