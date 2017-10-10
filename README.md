@@ -23,6 +23,10 @@ that can be overridden using the standard collectd config:
 # Install collectd library so that rust bindgen works
 apt install collectd-dev
 
+# If you are not on ubuntu 16.10 or later, a recent clang version is required
+# wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key|sudo apt-key add -
+# apt-get install llvm-3.9-dev libclang-3.9-dev clang-3.9
+
 # Install rust toolchain (not needed if already installed)
 curl https://sh.rustup.rs -sSf | sh -s
 
