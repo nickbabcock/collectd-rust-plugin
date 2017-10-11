@@ -30,7 +30,8 @@ apt install collectd-dev
 # Install rust toolchain (not needed if already installed)
 curl https://sh.rustup.rs -sSf | sh -s
 
-# Build the library
+# Build the library. If you are building against collectd 5.7 (or later),
+# build with --features collectd-57
 cargo build
 
 # Copy plugin (and rename it) to plugin directory
