@@ -14,6 +14,7 @@ fn main() {
         .hide_type("FP_SUBNORMAL")
         .hide_type("FP_NORMAL")
         .hide_type("max_align_t")
+        .hide_type("hostname_g")
         .hide_type("module_register");
 
     #[cfg(feature = "collectd-57")]

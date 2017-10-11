@@ -1,19 +1,13 @@
 #![allow(dead_code)]
 
-use bindings::{plugin_dispatch_values, value_list_t, value_t};
+use bindings::{plugin_dispatch_values, value_list_t, value_t, hostname_g, ARR_LENGTH};
 use std::os::raw::{c_char, c_int};
 use std::ffi::CString;
 use ptr;
 
-#[cfg(feature = "collectd-57")]
-const ARR_LENGTH: usize = 128;
-
-#[cfg(not(feature = "collectd-57"))]
-const ARR_LENGTH: usize = 64;
-
 pub mod errors {
     use std::ffi::NulError;
-    use api::ARR_LENGTH;
+    use bindings::ARR_LENGTH;
     error_chain! {
         foreign_links {
             NullPresent(NulError);
@@ -116,7 +110,7 @@ impl ValueListBuilder {
 
         let host = self.host
             .map(|x| to_array_res(&x))
-            .unwrap_or_else(|| Ok([0i8; ARR_LENGTH]))?;
+            .unwrap_or_else(|| unsafe {Ok(hostname_g.clone())})?;
 
         #[cfg(feature = "collectd-57")]
         let len = v.len();
