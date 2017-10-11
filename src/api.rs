@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use bindings::{plugin_dispatch_values, value_list_t, value_t, hostname_g, ARR_LENGTH};
+use bindings::{hostname_g, plugin_dispatch_values, value_list_t, value_t, ARR_LENGTH};
 use std::os::raw::{c_char, c_int};
 use std::ffi::CString;
 use ptr;

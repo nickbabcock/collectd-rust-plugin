@@ -48,7 +48,7 @@ pub extern "C" fn module_register() {
     let config_keys: Vec<CString> = vec![
         CString::new("Short").unwrap(),
         CString::new("Mid").unwrap(),
-        CString::new("Long").unwrap()
+        CString::new("Long").unwrap(),
     ];
 
     // Now grab all the pointers to the c strings for ffi
