@@ -110,7 +110,7 @@ impl ValueListBuilder {
 
         let host = self.host
             .map(|x| to_array_res(&x))
-            .unwrap_or_else(|| unsafe {Ok(hostname_g.clone())})?;
+            .unwrap_or_else(|| unsafe { Ok(hostname_g) })?;
 
         #[cfg(feature = "collectd-57")]
         let len = v.len();
