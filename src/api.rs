@@ -28,7 +28,7 @@ pub mod errors {
 
 use self::errors::*;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Value {
     Counter(u64),
     Gauge(f64),
