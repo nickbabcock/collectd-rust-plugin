@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use bindings::{hostname_g, plugin_dispatch_values, value_list_t, value_t, ARR_LENGTH};
-use std::os::raw::{c_char, c_int};
+use std::os::raw::c_char;
 use std::ffi::CString;
 use ptr;
 
@@ -17,6 +17,10 @@ pub mod errors {
             TooLong(t: usize) {
                 description("String is too long")
                 display("Length of {} is too long. Max: {}", t, ARR_LENGTH)
+            }
+            DispatchError(ret: i32) {
+                description("plugin_dispatch_values returned an error status code")
+                display("plugin_dispatch_values returned an error status code: {}", ret)
             }
         }
     }
@@ -98,7 +102,7 @@ impl ValueListBuilder {
         self
     }
 
-    pub fn submit(self) -> Result<c_int> {
+    pub fn submit(self) -> Result<()> {
         let mut v: Vec<value_t> = self.values.iter().map(|x| x.to_value_t()).collect();
         let plugin_instance = self.plugin_instance
             .map(|x| to_array_res(&x))
@@ -131,7 +135,10 @@ impl ValueListBuilder {
             meta: ptr::null_mut(),
         };
 
-        Ok(unsafe { plugin_dispatch_values(&list) })
+        match unsafe { plugin_dispatch_values(&list) } {
+            0 => Ok(()),
+            i => Err(Error::from(ErrorKind::DispatchError(i))),
+        }
     }
 }
 

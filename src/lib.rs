@@ -97,10 +97,20 @@ pub extern "C" fn my_read() -> c_int {
         ]
     };
 
-    ValueListBuilder::new("myplugin", "load")
+    let submission = ValueListBuilder::new("myplugin", "load")
         .values(values)
-        .submit()
-        .expect("value list to be constructed correctly")
+        .submit();
+
+    match submission {
+        Ok(_) => 0,
+        Err(ref e) => {
+            let cs = CString::new(format!("submission error: {}", e)).unwrap();
+            unsafe {
+                plugin_log(LOG_WARNING as i32, cs.as_ptr());
+            }
+            -1
+        }
+    }
 }
 
 
