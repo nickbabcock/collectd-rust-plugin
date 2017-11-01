@@ -4,15 +4,15 @@ name = "collectd-rust-plugin"
 version = "0.1.0"
 
 [build-dependencies]
-bindgen = "0.30"
+bindgen = "0.31.3"
 
 [dependencies]
 error-chain = "0.11.0"
 
+[features]
+collectd-57 = []
+default = []
+
 [lib]
 crate-type = ["dylib"]
 name = "myplugin"
-
-[features]
-default = []
-collectd-57 = []
