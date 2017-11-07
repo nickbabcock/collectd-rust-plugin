@@ -8,14 +8,14 @@ fn main() {
         .header("wrapper.h")
         .clang_arg("-DHAVE_CONFIG_H")
         .rust_target(bindgen::RustTarget::Stable_1_19)
-        .hide_type("FP_NAN")
-        .hide_type("FP_INFINITE")
-        .hide_type("FP_ZERO")
-        .hide_type("FP_SUBNORMAL")
-        .hide_type("FP_NORMAL")
-        .hide_type("max_align_t")
-        .hide_type("hostname_g")
-        .hide_type("module_register");
+        .blacklist_type("FP_NAN")
+        .blacklist_type("FP_INFINITE")
+        .blacklist_type("FP_ZERO")
+        .blacklist_type("FP_SUBNORMAL")
+        .blacklist_type("FP_NORMAL")
+        .blacklist_type("max_align_t")
+        .blacklist_type("hostname_g")
+        .blacklist_type("module_register");
 
     #[cfg(feature = "collectd-57")]
     let bindings_builder = bindings_builder.clang_arg("-DCOLLECTD_NEW");
