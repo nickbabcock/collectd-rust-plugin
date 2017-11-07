@@ -2,6 +2,7 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 #![allow(dead_code)]
+#![cfg_attr(feature = "cargo-clippy", allow(clippy))]
 
 // In collectd 5.7 the max length of textual information was extended to 128 characters
 #[cfg(feature = "collectd-57")]
