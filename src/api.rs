@@ -2,6 +2,8 @@
 
 use bindings::{hostname_g, plugin_dispatch_values, value_list_t, value_t, ARR_LENGTH};
 use std::os::raw::c_char;
+use chrono::prelude::*;
+use chrono::Duration;
 use std::ffi::CString;
 use ptr;
 
@@ -123,15 +125,20 @@ impl ValueListBuilder {
         self
     }
 
-    /// The timestamp at which the value was collected
-    pub fn time(mut self, time: u64) -> ValueListBuilder {
-        self.time = Some(time);
+    /// The timestamp at which the value was collected. Overrides the default time, which is when
+    /// collectd receives the values from `submit`. Use only if there is a significant delay is
+    /// metrics gathering or if submitting values from the past.
+    pub fn time<Tz: TimeZone>(mut self, dt: DateTime<Tz>) -> ValueListBuilder {
+        let nanos = (dt.timestamp() as u64) + (dt.timestamp_subsec_nanos() as u64);
+        self.time = Some(nanos_to_collectd(nanos));
         self
     }
 
-    /// The interval in which new values are to be expected
-    pub fn interval(mut self, interval: u64) -> ValueListBuilder {
-        self.interval = Some(interval);
+    /// The interval in which new values are to be expected. This is typically handled at a global
+    /// or plugin level. Use at your own discretion.
+    pub fn interval(mut self, interval: Duration) -> ValueListBuilder {
+        let nanos = interval.num_nanoseconds().expect("intervals to be reasonable");
+        self.interval = Some(nanos_to_collectd(nanos as u64));
         self
     }
 
@@ -196,6 +203,16 @@ fn to_array_res(s: &str) -> Result<[c_char; ARR_LENGTH]> {
     Ok(arr)
 }
 
+/// The time is stored at a 2^-30 second resolution, i.e. the most significant 34 bit are used to
+/// store the time in seconds, the least significant bits store the sub-second part in something
+/// very close to nanoseconds. *The* big advantage of storing time in this manner is that comparing
+/// times and calculating differences is as simple as it is with "time_t", i.e. a simple integer
+/// comparison / subtraction works.
+fn nanos_to_collectd(nanos: u64) -> u64 {
+    ((nanos / 1_000_000_000) << 30) | ((((nanos % 1_000_000_000) << 30) + 500_000_000) / 1_000_000_000)
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -218,5 +235,15 @@ mod tests {
     fn test_to_array_res_too_long() {
         let actual = to_array_res("Hello check this out, I am a long string and there is no signs of stopping; well, maybe one day I will stop when I get too longggggggggggggggggggggggggggggggggggg");
         assert!(actual.is_err());
+    }
+
+    #[test]
+    fn test_nanos_to_collectd() {
+        // Taken from utils_time_test.c
+
+        assert_eq!(nanos_to_collectd(1439981652801860766), 1546168526406004689);
+        assert_eq!(nanos_to_collectd(1439981836985281914), 1546168724171447263);
+        assert_eq!(nanos_to_collectd(1439981880053705608), 1546168770415815077);
+
     }
 }
