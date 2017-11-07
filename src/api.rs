@@ -30,9 +30,30 @@ use self::errors::*;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Value {
+
+    /// A COUNTER value is for continuous incrementing counters like the ifInOctets counter in a router.
+    /// The COUNTER data source assumes that the observed value never decreases, except when it
+    /// overflows. The update function takes the overflow into account. If a counter is reset to
+    /// zero, for example because an application was restarted, the wrap-around calculation may
+    /// result in a huge rate. Thus setting a reasonable maximum value is essential when using
+    /// COUNTER data sources. Because of this, COUNTER data sources are only recommended for
+    /// counters that wrap-around often, for example 32 bit octet counters of a busy switch port.
     Counter(u64),
+
+    /// A GAUGE value is simply stored as-is. This is the right choice for values which may
+    /// increase as well as decrease, such as temperatures or the amount of memory used
     Gauge(f64),
+
+    /// DERIVE will store the derivative of the observed values source. If the data type has a
+    /// minimum of zero, negative rates will be discarded. Using DERIVE is a good idea for
+    /// measuring cgroup's cpuacct.usage as that stores the total number of CPU nanoseconds by all
+    /// tasks in the cgroup; the change (derivative) in CPU nanoseconds is more interesting than
+    /// the current value.
     Derive(i64),
+
+    /// ABSOLUTE is for counters which get reset upon reading. This is used for fast counters which
+    /// tend to overflow. So instead of reading them normally you reset them after every read to
+    /// make sure you have a maximum time available before the next overflow.
     Absolute(u64),
 }
 
