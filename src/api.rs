@@ -57,9 +57,11 @@ pub enum Value {
     Absolute(u64),
 }
 
-impl Value {
-    pub fn to_value_t(&self) -> value_t {
-        match *self {
+// Interestingly, I couldn't get `From<Value> for value_t` to work, as any attempts would reference
+// value_t's typedef of value_u.
+impl Into<value_t> for Value {
+    fn into(self) -> value_t {
+        match self {
             Value::Counter(x) => value_t { counter: x },
             Value::Gauge(x) => value_t { gauge: x },
             Value::Derive(x) => value_t { derive: x },
@@ -124,7 +126,7 @@ impl ValueListBuilder {
     }
 
     pub fn submit(self) -> Result<()> {
-        let mut v: Vec<value_t> = self.values.iter().map(|x| x.to_value_t()).collect();
+        let mut v: Vec<value_t> = self.values.into_iter().map(|x| x.into()).collect();
         let plugin_instance = self.plugin_instance
             .map(|x| to_array_res(&x))
             .unwrap_or_else(|| Ok([0i8; ARR_LENGTH]))?;
