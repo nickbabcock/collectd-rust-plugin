@@ -95,36 +95,47 @@ impl ValueListBuilder {
         }
     }
 
+    /// A set of observed values that belong to the same plugin and type instance
     pub fn values(mut self, values: Vec<Value>) -> ValueListBuilder {
         self.values = values;
         self
     }
 
+    /// Distinguishes entities that yield metrics. Each core would be a different instance of the
+    /// same plugin, as each core reports "idle", "user", "system" metrics.
     pub fn plugin_instance(mut self, plugin_instance: String) -> ValueListBuilder {
         self.plugin_instance = Some(plugin_instance);
         self
     }
 
+    /// The type instance is used to separate values of identical type which nonetheless belong to
+    /// one another. For instance, even though "free", "used", and "total" all have types of
+    /// "Memory" they are different type instances.
     pub fn type_instance(mut self, type_instance: String) -> ValueListBuilder {
         self.type_instance = Some(type_instance);
         self
     }
 
+    /// Override the machine's hostname that the observed values will be attributed to. Best to
+    /// override when observing values from another machine
     pub fn host(mut self, host: String) -> ValueListBuilder {
         self.host = Some(host);
         self
     }
 
+    /// The timestamp at which the value was collected
     pub fn time(mut self, time: u64) -> ValueListBuilder {
         self.time = Some(time);
         self
     }
 
+    /// The interval in which new values are to be expected
     pub fn interval(mut self, interval: u64) -> ValueListBuilder {
         self.interval = Some(interval);
         self
     }
 
+    /// Submits the observed values to collectd and returns errors if encountered
     pub fn submit(self) -> Result<()> {
         let mut v: Vec<value_t> = self.values.into_iter().map(|x| x.into()).collect();
         let plugin_instance = self.plugin_instance
