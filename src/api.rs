@@ -129,7 +129,7 @@ impl ValueListBuilder {
     /// collectd receives the values from `submit`. Use only if there is a significant delay is
     /// metrics gathering or if submitting values from the past.
     pub fn time<Tz: TimeZone>(mut self, dt: DateTime<Tz>) -> ValueListBuilder {
-        let nanos = (dt.timestamp() as u64) + (dt.timestamp_subsec_nanos() as u64);
+        let nanos = (dt.timestamp() as u64) + u64::from(dt.timestamp_subsec_nanos());
         self.time = Some(nanos_to_collectd(nanos));
         self
     }
@@ -206,7 +206,7 @@ fn to_array_res(s: &str) -> Result<[c_char; ARR_LENGTH]> {
 /// The time is stored at a 2^-30 second resolution, i.e. the most significant 34 bit are used to
 /// store the time in seconds, the least significant bits store the sub-second part in something
 /// very close to nanoseconds. *The* big advantage of storing time in this manner is that comparing
-/// times and calculating differences is as simple as it is with "time_t", i.e. a simple integer
+/// times and calculating differences is as simple as it is with `time_t`, i.e. a simple integer
 /// comparison / subtraction works.
 fn nanos_to_collectd(nanos: u64) -> u64 {
     ((nanos / 1_000_000_000) << 30) | ((((nanos % 1_000_000_000) << 30) + 500_000_000) / 1_000_000_000)
