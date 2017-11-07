@@ -135,6 +135,9 @@ impl ValueListBuilder {
             .map(|x| to_array_res(&x))
             .unwrap_or_else(|| Ok([0i8; ARR_LENGTH]))?;
 
+        // In collectd 5.7, it is no longer required to supply hostname_g for default hostname,
+        // an empty array will get replaced with the hostname. However, since we're collectd 5.5
+        // compatible, we use hostname_g in both circumstances, as it is not harmful
         let host = self.host
             .map(|x| to_array_res(&x))
             .unwrap_or_else(|| unsafe { Ok(hostname_g) })?;
@@ -165,6 +168,9 @@ impl ValueListBuilder {
     }
 }
 
+/// Collectd stores textual data in fixed sized arrays, so this function will convert a string
+/// slice into array compatible with collectd's text fields. Be aware that `ARR_LENGTH` is 64
+/// before collectd 5.7
 fn to_array_res(s: &str) -> Result<[c_char; ARR_LENGTH]> {
     let value = CString::new(s)?;
     let data = value.as_bytes_with_nul();
@@ -181,10 +187,25 @@ fn to_array_res(s: &str) -> Result<[c_char; ARR_LENGTH]> {
 
 #[cfg(test)]
 mod tests {
-    use std::mem;
     use super::*;
+    use std::os::raw::c_char;
+
     #[test]
-    fn it_works2() {
-        assert_eq!(8, mem::size_of::<value_t>());
+    fn test_to_array() {
+        let actual = to_array_res("Hi");
+        assert!(actual.is_ok());
+        assert_eq!(&actual.unwrap()[..2], &[b'H' as c_char, b'i' as c_char]);
+    }
+
+    #[test]
+    fn test_to_array_res_nul() {
+        let actual = to_array_res("hi\0");
+        assert!(actual.is_err());
+    }
+
+    #[test]
+    fn test_to_array_res_too_long() {
+        let actual = to_array_res("Hello check this out, I am a long string and there is no signs of stopping; well, maybe one day I will stop when I get too longggggggggggggggggggggggggggggggggggg");
+        assert!(actual.is_err());
     }
 }
