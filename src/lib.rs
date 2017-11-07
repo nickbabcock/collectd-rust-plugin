@@ -1,6 +1,6 @@
+extern crate chrono;
 #[macro_use]
 extern crate error_chain;
-extern crate chrono;
 
 mod bindings;
 mod api;

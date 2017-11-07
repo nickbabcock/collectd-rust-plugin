@@ -32,7 +32,6 @@ use self::errors::*;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Value {
-
     /// A COUNTER value is for continuous incrementing counters like the ifInOctets counter in a router.
     /// The COUNTER data source assumes that the observed value never decreases, except when it
     /// overflows. The update function takes the overflow into account. If a counter is reset to
@@ -137,7 +136,9 @@ impl ValueListBuilder {
     /// The interval in which new values are to be expected. This is typically handled at a global
     /// or plugin level. Use at your own discretion.
     pub fn interval(mut self, interval: Duration) -> ValueListBuilder {
-        let nanos = interval.num_nanoseconds().expect("intervals to be reasonable");
+        let nanos = interval
+            .num_nanoseconds()
+            .expect("intervals to be reasonable");
         self.interval = Some(nanos_to_collectd(nanos as u64));
         self
     }
@@ -209,7 +210,8 @@ fn to_array_res(s: &str) -> Result<[c_char; ARR_LENGTH]> {
 /// times and calculating differences is as simple as it is with `time_t`, i.e. a simple integer
 /// comparison / subtraction works.
 fn nanos_to_collectd(nanos: u64) -> u64 {
-    ((nanos / 1_000_000_000) << 30) | ((((nanos % 1_000_000_000) << 30) + 500_000_000) / 1_000_000_000)
+    ((nanos / 1_000_000_000) << 30)
+        | ((((nanos % 1_000_000_000) << 30) + 500_000_000) / 1_000_000_000)
 }
 
 
@@ -233,7 +235,9 @@ mod tests {
 
     #[test]
     fn test_to_array_res_too_long() {
-        let actual = to_array_res("Hello check this out, I am a long string and there is no signs of stopping; well, maybe one day I will stop when I get too longggggggggggggggggggggggggggggggggggg");
+        let actual = to_array_res(
+            "Hello check this out, I am a long string and there is no signs of stopping; well, maybe one day I will stop when I get too longggggggggggggggggggggggggggggggggggg",
+        );
         assert!(actual.is_err());
     }
 
@@ -244,6 +248,5 @@ mod tests {
         assert_eq!(nanos_to_collectd(1439981652801860766), 1546168526406004689);
         assert_eq!(nanos_to_collectd(1439981836985281914), 1546168724171447263);
         assert_eq!(nanos_to_collectd(1439981880053705608), 1546168770415815077);
-
     }
 }
