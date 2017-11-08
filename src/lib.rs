@@ -77,7 +77,7 @@ pub unsafe extern "C" fn my_config(key: *const c_char, value: *const c_char) -> 
     let value = CStr::from_ptr(value).to_owned();
 
     match parse_config(key.clone(), value.clone()) {
-        Ok(ret) => ret,
+        Ok(()) => 0,
         Err(ref e) => {
             let cs = CString::new(e.to_string()).unwrap();
             plugin_log(LOG_WARNING as i32, cs.as_ptr());
@@ -115,7 +115,7 @@ pub extern "C" fn my_read() -> c_int {
 }
 
 
-fn parse_config(key: CString, value: CString) -> Result<c_int> {
+fn parse_config(key: CString, value: CString) -> Result<()> {
     let key = key.into_string()?;
     let value = value.into_string()?;
     let keyed = unsafe {
@@ -131,7 +131,7 @@ fn parse_config(key: CString, value: CString) -> Result<c_int> {
         .parse::<f64>()
         .chain_err(|| ErrorKind::InvalidValue(key.clone(), value.clone()))?;
     *keyed = Some(val);
-    Ok(0)
+    Ok(())
 }
 
 fn log_entrance() {
