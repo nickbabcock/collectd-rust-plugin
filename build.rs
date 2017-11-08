@@ -18,7 +18,13 @@ fn main() {
         .blacklist_type("module_register");
 
     #[cfg(feature = "collectd-57")]
-    let bindings_builder = bindings_builder.clang_arg("-DCOLLECTD_NEW");
+    let bindings_builder = bindings_builder.clang_arg("-DCOLLECTD_57");
+
+    #[cfg(feature = "collectd-55")]
+    let bindings_builder = bindings_builder.clang_arg("-DCOLLECTD_55");
+
+    #[cfg(feature = "collectd-54")]
+    let bindings_builder = bindings_builder.clang_arg("-DCOLLECTD_54");
 
     let bindings = bindings_builder
         .generate()

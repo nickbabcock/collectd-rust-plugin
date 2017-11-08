@@ -1,9 +1,15 @@
 #include <dlfcn.h>
 #include <stdlib.h>
 
-// If we're dealing with pre-collectd 5.7, we need to pull in another header
-#ifndef COLLECTD_NEW
-#include <collectd/liboconfig/oconfig.h>
+#ifdef COLLECTD_55
+    #include <collectd/liboconfig/oconfig.h>
+    #include <collectd/core/daemon/plugin.h>
 #endif
 
-#include <collectd/core/daemon/plugin.h>
+#ifdef COLLECTD_54
+    #include <collectd/core/plugin.h>
+#endif
+
+#ifdef COLLECTD_57
+    #include <collectd/core/daemon/plugin.h>
+#endif
