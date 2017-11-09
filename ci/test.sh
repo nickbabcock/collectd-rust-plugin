@@ -1,7 +1,7 @@
 #!/bin/bash
 
 set -euo pipefail
-cargo test --features $VERSION
+cargo test --features collectd-54
 
 cp target/debug/libmyplugin.so /usr/lib/collectd/myplugin.so
 

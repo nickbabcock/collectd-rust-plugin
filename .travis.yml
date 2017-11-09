@@ -11,4 +11,4 @@ before_install:
   - 'sudo cp -r /usr/include/collectd/liboconfig /usr/include/collectd/core/.'
 
 install:
-  VERSION=collectd-54 ci/test.sh
+  ci/test.sh
