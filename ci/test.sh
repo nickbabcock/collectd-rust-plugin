@@ -7,7 +7,7 @@ cargo test --features collectd-54
 
 cp target/debug/libmyplugin.so /usr/lib/collectd/myplugin.so
 
-cat <<EOF >/etc/collectd/collectd.conf
+cat <<EOF | sudo tee /etc/collectd/collectd.conf
 Hostname "localhost"
 LoadPlugin myplugin
 LoadPlugin csv
@@ -21,8 +21,8 @@ LoadPlugin csv
 </Plugin>
 EOF
 
-service collectd start
+sudo service collectd start
 sleep 5
 
 grep '2.000000,10.000000,5.500000' /var/lib/collectd/csv/localhost/myplugin/load*
-
+exit $?
