@@ -22,7 +22,8 @@ LoadPlugin csv
 EOF
 
 sudo service collectd start
-sleep 5
+sleep 15
+sudo service collectd status
 
 grep '2.000000,10.000000,5.500000' /var/lib/collectd/csv/localhost/myplugin/load*
 exit $?
