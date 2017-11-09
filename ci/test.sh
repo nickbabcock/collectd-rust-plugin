@@ -5,7 +5,7 @@ set -euo pipefail
 cargo build --features collectd-54
 cargo test --features collectd-54
 
-cp target/debug/libmyplugin.so /usr/lib/collectd/myplugin.so
+sudo cp target/debug/libmyplugin.so /usr/lib/collectd/myplugin.so
 
 cat <<EOF | sudo tee /etc/collectd/collectd.conf
 Hostname "localhost"
