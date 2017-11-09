@@ -2,6 +2,7 @@
 
 set -euo pipefail
 
+source $HOME/.cargo/env
 cargo build --features $VERSION
 cargo test --features $VERSION
 cargo test-junit --name TestResults.xml --features $VERSION
