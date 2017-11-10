@@ -3,7 +3,7 @@ def runs = ['14.04':'collectd-54',
             '17.04':'collectd-57']
 
 def steps = runs.collectEntries {
-    ['ubuntu $it.key': job(it.key, it.value)]
+    ["ubuntu $it.key": job(it.key, it.value)]
 }
 
 parallel steps
