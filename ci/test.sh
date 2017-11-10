@@ -7,7 +7,7 @@ cargo build --features $VERSION
 cargo test --features $VERSION
 cargo test-junit --name TestResults.xml --features $VERSION
 
-cat <<EOF | sudo tee /etc/collectd/collectd.conf
+cat <<EOF | tee /etc/collectd/collectd.conf
 Hostname "localhost"
 LoadPlugin myplugin
 LoadPlugin csv
@@ -21,9 +21,9 @@ LoadPlugin csv
 </Plugin>
 EOF
 
-sudo service collectd start
+service collectd start
 sleep 15
-sudo service collectd status
+service collectd status
 
 grep '2.000000,10.000000,5.500000' /var/lib/collectd/csv/localhost/myplugin/load*
 exit $?
