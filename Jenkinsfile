@@ -15,8 +15,9 @@ def job(os, collectd) {
             sh 'ci/setup.sh'
             if (!os.equals("17.04")) {
                 sh 'wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -'
-                sh 'apt-get install -y llvm-3.9-dev libclang-3.9-dev clang-3.9'
             }
+
+            sh 'apt-get install -y llvm-3.9-dev libclang-3.9-dev clang-3.9'
 
             if (os.equals("14.04")) {
                 sh 'cp -r /usr/include/collectd/liboconfig /usr/include/collectd/core/.'
