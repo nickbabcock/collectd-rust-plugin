@@ -22,7 +22,7 @@ def job(os, collectd) {
                 sh 'cp -r /usr/include/collectd/liboconfig /usr/include/collectd/core/.'
             }
 
-            sh 'VERSION=$collectd ci/test.sh'
+            sh "VERSION=${collectd} ci/test.sh"
             junit 'TestResults.xml'
         }
     }
