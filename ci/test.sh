@@ -5,7 +5,7 @@ set -euo pipefail
 source $HOME/.cargo/env
 cargo build --features $VERSION
 cargo test --features $VERSION
-cargo test-junit --name TestResults.xml --features $VERSION
+cargo test-junit --name TestResults --features $VERSION
 cp target/debug/libmyplugin.so /usr/lib/collectd/myplugin.so
 
 cat <<EOF | tee /etc/collectd/collectd.conf
