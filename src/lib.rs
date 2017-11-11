@@ -71,6 +71,7 @@ pub extern "C" fn module_register() {
     mem::forget(config_keys);
 }
 
+/// Every key value pair that Collectd finds in our configuration is passed into this function.
 #[no_mangle]
 pub unsafe extern "C" fn my_config(key: *const c_char, value: *const c_char) -> c_int {
     let key = CStr::from_ptr(key).to_owned();
@@ -102,6 +103,8 @@ pub extern "C" fn my_read() -> c_int {
         .values(values)
         .submit();
 
+    // If collectd submission failed return a -1. Collectd will backoff calling
+    // our plugin
     match submission {
         Ok(_) => 0,
         Err(ref e) => {
@@ -113,7 +116,6 @@ pub extern "C" fn my_read() -> c_int {
         }
     }
 }
-
 
 fn parse_config(key: CString, value: CString) -> Result<()> {
     let key = key.into_string()?;
