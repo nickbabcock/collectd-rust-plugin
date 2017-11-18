@@ -73,6 +73,9 @@ pub unsafe extern "C" fn my_config(key: *const c_char, value: *const c_char) -> 
 pub extern "C" fn my_read() -> c_int {
     log_entrance();
 
+    // Create a list of values to submit to collectd. We'll be sending in a vector representing the
+    // "load" type. Short-term load is first followed by mid-term and long-term. The number of
+    // values that you submit at a time depends on types.db in collectd configurations
     let values: Vec<Value> = unsafe {
         vec![
             Value::Gauge(SHORT_VALUE.unwrap_or(15.0)),
@@ -81,6 +84,7 @@ pub extern "C" fn my_read() -> c_int {
         ]
     };
 
+    // Submit our values to collectd. A plugin can submit any number of times.
     let submission = ValueListBuilder::new("myplugin", "load")
         .values(values)
         .submit();
