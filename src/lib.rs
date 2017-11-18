@@ -1,9 +1,11 @@
 extern crate chrono;
+extern crate failure;
 #[macro_use]
-extern crate error_chain;
+extern crate failure_derive;
 
 mod bindings;
 mod api;
+mod errors;
 
 use std::os::raw::{c_char, c_int};
 use std::ffi::{CStr, CString};
@@ -11,29 +13,9 @@ use std::ptr;
 use bindings::{plugin_log, plugin_register_config, plugin_register_read, LOG_INFO, LOG_WARNING};
 use api::{Value, ValueListBuilder};
 use std::mem;
+use failure::Error;
+use errors::ConfigError;
 
-pub mod errors {
-    use std::ffi::IntoStringError;
-    use std::num::ParseFloatError;
-    error_chain! {
-        foreign_links {
-            IntoString(IntoStringError);
-            ParseNumber(ParseFloatError);
-        }
-        errors {
-            InvalidValue(key: String, value: String) {
-                description("value could not be parsed")
-                display("value {} for key {} is not a number", key, value)
-            }
-            UnrecognizedKey(key: String) {
-                description("config key not recognized")
-                display("config key {} not recognized", key)
-            }
-        }
-    }
-}
-
-use self::errors::*;
 
 static mut SHORT_VALUE: Option<f64> = None;
 static mut MID_VALUE: Option<f64> = None;
@@ -80,7 +62,7 @@ pub unsafe extern "C" fn my_config(key: *const c_char, value: *const c_char) -> 
     match parse_config(key.clone(), value.clone()) {
         Ok(()) => 0,
         Err(ref e) => {
-            let cs = CString::new(e.to_string()).unwrap();
+            let cs = CString::new(format!("Error: {}", e)).unwrap();
             plugin_log(LOG_WARNING as i32, cs.as_ptr());
             -1
         }
@@ -117,7 +99,7 @@ pub extern "C" fn my_read() -> c_int {
     }
 }
 
-fn parse_config(key: CString, value: CString) -> Result<()> {
+fn parse_config(key: CString, value: CString) -> Result<(), Error> {
     let key = key.into_string()?;
     let value = value.into_string()?;
     let keyed = unsafe {
@@ -125,13 +107,17 @@ fn parse_config(key: CString, value: CString) -> Result<()> {
             "Short" => Ok(&mut SHORT_VALUE),
             "Mid" => Ok(&mut MID_VALUE),
             "Long" => Ok(&mut LONG_VALUE),
-            _ => Err(ErrorKind::UnrecognizedKey(key.clone())),
+            _ => Err(ConfigError::UnrecognizedKey(key.clone())),
         }
     }?;
 
     let val = value
         .parse::<f64>()
-        .chain_err(|| ErrorKind::InvalidValue(key.clone(), value.clone()))?;
+        .map_err(|x| ConfigError::InvalidValue {
+            key: key.clone(),
+            value: value.clone(),
+            err: x
+        })?;
     *keyed = Some(val);
     Ok(())
 }

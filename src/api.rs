@@ -4,31 +4,11 @@ use bindings::{hostname_g, plugin_dispatch_values, value_list_t, value_t, ARR_LE
 use std::os::raw::c_char;
 use chrono::prelude::*;
 use chrono::Duration;
-use std::ffi::CString;
+use std::ffi::{CString};
+use failure::{Error, ResultExt};
 use ptr;
+use errors::{ArrayError, SubmitError};
 
-pub mod errors {
-    use std::ffi::NulError;
-    use bindings::ARR_LENGTH;
-    error_chain! {
-        foreign_links {
-            NullPresent(NulError);
-        }
-
-        errors {
-            TooLong(t: usize) {
-                description("String is too long")
-                display("Length of {} is too long. Max: {}", t, ARR_LENGTH)
-            }
-            DispatchError(ret: i32) {
-                description("plugin_dispatch_values returned an error status code")
-                display("plugin_dispatch_values returned an error status code: {}", ret)
-            }
-        }
-    }
-}
-
-use self::errors::*;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Value {
@@ -144,21 +124,21 @@ impl ValueListBuilder {
     }
 
     /// Submits the observed values to collectd and returns errors if encountered
-    pub fn submit(self) -> Result<()> {
+    pub fn submit(self) -> Result<(), Error> {
         let mut v: Vec<value_t> = self.values.into_iter().map(|x| x.into()).collect();
         let plugin_instance = self.plugin_instance
-            .map(|x| to_array_res(&x))
+            .map(|x| to_array_res(&x).context("plugin_instance"))
             .unwrap_or_else(|| Ok([0i8; ARR_LENGTH]))?;
 
         let type_instance = self.type_instance
-            .map(|x| to_array_res(&x))
+            .map(|x| to_array_res(&x).context("type_instance"))
             .unwrap_or_else(|| Ok([0i8; ARR_LENGTH]))?;
 
         // In collectd 5.7, it is no longer required to supply hostname_g for default hostname,
         // an empty array will get replaced with the hostname. However, since we're collectd 5.5
         // compatible, we use hostname_g in both circumstances, as it is not harmful
         let host = self.host
-            .map(|x| to_array_res(&x))
+            .map(|x| to_array_res(&x).context("host"))
             .unwrap_or_else(|| unsafe { Ok(hostname_g) })?;
 
         #[cfg(feature = "collectd-57")]
@@ -182,7 +162,7 @@ impl ValueListBuilder {
 
         match unsafe { plugin_dispatch_values(&list) } {
             0 => Ok(()),
-            i => Err(Error::from(ErrorKind::DispatchError(i))),
+            i => Err(SubmitError::DispatchError(i).into()),
         }
     }
 }
@@ -190,11 +170,11 @@ impl ValueListBuilder {
 /// Collectd stores textual data in fixed sized arrays, so this function will convert a string
 /// slice into array compatible with collectd's text fields. Be aware that `ARR_LENGTH` is 64
 /// before collectd 5.7
-fn to_array_res(s: &str) -> Result<[c_char; ARR_LENGTH]> {
+fn to_array_res(s: &str) -> Result<[c_char; ARR_LENGTH], ArrayError> {
     let value = CString::new(s)?;
     let data = value.as_bytes_with_nul();
     if data.len() > ARR_LENGTH {
-        return Err(ErrorKind::TooLong(s.len()).into());
+        return Err(ArrayError::TooLong(s.len()));
     }
 
     let mut arr = [0; ARR_LENGTH];
