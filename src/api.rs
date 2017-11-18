@@ -4,7 +4,7 @@ use bindings::{hostname_g, plugin_dispatch_values, value_list_t, value_t, ARR_LE
 use std::os::raw::c_char;
 use chrono::prelude::*;
 use chrono::Duration;
-use std::ffi::{CString};
+use std::ffi::CString;
 use failure::{Error, ResultExt};
 use ptr;
 use errors::{ArrayError, SubmitError};

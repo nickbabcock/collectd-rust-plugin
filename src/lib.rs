@@ -111,13 +111,13 @@ fn parse_config(key: CString, value: CString) -> Result<(), Error> {
         }
     }?;
 
-    let val = value
-        .parse::<f64>()
-        .map_err(|x| ConfigError::InvalidValue {
+    let val = value.parse::<f64>().map_err(|x| {
+        ConfigError::InvalidValue {
             key: key.clone(),
             value: value.clone(),
-            err: x
-        })?;
+            err: x,
+        }
+    })?;
     *keyed = Some(val);
     Ok(())
 }

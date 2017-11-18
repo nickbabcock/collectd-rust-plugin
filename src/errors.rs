@@ -4,19 +4,20 @@ use std::ffi::NulError;
 #[derive(Fail, Debug)]
 pub enum ConfigError {
     #[fail(display = "value {} for key {} is not a number", key, value)]
-    InvalidValue { key: String, value: String, #[cause] err: ParseFloatError },
+    InvalidValue {
+        key: String,
+        value: String,
+        #[cause] err: ParseFloatError,
+    },
 
-    #[fail(display = "config key {} not recognized", _0)]
-    UnrecognizedKey(String),
+    #[fail(display = "config key {} not recognized", _0)] UnrecognizedKey(String),
 }
 
 #[derive(Fail, Debug)]
 pub enum ArrayError {
-    #[fail(display = "Null encountered in string")]
-    NullPresent(#[cause] NulError),
+    #[fail(display = "Null encountered in string")] NullPresent(#[cause] NulError),
 
-    #[fail(display = "Length of {} is too long", _0)]
-    TooLong(usize)
+    #[fail(display = "Length of {} is too long", _0)] TooLong(usize),
 }
 
 impl From<NulError> for ArrayError {
@@ -27,6 +28,5 @@ impl From<NulError> for ArrayError {
 
 #[derive(Fail, Debug)]
 pub enum SubmitError {
-    #[fail(display = "plugin_dispatch_values returned an error: {}", _0)]
-    DispatchError(i32)
+    #[fail(display = "plugin_dispatch_values returned an error: {}", _0)] DispatchError(i32),
 }
