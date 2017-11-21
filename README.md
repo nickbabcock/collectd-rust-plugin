@@ -1,6 +1,6 @@
 # A Collectd Plugin Written in Rust
 
-This repo demonstrates how to create a Collectd plugin written in Rust that uses [bindgen](https://github.com/rust-lang-nursery/rust-bindgen) to generate the ffi functions. If you want to write a collectd plugin start with this repo as it defines common functions and provides an ergonomic Rust structure on top of `value_list_t`.
+Collectd gathers system and application metrics and stores the values in any manner. Since Collectd provides a plugin API, this repo demonstrates how to create a Collectd plugin written in Rust that uses [bindgen](https://github.com/rust-lang-nursery/rust-bindgen) to generate the ffi functions. If you want to write a collectd plugin start with this repo as it defines common functions and provides an ergonomic Rust structure on top of `value_list_t`.
 
 Rust 1.19 or later is needed to build.
 
@@ -41,6 +41,23 @@ pub extern "C" fn my_read() -> c_int {
 }
 ```
 
+## Motivation
+
+There are four main ways to extend collectd:
+
+- Write plugin against the C api: `<collectd/core/daemon/plugin.h>`
+- Write plugin for [collectd-python](https://collectd.org/documentation/manpages/collectd-python.5.shtml)
+- Write plugin for [collectd-java](https://collectd.org/wiki/index.php/Plugin:Java)
+- Write a cli for the [exec plugin](https://collectd.org/documentation/manpages/collectd-exec.5.shtml)
+
+And my thoughts:
+
+- I'm not confident enough to write C without leaks and there isn't a great package manager for C.
+- Python and Java aren't self contained, aren't necessarily deployed on the server, are more heavy weight, and I suspect that maintenance plays second fiddle to the C api.
+- The exec plugin is costly as it creates a new process for every collection
+
+Rust's combination of ecosystem, package manager, C ffi, single file, and optimized library made it seem like a natural choice.
+
 ## To Build
 
 After cloning this repo, you'll need to ensure that a few dependencies are satisfied. Don't worry these aren't needed on the deployed server.
@@ -53,7 +70,8 @@ apt install collectd-dev
 # wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key|sudo apt-key add -
 # apt-get install llvm-3.9-dev libclang-3.9-dev clang-3.9
 
-# Must supply the version of collectd you're building against
+# Must supply the version of collectd you're building against (see the list
+# above for supported versions)
 cargo build --features collectd-54
 
 # Copy plugin (and rename it) to plugin directory as Collectd assumes a
