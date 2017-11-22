@@ -3,12 +3,25 @@ use failure::Error;
 pub trait Plugin {
     fn name(&self) -> &str;
 
-    fn can_config(&self) -> bool;
-    fn config_keys(&self) -> Vec<String>;
-    fn config_callback(&mut self, key: String, value: String) -> Result<(), Error>;
+    fn can_config(&self) -> bool {
+        false
+    }
 
-    fn can_report(&self) -> bool;
-    fn report_values(&self) -> Result<(), Error>;
+    fn config_keys(&self) -> Vec<String> {
+        unimplemented!()
+    }
+
+    fn config_callback(&mut self, _key: String, _value: String) -> Result<(), Error> {
+        unimplemented!()
+    }
+
+    fn can_report(&self) -> bool {
+        false
+    }
+
+    fn report_values(&self) -> Result<(), Error> {
+        unimplemented!()
+    }
 }
 
 
