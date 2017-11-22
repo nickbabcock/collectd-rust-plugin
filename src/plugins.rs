@@ -19,7 +19,7 @@ pub trait Plugin {
         false
     }
 
-    fn report_values(&self) -> Result<(), Error> {
+    fn report_values(&mut self) -> Result<(), Error> {
         unimplemented!()
     }
 }
