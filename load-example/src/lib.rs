@@ -79,6 +79,3 @@ lazy_static! {
 }
 
 collectd_plugin!(PLUGIN);
-
-fn main() {
-}

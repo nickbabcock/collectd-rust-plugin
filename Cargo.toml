@@ -10,10 +10,12 @@ bindgen = { version = "0.31.3", optional = true }
 chrono = "0.4.0"
 failure = "0.1.0"
 failure_derive = "0.1.0"
-lazy_static = "0.2.11"
 
 [features]
 collectd-54 = []
 collectd-55 = []
 collectd-57 = []
 default = []
+
+[workspace]
+members = ['load-example']
