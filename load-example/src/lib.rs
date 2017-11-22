@@ -1,7 +1,10 @@
-#[macro_use] extern crate collectd_plugin;
+#[macro_use]
+extern crate collectd_plugin;
 extern crate failure;
-#[macro_use] extern crate failure_derive;
-#[macro_use] extern crate lazy_static;
+#[macro_use]
+extern crate failure_derive;
+#[macro_use]
+extern crate lazy_static;
 
 use std::num::ParseFloatError;
 use collectd_plugin::{Plugin, Value, ValueListBuilder};
@@ -28,11 +31,11 @@ struct MyLoadPlugin {
 
 fn parse_number(value: &str) -> Result<f64, ConfigError> {
     value.parse::<f64>().map_err(|x| {
-            ConfigError::InvalidValue {
-                value: value.to_owned(),
-                err: x,
-            }
-       })
+        ConfigError::InvalidValue {
+            value: value.to_owned(),
+            err: x,
+        }
+    })
 }
 
 impl Plugin for MyLoadPlugin {
@@ -45,18 +48,23 @@ impl Plugin for MyLoadPlugin {
     }
 
     fn config_keys(&self) -> Vec<String> {
-        vec![
-            "Short".to_string(),
-            "Mid".to_string(),
-            "Long".to_string(),
-        ]
+        vec!["Short".to_string(), "Mid".to_string(), "Long".to_string()]
     }
 
-    fn config_callback(&mut self, key: String, value: String) -> Result<(), Error>{
+    fn config_callback(&mut self, key: String, value: String) -> Result<(), Error> {
         match key.as_str() {
-            "Short" => {self.short = Some(parse_number(&value)?); Ok(())}
-            "Mid" => { self.mid = Some(parse_number(&value)?); Ok(()) }
-            "Long" => { self.long = Some(parse_number(&value)?); Ok(()) }
+            "Short" => {
+                self.short = Some(parse_number(&value)?);
+                Ok(())
+            }
+            "Mid" => {
+                self.mid = Some(parse_number(&value)?);
+                Ok(())
+            }
+            "Long" => {
+                self.long = Some(parse_number(&value)?);
+                Ok(())
+            }
             _ => Err(ConfigError::UnrecognizedKey(key.clone()).into()),
         }
     }
@@ -70,10 +78,10 @@ impl Plugin for MyLoadPlugin {
         // "load" type. Short-term load is first followed by mid-term and long-term. The number of
         // values that you submit at a time depends on types.db in collectd configurations
         let values: Vec<Value> = vec![
-                Value::Gauge(self.short.unwrap_or(15.0)),
-                Value::Gauge(self.mid.unwrap_or(10.0)),
-                Value::Gauge(self.long.unwrap_or(12.0)),
-            ];
+            Value::Gauge(self.short.unwrap_or(15.0)),
+            Value::Gauge(self.mid.unwrap_or(10.0)),
+            Value::Gauge(self.long.unwrap_or(12.0)),
+        ];
 
         // Submit our values to collectd. A plugin can submit any number of times.
         ValueListBuilder::new("myplugin", "load")

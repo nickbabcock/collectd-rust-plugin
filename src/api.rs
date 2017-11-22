@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
-use bindings::{hostname_g, plugin_dispatch_values, value_list_t, value_t, ARR_LENGTH, plugin_log, LOG_ERR, LOG_NOTICE, LOG_DEBUG, LOG_INFO, LOG_WARNING};
+use bindings::{hostname_g, plugin_dispatch_values, plugin_log, value_list_t, value_t, ARR_LENGTH,
+               LOG_DEBUG, LOG_ERR, LOG_INFO, LOG_NOTICE, LOG_WARNING};
 use std::os::raw::c_char;
 use std::ptr;
 use chrono::prelude::*;

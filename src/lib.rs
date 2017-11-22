@@ -8,6 +8,6 @@ mod api;
 mod errors;
 mod plugins;
 
-pub use api::{Value, ValueListBuilder, LogLevel, collectd_log};
-pub use errors::{SubmitError, ArrayError};
+pub use api::{collectd_log, LogLevel, Value, ValueListBuilder};
+pub use errors::{ArrayError, SubmitError};
 pub use plugins::Plugin;
