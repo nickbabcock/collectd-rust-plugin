@@ -1,14 +1,22 @@
 #![allow(dead_code)]
 
-use bindings::{hostname_g, plugin_dispatch_values, value_list_t, value_t, ARR_LENGTH};
+use bindings::{hostname_g, plugin_dispatch_values, value_list_t, value_t, ARR_LENGTH, plugin_log, LOG_ERR, LOG_NOTICE, LOG_DEBUG, LOG_INFO, LOG_WARNING};
 use std::os::raw::c_char;
+use std::ptr;
 use chrono::prelude::*;
 use chrono::Duration;
 use std::ffi::CString;
 use failure::{Error, ResultExt};
-use ptr;
 use errors::{ArrayError, SubmitError};
 
+#[repr(u32)]
+pub enum LogLevel {
+    Error = LOG_ERR,
+    Warning = LOG_WARNING,
+    Notice = LOG_NOTICE,
+    Info = LOG_INFO,
+    Debug = LOG_DEBUG,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Value {
@@ -192,6 +200,13 @@ fn to_array_res(s: &str) -> Result<[c_char; ARR_LENGTH], ArrayError> {
 fn nanos_to_collectd(nanos: u64) -> u64 {
     ((nanos / 1_000_000_000) << 30)
         | ((((nanos % 1_000_000_000) << 30) + 500_000_000) / 1_000_000_000)
+}
+
+pub fn collectd_log(lvl: LogLevel, message: &str) {
+    let cs = CString::new(message).expect("Collectd log to not contain nulls");
+    unsafe {
+        plugin_log(lvl as i32, cs.as_ptr());
+    }
 }
 
 

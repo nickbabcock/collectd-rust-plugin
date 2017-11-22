@@ -3,10 +3,16 @@ extern crate failure;
 #[macro_use]
 extern crate failure_derive;
 
-mod bindings;
+pub mod bindings;
 mod api;
 mod errors;
+mod plugins;
 
+pub use api::{Value, ValueListBuilder, LogLevel, collectd_log};
+pub use errors::{SubmitError, ArrayError};
+pub use plugins::Plugin;
+
+/*
 use std::os::raw::{c_char, c_int};
 use std::ffi::{CStr, CString};
 use std::ptr;
@@ -133,3 +139,4 @@ fn log_entrance() {
         plugin_log(LOG_INFO as i32, cs.as_ptr());
     }
 }
+*/

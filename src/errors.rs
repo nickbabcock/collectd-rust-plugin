@@ -1,17 +1,4 @@
-use std::num::ParseFloatError;
 use std::ffi::NulError;
-
-#[derive(Fail, Debug)]
-pub enum ConfigError {
-    #[fail(display = "value {} for key {} is not a number", key, value)]
-    InvalidValue {
-        key: String,
-        value: String,
-        #[cause] err: ParseFloatError,
-    },
-
-    #[fail(display = "config key {} not recognized", _0)] UnrecognizedKey(String),
-}
 
 #[derive(Fail, Debug)]
 pub enum ArrayError {
