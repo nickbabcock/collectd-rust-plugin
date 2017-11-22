@@ -2,10 +2,16 @@ use failure::Error;
 
 pub trait Plugin {
     fn name(&self) -> &str;
+
+    fn can_config(&self) -> bool;
     fn config_keys(&self) -> Vec<String>;
     fn config_callback(&mut self, key: String, value: String) -> Result<(), Error>;
+
+    fn can_report(&self) -> bool;
     fn report_values(&self) -> Result<(), Error>;
 }
+
+
 
 #[macro_export]
 macro_rules! collectd_plugin {
@@ -17,35 +23,41 @@ macro_rules! collectd_plugin {
         use collectd_plugin::{LogLevel, collectd_log};
 
         #[no_mangle]
-        pub extern "C" fn module_register2() {
+        pub extern "C" fn module_register() {
             let pl = $plugin.lock().unwrap();
 
             // Use expects for assertions -- no one really should be passing us strings that
             // contain nulls
             let s = CString::new(pl.name()).expect("Plugin name to not contain nulls");
 
-            let ck: Vec<CString> = pl.config_keys()
-                .into_iter()
-                .map(|x| CString::new(x).expect("Config key to not contain nulls"))
-                .collect();
-
-            // Now grab all the pointers to the c strings for ffi
-            let mut pointers: Vec<*const c_char> = ck.iter().map(|arg| arg.as_ptr()).collect();
-
             unsafe {
-                plugin_register_read(s.as_ptr(), Some(my_plugin_read));
-                plugin_register_config(
-                    s.as_ptr(),
-                    Some(my_config),
-                    pointers.as_mut_ptr(),
-                    pointers.len() as i32,
-                );
-            }
+                if pl.can_report() {
+                    plugin_register_read(s.as_ptr(), Some(my_plugin_read));
+                }
 
-            // We must forget the vector as collectd hangs on to the info and if we were to drop
-            // it, collectd would segfault trying to read the newly freed up data structure
-            mem::forget(ck);
-            mem::forget(pointers);
+                if pl.can_config() {
+                    let ck: Vec<CString> = pl.config_keys()
+                        .into_iter()
+                        .map(|x| CString::new(x).expect("Config key to not contain nulls"))
+                        .collect();
+
+                    // Now grab all the pointers to the c strings for ffi
+                    let mut pointers: Vec<*const c_char> = ck.iter().map(|arg| arg.as_ptr()).collect();
+
+                    plugin_register_config(
+                        s.as_ptr(),
+                        Some(my_config),
+                        pointers.as_mut_ptr(),
+                        pointers.len() as i32,
+                    );
+
+                    // We must forget the vector as collectd hangs on to the info and if we were to
+                    // drop it, collectd would segfault trying to read the newly freed up data
+                    // structure
+                    mem::forget(ck);
+                    mem::forget(pointers);
+                }
+            }
         }
 
         #[no_mangle]

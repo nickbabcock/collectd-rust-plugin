@@ -40,6 +40,10 @@ impl Plugin for MyLoadPlugin {
         "myplugin"
     }
 
+    fn can_config(&self) -> bool {
+        true
+    }
+
     fn config_keys(&self) -> Vec<String> {
         vec![
             "Short".to_string(),
@@ -55,6 +59,10 @@ impl Plugin for MyLoadPlugin {
             "Long" => { self.long = Some(parse_number(&value)?); Ok(()) }
             _ => Err(ConfigError::UnrecognizedKey(key.clone()).into()),
         }
+    }
+
+    fn can_report(&self) -> bool {
+        true
     }
 
     fn report_values(&self) -> Result<(), Error> {
