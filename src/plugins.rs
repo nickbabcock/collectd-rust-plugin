@@ -1,30 +1,33 @@
 use failure::Error;
+use errors::NotImplemented;
+
+bitflags! {
+    #[derive(Default)]
+    pub struct PluginCapabilities: u32 {
+        const CONFIG = 0b00000001;
+        const READ =   0b00000010;
+    }
+}
 
 pub trait Plugin {
     fn name(&self) -> &str;
 
-    fn can_config(&self) -> bool {
-        false
+    fn capabilities(&self) -> PluginCapabilities {
+        PluginCapabilities::default()
     }
 
     fn config_keys(&self) -> Vec<String> {
-        unimplemented!()
+        vec![]
     }
 
     fn config_callback(&mut self, _key: String, _value: String) -> Result<(), Error> {
-        unimplemented!()
-    }
-
-    fn can_report(&self) -> bool {
-        false
+        Err(NotImplemented())
     }
 
     fn report_values(&mut self) -> Result<(), Error> {
-        unimplemented!()
+        Err(NotImplemented())
     }
 }
-
-
 
 #[macro_export]
 macro_rules! collectd_plugin {
@@ -44,11 +47,11 @@ macro_rules! collectd_plugin {
             let s = CString::new(pl.name()).expect("Plugin name to not contain nulls");
 
             unsafe {
-                if pl.can_report() {
+                if pl.capabilities().intersects(PluginCapabilities::READ)  {
                     plugin_register_read(s.as_ptr(), Some(my_plugin_read));
                 }
 
-                if pl.can_config() {
+                if pl.capabilities().intersects(PluginCapabilities::CONFIG) {
                     let ck: Vec<CString> = pl.config_keys()
                         .into_iter()
                         .map(|x| CString::new(x).expect("Config key to not contain nulls"))

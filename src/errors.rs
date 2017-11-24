@@ -17,3 +17,7 @@ impl From<NulError> for ArrayError {
 pub enum SubmitError {
     #[fail(display = "plugin_dispatch_values returned an error: {}", _0)] DispatchError(i32),
 }
+
+#[derive(Fail, Debug)]
+#[fail(display = "Function is not implemented")]
+pub struct NotImplemented;
