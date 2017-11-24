@@ -12,4 +12,4 @@ mod plugins;
 
 pub use api::{collectd_log, LogLevel, Value, ValueListBuilder};
 pub use errors::{ArrayError, SubmitError};
-pub use plugins::Plugin;
+pub use plugins::{Plugin, PluginCapabilities};

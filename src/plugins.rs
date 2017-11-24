@@ -21,11 +21,11 @@ pub trait Plugin {
     }
 
     fn config_callback(&mut self, _key: String, _value: String) -> Result<(), Error> {
-        Err(NotImplemented())
+        Err(Error::from(NotImplemented))
     }
 
     fn report_values(&mut self) -> Result<(), Error> {
-        Err(NotImplemented())
+        Err(Error::from(NotImplemented))
     }
 }
 

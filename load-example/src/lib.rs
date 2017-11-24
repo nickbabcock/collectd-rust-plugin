@@ -7,7 +7,7 @@ extern crate failure_derive;
 extern crate lazy_static;
 
 use std::num::ParseFloatError;
-use collectd_plugin::{Plugin, Value, ValueListBuilder};
+use collectd_plugin::{Plugin, Value, ValueListBuilder, PluginCapabilities};
 use failure::Error;
 use std::sync::Mutex;
 
@@ -43,8 +43,8 @@ impl Plugin for MyLoadPlugin {
         "myplugin"
     }
 
-    fn can_config(&self) -> bool {
-        true
+    fn capabilities(&self) -> PluginCapabilities {
+        PluginCapabilities::READ & PluginCapabilities::CONFIG
     }
 
     fn config_keys(&self) -> Vec<String> {
@@ -69,11 +69,7 @@ impl Plugin for MyLoadPlugin {
         }
     }
 
-    fn can_report(&self) -> bool {
-        true
-    }
-
-    fn report_values(&self) -> Result<(), Error> {
+    fn report_values(&mut self) -> Result<(), Error> {
         // Create a list of values to submit to collectd. We'll be sending in a vector representing the
         // "load" type. Short-term load is first followed by mid-term and long-term. The number of
         // values that you submit at a time depends on types.db in collectd configurations
