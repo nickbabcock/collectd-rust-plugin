@@ -26,7 +26,7 @@ impl Plugin for MyPlugin {
         let values = vec![Value::Gauge(15.0), Value::Gauge(10.0), Value::Gauge(12.0)];
 
         // Submit our values to collectd. A plugin can submit any number of times.
-        ValueListBuilder::new("myplugin", "load")
+        ValueListBuilder::new(self.name(), "load")
             .values(values)
             .submit()
     }

@@ -80,7 +80,7 @@ impl Plugin for MyLoadPlugin {
         ];
 
         // Submit our values to collectd. A plugin can submit any number of times.
-        ValueListBuilder::new("myplugin", "load")
+        ValueListBuilder::new(self.name(), "load")
             .values(values)
             .submit()
     }
