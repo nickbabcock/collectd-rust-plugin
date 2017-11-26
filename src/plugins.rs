@@ -2,6 +2,7 @@ use failure::Error;
 use errors::NotImplemented;
 
 bitflags! {
+    /// Bitflags of capabilities that a plugin advertises to collectd.
     #[derive(Default)]
     pub struct PluginCapabilities: u32 {
         const CONFIG = 0b00000001;
@@ -10,20 +11,32 @@ bitflags! {
 }
 
 pub trait Plugin {
+    /// Name of the plugin.
     fn name(&self) -> &str;
 
+    /// A plugin's capabilities. By default a plugin does nothing, but can advertise that it can
+    /// configure itself and / or report values.
     fn capabilities(&self) -> PluginCapabilities {
         PluginCapabilities::default()
     }
 
+    /// Configuration keys that the plugin configures itself with. Will only be consulted if the
+    /// plugin has at least a capability of `CONFIG`.
     fn config_keys(&self) -> Vec<String> {
         vec![]
     }
 
+    /// A key value pair related to the plugin that collectd parsed from the collectd configuration
+    /// files. Will only be called if a plugin has a capability of at least `CONFIG`
     fn config_callback(&mut self, _key: String, _value: String) -> Result<(), Error> {
         Err(Error::from(NotImplemented))
     }
 
+    /// This function is called when collectd expects the plugin to report values, which will occur
+    /// at the `Interval` defined in the global config (but can be overridden). Implementations
+    /// that expect to report values need to have at least have a capability of `READ`. An error in
+    /// reporting values will cause collectd to backoff exponentially until a delay of a day is
+    /// reached.
     fn read_values(&mut self) -> Result<(), Error> {
         Err(Error::from(NotImplemented))
     }

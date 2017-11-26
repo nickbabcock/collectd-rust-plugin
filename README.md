@@ -56,7 +56,7 @@ lazy_static! {
 collectd_plugin!(PLUGIN);
 ```
 
-Currently a global mutex for our plugin is necessary, as there are collectd configuration hooks where our plugin is provided with configuration values relevant to our plugin.
+Currently a global mutex for our plugin is necessary, as there are collectd configuration hooks where our plugin is provided with configuration values relevant to our plugin. Thus our plugin has to be globally accessible and mutable.
 
 ## Motivation
 

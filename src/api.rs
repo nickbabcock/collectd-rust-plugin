@@ -203,6 +203,12 @@ fn nanos_to_collectd(nanos: u64) -> u64 {
         | ((((nanos % 1_000_000_000) << 30) + 500_000_000) / 1_000_000_000)
 }
 
+/// Sends message and log level to collectd. Collectd configuration determines if a level is logged
+/// and where it is delivered.
+///
+/// # Panics
+///
+/// If a message containing a null character is given as a message this function will panic.
 pub fn collectd_log(lvl: LogLevel, message: &str) {
     let cs = CString::new(message).expect("Collectd log to not contain nulls");
     unsafe {
