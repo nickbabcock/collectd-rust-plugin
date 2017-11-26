@@ -12,6 +12,8 @@ This repo is tested on the following:
 
 ## Quickstart
 
+Below is a complete plugin that dummy reports [load](https://en.wikipedia.org/wiki/Load_(computing)) values to collectd, as it registers a `READ` hook.
+
 ```rust
 #[macro_use]
 extern crate collectd_plugin;
@@ -54,6 +56,8 @@ lazy_static! {
 collectd_plugin!(PLUGIN);
 ```
 
+Currently a global mutex for our plugin is necessary, as there are collectd configuration hooks where our plugin is provided with configuration values relevant to our plugin.
+
 ## Motivation
 
 There are four main ways to extend collectd:
@@ -62,12 +66,14 @@ There are four main ways to extend collectd:
 - Write plugin for [collectd-python](https://collectd.org/documentation/manpages/collectd-python.5.shtml)
 - Write plugin for [collectd-java](https://collectd.org/wiki/index.php/Plugin:Java)
 - Write a cli for the [exec plugin](https://collectd.org/documentation/manpages/collectd-exec.5.shtml)
+- Write a service that [writes to a unix socket](https://collectd.org/wiki/index.php/Plugin:UnixSock)
 
 And my thoughts:
 
 - I'm not confident enough to write C without leaks and there isn't a great package manager for C.
 - Python and Java aren't self contained, aren't necessarily deployed on the server, are more heavy weight, and I suspect that maintenance plays second fiddle to the C api.
 - The exec plugin is costly as it creates a new process for every collection
+- Depending on the circumstances, writing to a unix socket could be good fit, but I enjoy the ease of deployment, and the collectd integration -- there's no need to re-invent logging scheme, configuration, and system init files.
 
 Rust's combination of ecosystem, package manager, C ffi, single file, and optimized library made it seem like a natural choice.
 
