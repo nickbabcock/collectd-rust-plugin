@@ -24,7 +24,7 @@ pub trait Plugin {
         Err(Error::from(NotImplemented))
     }
 
-    fn report_values(&mut self) -> Result<(), Error> {
+    fn read_values(&mut self) -> Result<(), Error> {
         Err(Error::from(NotImplemented))
     }
 }
@@ -78,7 +78,7 @@ macro_rules! collectd_plugin {
 
         #[no_mangle]
         pub extern "C" fn my_plugin_read() -> c_int {
-            if let Err(ref e) = $plugin.lock().unwrap().report_values() {
+            if let Err(ref e) = $plugin.lock().unwrap().read_values() {
                 collectd_log(LogLevel::Error, &format!("read error: {}", e));
                 return -1;
             }

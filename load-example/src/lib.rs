@@ -69,7 +69,7 @@ impl Plugin for MyLoadPlugin {
         }
     }
 
-    fn report_values(&mut self) -> Result<(), Error> {
+    fn read_values(&mut self) -> Result<(), Error> {
         // Create a list of values to submit to collectd. We'll be sending in a vector representing the
         // "load" type. Short-term load is first followed by mid-term and long-term. The number of
         // values that you submit at a time depends on types.db in collectd configurations
