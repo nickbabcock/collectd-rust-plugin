@@ -1,9 +1,15 @@
-extern crate bindgen;
-
 use std::env;
 use std::path::PathBuf;
 
 fn main() {
+    // Write the bindings to the $OUT_DIR/bindings.rs file.
+    let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
+    bindings(out_path.join("bindings.rs"));
+}
+
+#[cfg(feature = "bindgen")]
+fn bindings(loc: PathBuf) {
+    extern crate bindgen;
     let bindings_builder = bindgen::Builder::default()
         .header("wrapper.h")
         .clang_arg("-DHAVE_CONFIG_H")
@@ -30,9 +36,23 @@ fn main() {
         .generate()
         .expect("Unable to generate bindings");
 
-    // Write the bindings to the $OUT_DIR/bindings.rs file.
-    let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
     bindings
-        .write_to_file(out_path.join("bindings.rs"))
+        .write_to_file(loc)
         .expect("Couldn't write bindings!");
+}
+
+#[cfg(not(feature = "bindgen"))]
+fn bindings(loc: PathBuf) {
+    use std::fs;
+
+    #[cfg(feature = "collectd-57")]
+    let path = PathBuf::from("src/bindings-57.rs");
+
+    #[cfg(feature = "collectd-55")]
+    let path = PathBuf::from("src/bindings-55.rs");
+
+    #[cfg(feature = "collectd-54")]
+    let path = PathBuf::from("src/bindings-55.rs");
+
+    fs::copy(path, loc).expect("File to copy");
 }
