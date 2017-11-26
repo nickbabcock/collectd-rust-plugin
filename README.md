@@ -25,7 +25,7 @@ use failure::Error;
 
 struct MyPlugin;
 
-impl Plugin for MyLoadPlugin {
+impl Plugin for MyPlugin {
     fn name(&self) -> &str {
         "myplugin"
     }
