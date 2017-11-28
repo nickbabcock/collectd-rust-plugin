@@ -2,6 +2,7 @@
 authors = ["Nick Babcock <nbabcock19@hotmail.com>"]
 name = "load-example"
 version = "0.2.0"
+publish = false
 
 [dependencies]
 failure = "0.1.0"
