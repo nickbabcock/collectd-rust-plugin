@@ -5,8 +5,8 @@ bitflags! {
     /// Bitflags of capabilities that a plugin advertises to collectd.
     #[derive(Default)]
     pub struct PluginCapabilities: u32 {
-        const CONFIG = 0b00000001;
-        const READ =   0b00000010;
+        const CONFIG = 0b0000_0001;
+        const READ =   0b0000_0010;
     }
 }
 

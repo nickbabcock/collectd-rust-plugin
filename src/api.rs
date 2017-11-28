@@ -116,7 +116,7 @@ impl ValueListBuilder {
     /// The timestamp at which the value was collected. Overrides the default time, which is when
     /// collectd receives the values from `submit`. Use only if there is a significant delay is
     /// metrics gathering or if submitting values from the past.
-    pub fn time<Tz: TimeZone>(mut self, dt: DateTime<Tz>) -> ValueListBuilder {
+    pub fn time<Tz: TimeZone>(mut self, dt: &DateTime<Tz>) -> ValueListBuilder {
         let nanos = (dt.timestamp() as u64) + u64::from(dt.timestamp_subsec_nanos());
         self.time = Some(nanos_to_collectd(nanos));
         self
