@@ -46,10 +46,10 @@ pub trait Plugin {
 macro_rules! collectd_plugin {
     ($plugin:ident) => {
         use std::os::raw::{c_char, c_int};
-        use collectd_plugin::bindings::{plugin_register_config, plugin_register_read};
+        use $crate::bindings::{plugin_register_config, plugin_register_read};
         use std::ffi::{CString, CStr};
         use std::mem;
-        use collectd_plugin::{LogLevel, collectd_log};
+        use $crate::{LogLevel, collectd_log};
 
         #[no_mangle]
         pub extern "C" fn module_register() {
