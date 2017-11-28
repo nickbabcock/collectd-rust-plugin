@@ -8,4 +8,4 @@ install:
 
 build: false
 test_script:
-  - cargo test --all --verbose --features 'collectd-55'
+  - cargo test --all --verbose --features collectd-55
