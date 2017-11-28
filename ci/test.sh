@@ -6,6 +6,11 @@ source $HOME/.cargo/env
 cargo build --features $VERSION
 cargo test --features $VERSION
 cargo test-junit --name TestResults --features $VERSION
+
+cargo build --features "$VERSION bindgen"
+cargo test --features "$VERSION bindgen"
+cargo test-junit --name TestResults-bindgen --features "$VERSION bindgen"
+
 cp target/debug/libmyplugin.so /usr/lib/collectd/myplugin.so
 
 cat <<EOF | tee /etc/collectd/collectd.conf

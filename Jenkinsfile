@@ -13,7 +13,7 @@ def job(os, collectd) {
         docker.image("ubuntu:${os}").inside {
             checkout scm
             sh "VERSION=${collectd} ci/full.sh"
-            junit 'TestResults.xml'
+            junit 'TestResults-*'
         }
     }
 }
