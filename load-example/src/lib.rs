@@ -7,7 +7,7 @@ extern crate failure_derive;
 extern crate lazy_static;
 
 use std::num::ParseFloatError;
-use collectd_plugin::{Plugin, Value, ValueListBuilder, PluginCapabilities};
+use collectd_plugin::{Plugin, PluginCapabilities, Value, ValueListBuilder};
 use failure::Error;
 use std::sync::Mutex;
 

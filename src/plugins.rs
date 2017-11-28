@@ -69,7 +69,9 @@ macro_rules! collectd_plugin {
                         .collect();
 
                     // Now grab all the pointers to the c strings for ffi
-                    let mut pointers: Vec<*const c_char> = ck.iter().map(|arg| arg.as_ptr()).collect();
+                    let mut pointers: Vec<*const c_char> = ck.iter()
+                        .map(|arg| arg.as_ptr())
+                        .collect();
 
                     plugin_register_config(
                         s.as_ptr(),
@@ -90,20 +92,29 @@ macro_rules! collectd_plugin {
         #[no_mangle]
         pub extern "C" fn my_plugin_read() -> std::os::raw::c_int {
             if let Err(ref e) = $plugin.lock().unwrap().read_values() {
-                $crate::collectd_log($crate::LogLevel::Error, &format!("read error: {}", e));
+                $crate::collectd_log(
+                    $crate::LogLevel::Error,
+                    &format!("read error: {}", e)
+                );
                 return -1;
             }
             0
         }
 
         #[no_mangle]
-        pub unsafe extern "C" fn my_config(key: *const std::os::raw::c_char, value: *const std::os::raw::c_char) -> std::os::raw::c_int {
+        pub unsafe extern "C" fn my_config(
+            key: *const std::os::raw::c_char,
+            value: *const std::os::raw::c_char
+        ) -> std::os::raw::c_int {
             use std::ffi::CStr;
 
             if let Ok(key) = CStr::from_ptr(key).to_owned().into_string() {
                 if let Ok(value) = CStr::from_ptr(value).to_owned().into_string() {
                     if let Err(ref e) = $plugin.lock().unwrap().config_callback(key, value) {
-                        $crate::collectd_log($crate::LogLevel::Error, &format!("config error: {}", e));
+                        $crate::collectd_log(
+                            $crate::LogLevel::Error,
+                            &format!("config error: {}", e)
+                        );
                         return -1;
                     } else {
                         return 0;

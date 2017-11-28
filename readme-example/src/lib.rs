@@ -4,7 +4,7 @@ extern crate failure;
 #[macro_use]
 extern crate lazy_static;
 
-use collectd_plugin::{Plugin, Value, ValueListBuilder, PluginCapabilities};
+use collectd_plugin::{Plugin, PluginCapabilities, Value, ValueListBuilder};
 use std::sync::Mutex;
 use failure::Error;
 
