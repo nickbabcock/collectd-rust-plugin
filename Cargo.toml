@@ -2,6 +2,12 @@
 authors = ["Nick Babcock <nbabcock19@hotmail.com>"]
 name = "collectd-plugin"
 version = "0.2.0"
+description = "Provides ergonomic API ontop of collectd's C interface and macro for defining plugins easier"
+repository = "https://github.com/nickbabcock/collectd-rust-plugin"
+readme = "README.md"
+keywords = ["collectd", "plugin"]
+categories = ["external-ffi-bindings"]
+license = "MIT"
 
 [build-dependencies]
 bindgen = { version = "0.31.3", optional = true }
