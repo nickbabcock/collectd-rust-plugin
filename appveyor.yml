@@ -14,4 +14,6 @@ install:
 
 build: false
 test_script:
-  - cargo test --all --verbose --features collectd-55
+  - cargo test --verbose --features collectd-55
+  - cargo rustc --features collectd-55 -p load-example -- --crate-type lib
+  - cargo rustc --features collectd-55 -p readme-example -- --crate-type lib
