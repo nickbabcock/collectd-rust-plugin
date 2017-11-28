@@ -45,14 +45,12 @@ pub trait Plugin {
 #[macro_export]
 macro_rules! collectd_plugin {
     ($plugin:ident) => {
-        use std::os::raw::{c_char, c_int};
-        use $crate::bindings::{plugin_register_config, plugin_register_read};
-        use std::ffi::{CString, CStr};
-        use std::mem;
-        use $crate::{LogLevel, collectd_log};
-
         #[no_mangle]
         pub extern "C" fn module_register() {
+            use std::os::raw::c_char;
+            use std::ffi::CString;
+            use $crate::bindings::{plugin_register_config, plugin_register_read};
+
             let pl = $plugin.lock().unwrap();
 
             // Use expects for assertions -- no one really should be passing us strings that
@@ -83,27 +81,29 @@ macro_rules! collectd_plugin {
                     // We must forget the vector as collectd hangs on to the info and if we were to
                     // drop it, collectd would segfault trying to read the newly freed up data
                     // structure
-                    mem::forget(ck);
-                    mem::forget(pointers);
+                    std::mem::forget(ck);
+                    std::mem::forget(pointers);
                 }
             }
         }
 
         #[no_mangle]
-        pub extern "C" fn my_plugin_read() -> c_int {
+        pub extern "C" fn my_plugin_read() -> std::os::raw::c_int {
             if let Err(ref e) = $plugin.lock().unwrap().read_values() {
-                collectd_log(LogLevel::Error, &format!("read error: {}", e));
+                $crate::collectd_log($crate::LogLevel::Error, &format!("read error: {}", e));
                 return -1;
             }
             0
         }
 
         #[no_mangle]
-        pub unsafe extern "C" fn my_config(key: *const c_char, value: *const c_char) -> c_int {
+        pub unsafe extern "C" fn my_config(key: *const std::os::raw::c_char, value: *const std::os::raw::c_char) -> std::os::raw::c_int {
+            use std::ffi::CStr;
+
             if let Ok(key) = CStr::from_ptr(key).to_owned().into_string() {
                 if let Ok(value) = CStr::from_ptr(value).to_owned().into_string() {
                     if let Err(ref e) = $plugin.lock().unwrap().config_callback(key, value) {
-                        collectd_log(LogLevel::Error, &format!("config error: {}", e));
+                        $crate::collectd_log($crate::LogLevel::Error, &format!("config error: {}", e));
                         return -1;
                     } else {
                         return 0;
