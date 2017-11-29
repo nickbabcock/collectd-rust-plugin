@@ -2,7 +2,7 @@
 
 Collectd gathers system and application metrics and stores the values in any manner. Since Collectd provides a plugin API, this repo demonstrates how to create a Collectd plugin written in Rust that uses [bindgen](https://github.com/rust-lang-nursery/rust-bindgen) to generate the ffi functions. If you want to write a collectd plugin start with this repo as it defines common functions and provides an ergonomic Rust structure on top of `value_list_t`.
 
-Rust 1.19 or later is needed to build.
+Rust 1.20 or later is needed to build.
 
 This repo is tested on the following:
 
