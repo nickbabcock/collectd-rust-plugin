@@ -52,7 +52,7 @@ fn bindings(loc: PathBuf) {
     let path = PathBuf::from("src/bindings-55.rs");
 
     #[cfg(feature = "collectd-54")]
-    let path = PathBuf::from("src/bindings-55.rs");
+    let path = PathBuf::from("src/bindings-54.rs");
 
     fs::copy(path, loc).expect("File to copy");
 }
