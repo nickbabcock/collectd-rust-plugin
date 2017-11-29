@@ -1,19 +1,16 @@
 os: Visual Studio 2015
 
-environment:
-  matrix:
-    - channel: stable
-      target: x86_64-pc-windows-gnu
-
 install:
   - appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
-  - rustup-init -yv --default-host %target%
+  - rustup-init -yv
   - set PATH=%PATH%;%USERPROFILE%\.cargo\bin
   - rustc -vV
   - cargo -vV
 
 build: false
+
+# Due to unresolved symbols that the plugin needs to reference from collectd
+# we can only build the core module. Collectd doesn't work on windows so this
+# isn't something we really should care about
 test_script:
-  - cargo test --verbose --features collectd-55
-  - cargo rustc --features collectd-55 -p load-example -- --crate-type lib
-  - cargo rustc --features collectd-55 -p readme-example -- --crate-type lib
+  - cargo build --features collectd-55
