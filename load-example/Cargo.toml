@@ -7,7 +7,7 @@ publish = false
 [dependencies]
 failure = "0.1.0"
 failure_derive = "0.1.0"
-lazy_static = "0.2.11"
+lazy_static = "0.2"
 
 [dependencies.collectd-plugin]
 path = ".."
