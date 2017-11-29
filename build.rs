@@ -45,7 +45,8 @@ fn bindings(loc: PathBuf) {
 fn bindings(loc: PathBuf) {
     use std::fs;
 
-    #[cfg(feature = "collectd-57")]
+    // Default to using collectd-57 bindings
+    #[allow(unused_variables)]
     let path = PathBuf::from("src/bindings-57.rs");
 
     #[cfg(feature = "collectd-55")]
