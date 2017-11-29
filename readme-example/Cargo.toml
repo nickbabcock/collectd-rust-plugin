@@ -13,5 +13,5 @@ path = ".."
 version = "0.2"
 
 [lib]
-crate-type = ["dylib"]
+crate-type = ["cdylib"]
 name = "readmeplugin"
