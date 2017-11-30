@@ -3,13 +3,13 @@
 set -euo pipefail
 
 source $HOME/.cargo/env
-cargo build --features $VERSION
-cargo test --features $VERSION
-cargo test-junit --name TestResults --features $VERSION
+cargo build --all --features $VERSION
+cargo test --all --features $VERSION
+cargo test-junit --name TestResults --all --features $VERSION
 
-cargo build --features "$VERSION bindgen"
-cargo test --features "$VERSION bindgen"
-cargo test-junit --name TestResults-bindgen --features "$VERSION bindgen"
+cargo build --all --features "$VERSION bindgen"
+cargo test --all --features "$VERSION bindgen"
+cargo test-junit --name TestResults-bindgen --all --features "$VERSION bindgen"
 
 cp target/debug/libmyplugin.so /usr/lib/collectd/myplugin.so
 
