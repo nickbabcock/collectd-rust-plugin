@@ -44,7 +44,7 @@ impl Plugin for MyLoadPlugin {
     }
 
     fn capabilities(&self) -> PluginCapabilities {
-        PluginCapabilities::READ & PluginCapabilities::CONFIG
+        PluginCapabilities::READ | PluginCapabilities::CONFIG
     }
 
     fn config_keys(&self) -> Vec<String> {

@@ -10,6 +10,16 @@ bitflags! {
     }
 }
 
+impl PluginCapabilities {
+    pub fn has_read(&self) -> bool {
+        self.intersects(PluginCapabilities::READ)
+    }
+
+    pub fn has_config(&self) -> bool {
+        self.intersects(PluginCapabilities::CONFIG)
+    }
+}
+
 pub trait Plugin {
     /// Name of the plugin.
     fn name(&self) -> &str;
@@ -58,11 +68,11 @@ macro_rules! collectd_plugin {
             let s = CString::new(pl.name()).expect("Plugin name to not contain nulls");
 
             unsafe {
-                if pl.capabilities().intersects(PluginCapabilities::READ)  {
+                if pl.capabilities().has_read()  {
                     plugin_register_read(s.as_ptr(), Some(my_plugin_read));
                 }
 
-                if pl.capabilities().intersects(PluginCapabilities::CONFIG) {
+                if pl.capabilities().has_config() {
                     let ck: Vec<CString> = pl.config_keys()
                         .into_iter()
                         .map(|x| CString::new(x).expect("Config key to not contain nulls"))
@@ -124,4 +134,20 @@ macro_rules! collectd_plugin {
             -1
         }
     };
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_plugin_capabilities() {
+        let capabilities = PluginCapabilities::READ | PluginCapabilities::CONFIG;
+        assert_eq!(capabilities.has_read(), true);
+        assert_eq!(capabilities.has_config(), true);
+
+        let capabilities = PluginCapabilities::READ;
+        assert_eq!(capabilities.has_read(), true);
+        assert_eq!(capabilities.has_config(), false);
+    }
 }
