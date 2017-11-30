@@ -1,8 +1,7 @@
 #[macro_use]
 extern crate collectd_plugin;
-extern crate failure;
 #[macro_use]
-extern crate failure_derive;
+extern crate failure;
 #[macro_use]
 extern crate lazy_static;
 

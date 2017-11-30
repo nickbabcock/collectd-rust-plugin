@@ -1,9 +1,8 @@
 #[macro_use]
 extern crate bitflags;
 extern crate chrono;
-extern crate failure;
 #[macro_use]
-extern crate failure_derive;
+extern crate failure;
 
 pub mod bindings;
 mod api;
