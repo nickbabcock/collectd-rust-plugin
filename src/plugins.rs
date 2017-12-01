@@ -69,7 +69,7 @@ macro_rules! collectd_plugin {
 
             unsafe {
                 if pl.capabilities().has_read()  {
-                    plugin_register_read(s.as_ptr(), Some(my_plugin_read));
+                    plugin_register_read(s.as_ptr(), Some(collectd_plugin_read));
                 }
 
                 if pl.capabilities().has_config() {
@@ -85,7 +85,7 @@ macro_rules! collectd_plugin {
 
                     plugin_register_config(
                         s.as_ptr(),
-                        Some(my_config),
+                        Some(collectd_plugin_config),
                         pointers.as_mut_ptr(),
                         pointers.len() as i32,
                     );
@@ -99,8 +99,7 @@ macro_rules! collectd_plugin {
             }
         }
 
-        #[no_mangle]
-        pub extern "C" fn my_plugin_read() -> std::os::raw::c_int {
+        unsafe extern fn collectd_plugin_read() -> std::os::raw::c_int {
             if let Err(ref e) = $plugin.lock().unwrap().read_values() {
                 $crate::collectd_log(
                     $crate::LogLevel::Error,
@@ -111,8 +110,7 @@ macro_rules! collectd_plugin {
             0
         }
 
-        #[no_mangle]
-        pub unsafe extern "C" fn my_config(
+        unsafe extern fn collectd_plugin_config(
             key: *const std::os::raw::c_char,
             value: *const std::os::raw::c_char
         ) -> std::os::raw::c_int {
