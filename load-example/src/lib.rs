@@ -2,13 +2,10 @@
 extern crate collectd_plugin;
 #[macro_use]
 extern crate failure;
-#[macro_use]
-extern crate lazy_static;
 
 use std::num::ParseFloatError;
 use collectd_plugin::{Plugin, PluginCapabilities, Value, ValueListBuilder};
 use failure::Error;
-use std::sync::Mutex;
 
 #[derive(Fail, Debug)]
 pub enum ConfigError {
@@ -85,8 +82,4 @@ impl Plugin for MyLoadPlugin {
     }
 }
 
-lazy_static! {
-    static ref PLUGIN: Mutex<MyLoadPlugin> = Mutex::new(MyLoadPlugin::default());
-}
-
-collectd_plugin!(PLUGIN);
+collectd_plugin!(MyLoadPlugin, Default::default);

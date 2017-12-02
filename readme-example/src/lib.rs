@@ -5,16 +5,10 @@ extern crate failure;
 use collectd_plugin::{Plugin, PluginCapabilities, Value, ValueListBuilder};
 use failure::Error;
 
+#[derive(Default)]
 struct MyPlugin;
 
-impl MyPlugin {
-    fn new() -> Self {
-        MyPlugin
-    }
-}
-
 impl Plugin for MyPlugin {
-    type Config = ();
     fn name(&self) -> &str {
         "myplugin"
     }
@@ -36,4 +30,4 @@ impl Plugin for MyPlugin {
     }
 }
 
-collectd_plugin!(MyPlugin, MyPlugin::new);
+collectd_plugin!(MyPlugin, Default::default);

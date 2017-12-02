@@ -7,6 +7,7 @@ bitflags! {
     pub struct PluginCapabilities: u32 {
         const CONFIG = 0b0000_0001;
         const READ =   0b0000_0010;
+        const INIT =   0b0000_0100;
     }
 }
 
@@ -18,25 +19,13 @@ impl PluginCapabilities {
     pub fn has_config(&self) -> bool {
         self.intersects(PluginCapabilities::CONFIG)
     }
-}
 
-pub trait PluginConfig {
-    /// A key value pair related to the plugin that collectd parsed from the collectd configuration
-    /// files. Will only be called if a plugin has a capability of at least `CONFIG`
-    fn config_callback(&mut self, _key: String, _value: String) -> Result<(), Error> {
-        Err(Error::from(NotImplemented))
-    }
-}
-
-impl PluginConfig for () {
-    fn config_callback(&mut self, _key: String, _value: String) -> Result<(), Error> {
-        Err(Error::from(NotImplemented))
+    pub fn has_init(&self) -> bool {
+        self.intersects(PluginCapabilities::INIT)
     }
 }
 
 pub trait Plugin {
-    type Config: PluginConfig + Default + Clone;
-
     /// Name of the plugin.
     fn name(&self) -> &str;
 
@@ -52,11 +41,11 @@ pub trait Plugin {
         vec![]
     }
 
-    fn create_config(&self) -> Result<Box<Self::Config>, Error> {
+    fn config_callback(&mut self, _key: String, _value: String) -> Result<(), Error> {
         Err(Error::from(NotImplemented))
     }
 
-    fn initialize_from_config(&mut self, _config: &Self::Config) -> Result<(), Error> {
+    fn initialize(&mut self) -> Result<(), Error> {
         Err(Error::from(NotImplemented))
     }
 
@@ -74,7 +63,8 @@ pub trait Plugin {
 macro_rules! collectd_plugin {
     ($type: ty, $plugin: path) => {
 
-        static mut COLLECTD_PLUGIN_CONFIG: Option<Box<<$type as $crate::Plugin>::Config>> = None;
+        // This global variable is only for the functions of config / init where we know that the
+        // function will be called only once from one thread.
         static mut COLLECTD_PLUGIN_FOR_INIT: *mut std::os::raw::c_void = std::ptr::null_mut();
 
         #[no_mangle]
@@ -84,9 +74,12 @@ macro_rules! collectd_plugin {
             use std::ptr;
             use $crate::bindings::{plugin_register_config, plugin_register_init, plugin_register_complex_read};
 
-            let pl = Box::new($plugin());
+            let pl: Box<$type> = Box::new($plugin());
+
+            // Grab all the properties we need until `into_raw` away
             let should_read = pl.capabilities().has_read();
             let should_config = pl.capabilities().has_config();
+            let should_init = pl.capabilities().has_init();
             let ck: Vec<CString> = pl.config_keys()
                 .into_iter()
                 .map(|x| CString::new(x).expect("Config key to not contain nulls"))
@@ -96,17 +89,10 @@ macro_rules! collectd_plugin {
             // contain nulls
             let s = CString::new(pl.name()).expect("Plugin name to not contain nulls");
 
-            if should_config {
-                unsafe {
-                    if let Ok(config) = pl.create_config() {
-                        COLLECTD_PLUGIN_CONFIG = Some(config);
-                    }
-                }
-            }
-
             unsafe {
                 let dtptr: *mut c_void = std::mem::transmute(Box::into_raw(pl));
                 COLLECTD_PLUGIN_FOR_INIT = dtptr;
+
                 let data = $crate::bindings::user_data_t {
                     data: dtptr,
                     free_func: Some(collectd_plugin_free_user_data),
@@ -122,6 +108,9 @@ macro_rules! collectd_plugin {
                     );
                 }
 
+                if should_init {
+                    plugin_register_init(s.as_ptr(), Some(collectd_plugin_init));
+                }
 
                 if should_config {
                     // Now grab all the pointers to the c strings for ffi
@@ -135,8 +124,6 @@ macro_rules! collectd_plugin {
                         pointers.as_mut_ptr(),
                         pointers.len() as i32,
                     );
-
-                    plugin_register_init(s.as_ptr(), Some(collectd_plugin_init));
 
                     // We must forget the vector as collectd hangs on to the info and if we were to
                     // drop it, collectd would segfault trying to read the newly freed up data
@@ -174,12 +161,13 @@ macro_rules! collectd_plugin {
         unsafe extern "C" fn collectd_plugin_init() -> std::os::raw::c_int {
             let ptr: *mut $type = std::mem::transmute(COLLECTD_PLUGIN_FOR_INIT);
             let mut plugin = Box::from_raw(ptr);
-            let mut result = -1;
-            if let Some(ref config) = COLLECTD_PLUGIN_CONFIG {
-                if let Ok(()) = plugin.initialize_from_config(&config) {
-                    result = 0;
-                }
-            };
+            let result =
+                if let Ok(()) = plugin.initialize() {
+                    0
+                } else {
+                    -1
+                };
+
             std::mem::forget(plugin);
             result
         }
@@ -189,24 +177,25 @@ macro_rules! collectd_plugin {
             value: *const std::os::raw::c_char
         ) -> std::os::raw::c_int {
             use std::ffi::CStr;
-            use $crate::PluginConfig;
+            let ptr: *mut $type = std::mem::transmute(COLLECTD_PLUGIN_FOR_INIT);
+            let mut plugin = Box::from_raw(ptr);
+            let mut result = -1;
 
-            if let Some(ref mut config) = COLLECTD_PLUGIN_CONFIG {
-                if let Ok(key) = CStr::from_ptr(key).to_owned().into_string() {
-                    if let Ok(value) = CStr::from_ptr(value).to_owned().into_string() {
-                        if let Err(ref e) = config.config_callback(key, value) {
-                            $crate::collectd_log(
-                                $crate::LogLevel::Error,
-                                &format!("config error: {}", e)
-                            );
-                            return -1;
-                        } else {
-                            return 0;
-                        }
+            if let Ok(key) = CStr::from_ptr(key).to_owned().into_string() {
+                if let Ok(value) = CStr::from_ptr(value).to_owned().into_string() {
+                    if let Err(ref e) = plugin.config_callback(key, value) {
+                        $crate::collectd_log(
+                            $crate::LogLevel::Error,
+                            &format!("config error: {}", e)
+                        );
+                    } else {
+                        result = 0;
                     }
                 }
             }
-            -1
+
+            std::mem::forget(plugin);
+            result
         }
     };
 }

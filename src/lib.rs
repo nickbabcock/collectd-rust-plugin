@@ -12,7 +12,7 @@ mod plugins;
 
 pub use api::{collectd_log, LogLevel, Value, ValueListBuilder};
 pub use errors::{ArrayError, SubmitError};
-pub use plugins::{Plugin, PluginCapabilities, PluginConfig};
+pub use plugins::{Plugin, PluginCapabilities};
 
 #[cfg(test)]
 #[allow(private_no_mangle_fns)]
@@ -29,7 +29,6 @@ mod tests {
     }
 
     impl Plugin for MyPlugin {
-        type Config = ();
         fn name(&self) -> &str {
             "myplugin"
         }
