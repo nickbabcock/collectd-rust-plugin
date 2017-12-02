@@ -70,7 +70,7 @@ macro_rules! collectd_plugin {
         // This global variable is only for the functions of config / init where we know that the
         // function will be called only once from one thread. std::ptr::null_mut is not a const
         // function on stable, so we inline the function body
-        static mut COLLECTD_PLUGIN_FOR_INIT: *mut std::os::raw::c_void = 0 as *mut std::os::raw::c_void;
+        static mut COLLECTD_PLUGIN_FOR_INIT: *mut $type = 0 as *mut $type;
 
         #[no_mangle]
         pub extern "C" fn module_register() {
@@ -95,8 +95,8 @@ macro_rules! collectd_plugin {
             let s = CString::new(pl.name()).expect("Plugin name to not contain nulls");
 
             unsafe {
-                let dtptr: *mut c_void = std::mem::transmute(Box::into_raw(pl));
-                COLLECTD_PLUGIN_FOR_INIT = dtptr;
+                COLLECTD_PLUGIN_FOR_INIT = Box::into_raw(pl);
+                let dtptr: *mut c_void = std::mem::transmute(COLLECTD_PLUGIN_FOR_INIT);
 
                 // The user data that is passed to read, writes, logs, etc. It is not passed to
                 // config or init. Since user_data_t implements copy, we don't need to forget about
@@ -165,8 +165,7 @@ macro_rules! collectd_plugin {
         }
 
         unsafe extern "C" fn collectd_plugin_init() -> std::os::raw::c_int {
-            let ptr: *mut $type = std::mem::transmute(COLLECTD_PLUGIN_FOR_INIT);
-            let mut plugin = Box::from_raw(ptr);
+            let mut plugin = Box::from_raw(COLLECTD_PLUGIN_FOR_INIT);
             let result =
                 if let Ok(()) = plugin.initialize() {
                     0
@@ -183,8 +182,7 @@ macro_rules! collectd_plugin {
             value: *const std::os::raw::c_char
         ) -> std::os::raw::c_int {
             use std::ffi::CStr;
-            let ptr: *mut $type = std::mem::transmute(COLLECTD_PLUGIN_FOR_INIT);
-            let mut plugin = Box::from_raw(ptr);
+            let mut plugin = Box::from_raw(COLLECTD_PLUGIN_FOR_INIT);
             let mut result = -1;
 
             if let Ok(key) = CStr::from_ptr(key).to_owned().into_string() {
