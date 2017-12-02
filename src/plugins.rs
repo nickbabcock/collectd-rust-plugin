@@ -1,5 +1,6 @@
 use failure::Error;
 use errors::NotImplemented;
+use api::LogLevel;
 
 bitflags! {
     /// Bitflags of capabilities that a plugin advertises to collectd.
@@ -8,6 +9,7 @@ bitflags! {
         const CONFIG = 0b0000_0001;
         const READ =   0b0000_0010;
         const INIT =   0b0000_0100;
+        const LOG =    0b0000_1000;
     }
 }
 
@@ -22,6 +24,10 @@ impl PluginCapabilities {
 
     pub fn has_init(&self) -> bool {
         self.intersects(PluginCapabilities::INIT)
+    }
+
+    pub fn has_log(&self) -> bool {
+        self.intersects(PluginCapabilities::LOG)
     }
 }
 
@@ -53,6 +59,11 @@ pub trait Plugin {
         Err(Error::from(NotImplemented))
     }
 
+    /// Customizes how a message of a given level is logged
+    fn log(&mut self, _lvl: LogLevel, _msg: String) -> Result<(), Error> {
+        Err(Error::from(NotImplemented))
+    }
+
     /// This function is called when collectd expects the plugin to report values, which will occur
     /// at the `Interval` defined in the global config (but can be overridden). Implementations
     /// that expect to report values need to have at least have a capability of `READ`. An error in
@@ -77,7 +88,7 @@ macro_rules! collectd_plugin {
             use std::os::raw::{c_char, c_void};
             use std::ffi::CString;
             use std::ptr;
-            use $crate::bindings::{plugin_register_config, plugin_register_init, plugin_register_complex_read};
+            use $crate::bindings::{plugin_register_config, plugin_register_init, plugin_register_complex_read, plugin_register_log};
 
             let pl: Box<$type> = Box::new($plugin());
 
@@ -85,6 +96,7 @@ macro_rules! collectd_plugin {
             let should_read = pl.capabilities().has_read();
             let should_config = pl.capabilities().has_config();
             let should_init = pl.capabilities().has_init();
+            let should_log = pl.capabilities().has_log();
             let ck: Vec<CString> = pl.config_keys()
                 .into_iter()
                 .map(|x| CString::new(x).expect("Config key to not contain nulls"))
@@ -139,6 +151,10 @@ macro_rules! collectd_plugin {
                     std::mem::forget(ck);
                     std::mem::forget(pointers);
                 }
+
+                if should_log {
+                    plugin_register_log(s.as_ptr(), Some(collectd_plugin_log), &mut data);
+                }
             }
         }
 
@@ -162,6 +178,31 @@ macro_rules! collectd_plugin {
         unsafe extern "C" fn collectd_plugin_free_user_data(raw: *mut ::std::os::raw::c_void) {
             let ptr: *mut $type = std::mem::transmute(raw);
             Box::from_raw(ptr);
+        }
+
+        unsafe extern "C" fn collectd_plugin_log(
+            severity: ::std::os::raw::c_int,
+            message: *const std::os::raw::c_char,
+            dt: *mut $crate::bindings::user_data_t
+        ) {
+            use std::ffi::{CStr, CString};
+            let ptr: *mut $type = std::mem::transmute((*dt).data);
+            let mut plugin = Box::from_raw(ptr);
+            if let Ok(msg) = CStr::from_ptr(message).to_owned().into_string() {
+                let lvl: $crate::LogLevel = std::mem::transmute(severity as u32);
+
+                // If there is an error with logging, in order to avoid recursive errors,
+                // unregister our logger, but send the error message to the other loggers
+                if let Err(ref e) = plugin.log(lvl, msg) {
+                    let s = CString::new(plugin.name()).unwrap();
+                    $crate::bindings::plugin_unregister_log(s.as_ptr());
+                    $crate::collectd_log(
+                        $crate::LogLevel::Error,
+                        &format!("logging error: {}", e)
+                    );
+                }
+            }
+            std::mem::forget(plugin);
         }
 
         unsafe extern "C" fn collectd_plugin_init() -> std::os::raw::c_int {
