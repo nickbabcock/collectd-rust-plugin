@@ -120,41 +120,49 @@ impl From<data_set_t> for DataSet {
     }
 }
 
+#[derive(Debug, PartialEq, Clone)]
+pub struct ValueList {
+    pub values: Vec<Value>,
+    pub plugin_instance: Option<String>,
+    pub plugin: String,
+    pub type_: String,
+    pub type_instance: Option<String>,
+    pub host: Option<String>,
+    pub time: Option<DateTime<Utc>>,
+    pub interval: Option<Duration>,
+}
+
+#[derive(Debug, PartialEq, Clone)]
 pub struct ValueListBuilder {
-    values: Vec<Value>,
-    plugin_instance: Option<String>,
-    plugin: String,
-    type_: String,
-    type_instance: Option<String>,
-    host: Option<String>,
-    time: Option<u64>,
-    interval: Option<u64>,
+    list: ValueList
 }
 
 impl ValueListBuilder {
     pub fn new(plugin: &str, type_: &str) -> ValueListBuilder {
         ValueListBuilder {
-            values: Vec::new(),
-            plugin_instance: None,
-            plugin: plugin.to_owned(),
-            type_: type_.to_owned(),
-            type_instance: None,
-            host: None,
-            time: None,
-            interval: None,
+            list: ValueList {
+                values: Vec::new(),
+                plugin_instance: None,
+                plugin: plugin.to_owned(),
+                type_: type_.to_owned(),
+                type_instance: None,
+                host: None,
+                time: None,
+                interval: None,
+            }
         }
     }
 
     /// A set of observed values that belong to the same plugin and type instance
     pub fn values(mut self, values: Vec<Value>) -> ValueListBuilder {
-        self.values = values;
+        self.list.values = values;
         self
     }
 
     /// Distinguishes entities that yield metrics. Each core would be a different instance of the
     /// same plugin, as each core reports "idle", "user", "system" metrics.
     pub fn plugin_instance(mut self, plugin_instance: String) -> ValueListBuilder {
-        self.plugin_instance = Some(plugin_instance);
+        self.list.plugin_instance = Some(plugin_instance);
         self
     }
 
@@ -162,51 +170,47 @@ impl ValueListBuilder {
     /// one another. For instance, even though "free", "used", and "total" all have types of
     /// "Memory" they are different type instances.
     pub fn type_instance(mut self, type_instance: String) -> ValueListBuilder {
-        self.type_instance = Some(type_instance);
+        self.list.type_instance = Some(type_instance);
         self
     }
 
     /// Override the machine's hostname that the observed values will be attributed to. Best to
     /// override when observing values from another machine
     pub fn host(mut self, host: String) -> ValueListBuilder {
-        self.host = Some(host);
+        self.list.host = Some(host);
         self
     }
 
     /// The timestamp at which the value was collected. Overrides the default time, which is when
     /// collectd receives the values from `submit`. Use only if there is a significant delay is
     /// metrics gathering or if submitting values from the past.
-    pub fn time<Tz: TimeZone>(mut self, dt: &DateTime<Tz>) -> ValueListBuilder {
-        let nanos = (dt.timestamp() as u64) + u64::from(dt.timestamp_subsec_nanos());
-        self.time = Some(nanos_to_collectd(nanos));
+    pub fn time(mut self, dt: DateTime<Utc>) -> ValueListBuilder {
+        self.list.time = Some(dt);
         self
     }
 
     /// The interval in which new values are to be expected. This is typically handled at a global
     /// or plugin level. Use at your own discretion.
     pub fn interval(mut self, interval: Duration) -> ValueListBuilder {
-        let nanos = interval
-            .num_nanoseconds()
-            .expect("intervals to be reasonable");
-        self.interval = Some(nanos_to_collectd(nanos as u64));
+        self.list.interval = Some(interval);
         self
     }
 
     /// Submits the observed values to collectd and returns errors if encountered
     pub fn submit(self) -> Result<(), Error> {
-        let mut v: Vec<value_t> = self.values.into_iter().map(|x| x.into()).collect();
-        let plugin_instance = self.plugin_instance
+        let mut v: Vec<value_t> = self.list.values.into_iter().map(|x| x.into()).collect();
+        let plugin_instance = self.list.plugin_instance
             .map(|x| to_array_res(&x).context("plugin_instance"))
             .unwrap_or_else(|| Ok([0i8; ARR_LENGTH]))?;
 
-        let type_instance = self.type_instance
+        let type_instance = self.list.type_instance
             .map(|x| to_array_res(&x).context("type_instance"))
             .unwrap_or_else(|| Ok([0i8; ARR_LENGTH]))?;
 
         // In collectd 5.7, it is no longer required to supply hostname_g for default hostname,
         // an empty array will get replaced with the hostname. However, since we're collectd 5.5
         // compatible, we use hostname_g in both circumstances, as it is not harmful
-        let host = self.host
+        let host = self.list.host
             .map(|x| to_array_res(&x).context("host"))
             .unwrap_or_else(|| unsafe { Ok(hostname_g) })?;
 
@@ -220,12 +224,16 @@ impl ValueListBuilder {
             values: v.as_mut_ptr(),
             values_len: len,
             plugin_instance: plugin_instance,
-            plugin: to_array_res(&self.plugin)?,
-            type_: to_array_res(&self.type_)?,
+            plugin: to_array_res(&self.list.plugin)?,
+            type_: to_array_res(&self.list.type_)?,
             type_instance: type_instance,
             host: host,
-            time: self.time.unwrap_or(0),
-            interval: self.interval.unwrap_or(0),
+            time: self.list.time
+                .map(|dt| nanos_to_collectd((dt.timestamp() as u64) + u64::from(dt.timestamp_subsec_nanos())))
+                .unwrap_or(0),
+            interval: self.list.interval
+                .map(|d| nanos_to_collectd(d.num_nanoseconds().unwrap() as u64))
+                .unwrap_or(0),
             meta: ptr::null_mut(),
         };
 
