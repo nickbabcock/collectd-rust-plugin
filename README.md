@@ -18,13 +18,11 @@ Below is a complete plugin that dummy reports [load](https://en.wikipedia.org/wi
 #[macro_use]
 extern crate collectd_plugin;
 extern crate failure;
-#[macro_use]
-extern crate lazy_static;
 
-use collectd_plugin::{Plugin, Value, ValueListBuilder, PluginCapabilities};
-use std::sync::Mutex;
+use collectd_plugin::{Plugin, PluginCapabilities, Value, ValueListBuilder};
 use failure::Error;
 
+#[derive(Default)]
 struct MyPlugin;
 
 impl Plugin for MyPlugin {
@@ -36,7 +34,7 @@ impl Plugin for MyPlugin {
         PluginCapabilities::READ
     }
 
-    fn report_values(&mut self) -> Result<(), Error> {
+    fn read_values(&mut self) -> Result<(), Error> {
         // Create a list of values to submit to collectd. We'll be sending in a vector representing the
         // "load" type. Short-term load is first (15.0) followed by mid-term and long-term. The number
         // of values that you submit at a time depends on types.db in collectd configurations
@@ -49,13 +47,7 @@ impl Plugin for MyPlugin {
     }
 }
 
-// Until a better design comes along that allows a mutable global variable, our
-// plugin needs this eyesore
-lazy_static! {
-    static ref PLUGIN: Mutex<MyPlugin> = Mutex::new(MyPlugin);
-}
-
-collectd_plugin!(PLUGIN);
+collectd_plugin!(MyPlugin, Default::default);
 ```
 
 ## Motivation
