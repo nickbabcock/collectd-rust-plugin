@@ -49,14 +49,14 @@ impl Plugin for MyPlugin {
     }
 }
 
+// Until a better design comes along that allows a mutable global variable, our
+// plugin needs this eyesore
 lazy_static! {
     static ref PLUGIN: Mutex<MyPlugin> = Mutex::new(MyPlugin);
 }
 
 collectd_plugin!(PLUGIN);
 ```
-
-Currently a global mutex for our plugin is necessary, as there are collectd configuration hooks where our plugin is provided with configuration values relevant to our plugin. Thus our plugin has to be globally accessible and mutable.
 
 ## Motivation
 
@@ -79,31 +79,22 @@ Rust's combination of ecosystem, package manager, C ffi, single file, and optimi
 
 ## To Build
 
-After cloning this repo, you'll need to ensure that a few dependencies are satisfied. Don't worry these aren't needed on the deployed server.
+To ensure a successful build, the following steps are needed:
 
-```bash
-# Install collectd library so that rust bindgen works.
-apt install collectd-dev
-
-# If you are not on ubuntu 16.10 or later, a recent clang version is required
-# wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key|sudo apt-key add -
-# apt-get install llvm-3.9-dev libclang-3.9-dev clang-3.9
-
-# Must supply the version of collectd you're building against (see the list
-# above for supported versions)
-cargo build --features collectd-54
-
-# Copy plugin (and rename it) to plugin directory as Collectd assumes a
-# standard naming convention
-cp target/debug/libmyplugin.so /usr/lib/collectd/myplugin.so
-
-# Add "LoadPlugin myplugin" to collectd.conf
-```
+- When building, you must supply the collectd version you'll be deploying:
+    - `cargo build --features collectd-54`
+    - `cargo build --features collectd-55`
+    - `cargo build --features collectd-57`
+- Your project crate type must be `cdylib`
+- If you want to use `bindgen` to generate the ffi functions, use the `bindgen` feature (still alongside the desired collectd version)
+- Collectd expects plugins to not be prefixed with `lib`, so `cp target/debug/libmyplugin.so /usr/lib/collectd/myplugin.so`
+- Add `LoadPlugin myplugin` to collectd.conf
 
 ## Plugin Configuration
 
-This plugin demonstrates how to expose configuration values to Collectd (in
-this case, it's [load](https://en.wikipedia.org/wiki/Load_(computing))) using
+[Load example](https://github.com/nickbabcock/collectd-rust-plugin) plugin
+demonstrates how to expose configuration values to Collectd (in this case, it's
+[load](https://en.wikipedia.org/wiki/Load_(computing))) using
 contrived numbers that can be overridden using the standard Collectd config:
 
 ```xml
