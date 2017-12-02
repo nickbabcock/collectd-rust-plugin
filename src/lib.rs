@@ -3,6 +3,7 @@ extern crate bitflags;
 extern crate chrono;
 #[macro_use]
 extern crate failure;
+extern crate memchr;
 
 pub mod bindings;
 mod api;

@@ -1,15 +1,18 @@
 #![allow(dead_code)]
 
 use bindings::{hostname_g, plugin_dispatch_values, plugin_log, value_list_t, value_t, ARR_LENGTH,
-               LOG_DEBUG, LOG_ERR, LOG_INFO, LOG_NOTICE, LOG_WARNING};
+               LOG_DEBUG, LOG_ERR, LOG_INFO, LOG_NOTICE, LOG_WARNING, DS_TYPE_COUNTER, DS_TYPE_GAUGE, DS_TYPE_DERIVE, DS_TYPE_ABSOLUTE, data_source_t, data_set_t};
 use std::os::raw::c_char;
 use std::ptr;
+use std::slice;
 use chrono::prelude::*;
 use chrono::Duration;
-use std::ffi::CString;
+use std::ffi::{CString, CStr};
 use failure::{Error, ResultExt};
 use errors::{ArrayError, SubmitError};
+use memchr::memchr;
 
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[repr(u32)]
 pub enum LogLevel {
     Error = LOG_ERR,
@@ -17,6 +20,15 @@ pub enum LogLevel {
     Notice = LOG_NOTICE,
     Info = LOG_INFO,
     Debug = LOG_DEBUG,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[repr(u32)]
+pub enum ValueType {
+    Counter = DS_TYPE_COUNTER,
+    Gauge = DS_TYPE_GAUGE,
+    Derive = DS_TYPE_DERIVE,
+    Absolute = DS_TYPE_ABSOLUTE,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -56,6 +68,49 @@ impl Into<value_t> for Value {
             Value::Gauge(x) => value_t { gauge: x },
             Value::Derive(x) => value_t { derive: x },
             Value::Absolute(x) => value_t { absolute: x },
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct DataSource {
+    pub name: String,
+    pub value_type: ValueType,
+    pub min: f64,
+    pub max: f64,
+}
+
+impl From<data_source_t> for DataSource {
+    fn from(val: data_source_t) -> DataSource {
+        unsafe {
+            DataSource {
+                name: from_array(val.name),
+                value_type: ::std::mem::transmute(val.type_),
+                min: val.min,
+                max: val.max,
+            }
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct DataSet {
+    pub metric: String,
+    pub sources: Vec<DataSource>,
+}
+
+impl From<data_set_t> for DataSet {
+    fn from(val: data_set_t) -> DataSet {
+        unsafe {
+            let ds = slice::from_raw_parts(val.ds, val.ds_num)
+                .iter()
+                .map(|x| DataSource::from(*x))
+                .collect();
+
+            DataSet {
+                metric: from_array(val.type_),
+                sources: ds,
+            }
         }
     }
 }
@@ -193,6 +248,18 @@ fn to_array_res(s: &str) -> Result<[c_char; ARR_LENGTH], ArrayError> {
     Ok(arr)
 }
 
+fn from_array(mut s: [c_char; ARR_LENGTH]) -> String {
+    unsafe {
+        // Safe way to make sure everything is null terminated
+        s[ARR_LENGTH - 1] = 0;
+        let sl: &[i8] = slice::from_raw_parts(&s as *const i8, ARR_LENGTH);
+        let sl: &[u8] = ::std::mem::transmute(sl);
+        let ind = memchr(0, sl).unwrap_or(ARR_LENGTH);
+        let s = CStr::from_bytes_with_nul(&sl[0..ind + 1]).unwrap();
+        s.to_owned().into_string().unwrap()
+    }
+}
+
 /// The time is stored at a 2^-30 second resolution, i.e. the most significant 34 bit are used to
 /// store the time in seconds, the least significant bits store the sub-second part in something
 /// very close to nanoseconds. *The* big advantage of storing time in this manner is that comparing
@@ -261,5 +328,66 @@ mod tests {
         assert_eq!(nanos_to_collectd(1439981652801860766), 1546168526406004689);
         assert_eq!(nanos_to_collectd(1439981836985281914), 1546168724171447263);
         assert_eq!(nanos_to_collectd(1439981880053705608), 1546168770415815077);
+    }
+
+    #[test]
+    fn test_data_source_conversion() {
+        let mut name: [c_char; ARR_LENGTH] = [0; ARR_LENGTH];
+        name[0] = b'h' as c_char;
+        name[1] = b'i' as c_char;
+
+        let val = data_source_t {
+            name: name,
+            type_: DS_TYPE_GAUGE as i32,
+            min: 10.0,
+            max: 10.0,
+        };
+
+        let actual = DataSource::from(val);
+        assert_eq!(actual, DataSource {
+            name: "hi".to_string(),
+            value_type: ValueType::Gauge,
+            min: 10.0,
+            max: 10.0,
+        });
+    }
+
+    #[test]
+    fn test_data_set_conversion() {
+        let mut metric: [c_char; ARR_LENGTH] = [0; ARR_LENGTH];
+        metric[0] = b'h' as c_char;
+        metric[1] = b'o' as c_char;
+
+        let mut name: [c_char; ARR_LENGTH] = [0; ARR_LENGTH];
+        name[0] = b'h' as c_char;
+        name[1] = b'i' as c_char;
+
+        let val = data_source_t {
+            name: name,
+            type_: DS_TYPE_GAUGE as i32,
+            min: 10.0,
+            max: 10.0,
+        };
+
+        let mut v = vec![val];
+
+        let conv = data_set_t {
+            type_: metric,
+            ds_num: 1,
+            ds: v.as_mut_ptr(),
+        };
+
+        let actual = DataSet::from(conv);
+        assert_eq!(actual, DataSet {
+            metric: "ho".to_string(),
+            sources: vec![
+                DataSource {
+                    name: "hi".to_string(),
+                    value_type: ValueType::Gauge,
+                    min: 10.0,
+                    max: 10.0,
+                }
+            ]
+        });
     }
 }
