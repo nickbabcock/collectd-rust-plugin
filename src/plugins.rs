@@ -100,7 +100,7 @@ macro_rules! collectd_plugin {
                 // The user data that is passed to read, writes, logs, etc. It is not passed to
                 // config or init. Since user_data_t implements copy, we don't need to forget about
                 // it. See clippy suggestion (forget_copy)
-                let data = $crate::bindings::user_data_t {
+                let mut data = $crate::bindings::user_data_t {
                     data: dtptr,
                     free_func: Some(collectd_plugin_free_user_data),
                 };
@@ -110,8 +110,8 @@ macro_rules! collectd_plugin {
                         ptr::null(),
                         s.as_ptr(),
                         Some(collectd_plugin_read),
-                        0,
-                        &data
+                        $crate::get_default_interval(),
+                        &mut data
                     );
                 }
 

@@ -216,6 +216,17 @@ pub fn collectd_log(lvl: LogLevel, message: &str) {
     }
 }
 
+#[cfg(feature = "collectd-57")]
+pub fn get_default_interval() -> u64 {
+    0
+}
+
+#[cfg(not(feature = "collectd-57"))]
+pub fn get_default_interval<T>() -> *const T {
+    use std::ptr;
+    ptr::null()
+}
+
 
 #[cfg(test)]
 mod tests {
