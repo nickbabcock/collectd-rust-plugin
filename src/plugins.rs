@@ -1,6 +1,6 @@
 use failure::Error;
 use errors::NotImplemented;
-use api::LogLevel;
+use api::{LogLevel, RecvValueList, DataSet};
 
 bitflags! {
     /// Bitflags of capabilities that a plugin advertises to collectd.
@@ -10,6 +10,7 @@ bitflags! {
         const READ =   0b0000_0010;
         const INIT =   0b0000_0100;
         const LOG =    0b0000_1000;
+        const WRITE =  0b0001_0000;
     }
 }
 
@@ -28,6 +29,10 @@ impl PluginCapabilities {
 
     pub fn has_log(&self) -> bool {
         self.intersects(PluginCapabilities::LOG)
+    }
+
+    pub fn has_write(&self) -> bool {
+        self.intersects(PluginCapabilities::WRITE)
     }
 }
 
@@ -72,6 +77,10 @@ pub trait Plugin {
     fn read_values(&mut self) -> Result<(), Error> {
         Err(Error::from(NotImplemented))
     }
+
+    fn write_values<'a>(&mut self, _set: DataSet<'a>, _list: RecvValueList<'a>) -> Result<(), Error> {
+        Err(Error::from(NotImplemented))
+    }
 }
 
 #[macro_export]
@@ -88,7 +97,7 @@ macro_rules! collectd_plugin {
             use std::os::raw::{c_char, c_void};
             use std::ffi::CString;
             use std::ptr;
-            use $crate::bindings::{plugin_register_config, plugin_register_init, plugin_register_complex_read, plugin_register_log};
+            use $crate::bindings::{plugin_register_config, plugin_register_init, plugin_register_write, plugin_register_complex_read, plugin_register_log};
 
             let pl: Box<$type> = Box::new($plugin());
 
@@ -97,6 +106,7 @@ macro_rules! collectd_plugin {
             let should_config = pl.capabilities().has_config();
             let should_init = pl.capabilities().has_init();
             let should_log = pl.capabilities().has_log();
+            let should_write = pl.capabilities().has_write();
             let ck: Vec<CString> = pl.config_keys()
                 .into_iter()
                 .map(|x| CString::new(x).expect("Config key to not contain nulls"))
@@ -124,6 +134,14 @@ macro_rules! collectd_plugin {
                         s.as_ptr(),
                         Some(collectd_plugin_read),
                         $crate::get_default_interval(),
+                        &mut data
+                    );
+                }
+
+                if should_write {
+                    plugin_register_write(
+                        s.as_ptr(),
+                        Some(collectd_plugin_write),
                         &mut data
                     );
                 }
@@ -203,6 +221,29 @@ macro_rules! collectd_plugin {
                 }
             }
             std::mem::forget(plugin);
+        }
+
+        unsafe extern "C" fn collectd_plugin_write(
+           ds: *const $crate::bindings::data_set_t,
+           vl: *const $crate::bindings::value_list_t,
+           dt: *mut $crate::bindings::user_data_t
+        ) -> std::os::raw::c_int {
+            let ptr: *mut $type = std::mem::transmute((*dt).data);
+            let mut plugin = Box::from_raw(ptr);
+            let set = $crate::DataSet::from(&*ds);
+            let list = $crate::RecvValueList::from(&set, &*vl);
+            let result = 
+                if let Err(ref e) = plugin.write_values(set, list) {
+                    $crate::collectd_log(
+                        $crate::LogLevel::Error,
+                        &format!("writing error: {}", e)
+                    );
+                    -1
+                } else {
+                    0
+                };
+            std::mem::forget(plugin);
+            result
         }
 
         unsafe extern "C" fn collectd_plugin_init() -> std::os::raw::c_int {

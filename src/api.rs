@@ -121,15 +121,63 @@ impl<'a> From<&'a data_set_t> for DataSet<'a> {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct ValueList {
+pub struct RecvValueList<'a> {
     pub values: Vec<Value>,
-    pub plugin_instance: Option<String>,
-    pub plugin: String,
-    pub type_: String,
-    pub type_instance: Option<String>,
-    pub host: Option<String>,
+    pub plugin_instance: Option<&'a str>,
+    pub plugin: &'a str,
+    pub type_: &'a str,
+    pub type_instance: Option<&'a str>,
+    pub host: Option<&'a str>,
     pub time: Option<DateTime<Utc>>,
     pub interval: Option<Duration>,
+}
+
+impl<'a> RecvValueList<'a> {
+    pub fn from<'b>(set: &DataSet, list: &'b value_list_t) -> RecvValueList<'b> {
+        #[cfg(feature = "collectd-57")]
+        let len = list.values_len;
+
+        #[cfg(not(feature = "collectd-57"))]
+        let len = list.values_len as usize;
+
+        let values = unsafe { slice::from_raw_parts(list.values, len) }
+            .iter()
+            .zip(set.sources.iter())
+            .map(|(val, source)| {
+                unsafe {
+                    match source.value_type {
+                        ValueType::Gauge => Value::Gauge(val.gauge),
+                        ValueType::Counter => Value::Counter(val.counter),
+                        ValueType::Derive => Value::Derive(val.derive),
+                        ValueType::Absolute => Value::Absolute(val.absolute),
+                    }
+                }
+            })
+            .collect();
+
+        RecvValueList {
+            values: values,
+            plugin_instance: empty_to_none(from_array(&list.plugin_instance)),
+            plugin: from_array(&list.plugin),
+            type_: from_array(&list.type_),
+            type_instance: empty_to_none(from_array(&list.type_instance)),
+            host: empty_to_none(from_array(&list.host)),
+            time: None,
+            interval: None,
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+struct ValueList {
+    values: Vec<Value>,
+    plugin_instance: Option<String>,
+    plugin: String,
+    type_: String,
+    type_instance: Option<String>,
+    host: Option<String>,
+    time: Option<DateTime<Utc>>,
+    interval: Option<Duration>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -265,6 +313,14 @@ fn from_array(s: &[c_char; ARR_LENGTH]) -> &str {
     unsafe {
         let a = s as *const [i8; ARR_LENGTH] as *const i8;
         CStr::from_ptr(a).to_str().unwrap()
+    }
+}
+
+fn empty_to_none(s: &str) -> Option<&str> {
+    if s.is_empty() {
+        None
+    } else {
+        Some(s)
     }
 }
 
