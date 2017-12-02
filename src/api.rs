@@ -10,7 +10,6 @@ use chrono::Duration;
 use std::ffi::{CString, CStr};
 use failure::{Error, ResultExt};
 use errors::{ArrayError, SubmitError};
-use memchr::memchr;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[repr(u32)]
@@ -258,11 +257,8 @@ fn from_array(mut s: [c_char; ARR_LENGTH]) -> String {
     unsafe {
         // Safe way to make sure everything is null terminated
         s[ARR_LENGTH - 1] = 0;
-        let sl: &[i8] = slice::from_raw_parts(&s as *const i8, ARR_LENGTH);
-        let sl: &[u8] = ::std::mem::transmute(sl);
-        let ind = memchr(0, sl).unwrap_or(ARR_LENGTH);
-        let s = CStr::from_bytes_with_nul(&sl[0..ind + 1]).unwrap();
-        s.to_owned().into_string().unwrap()
+        let a = ::std::mem::transmute(&s);
+        CStr::from_ptr(a).to_owned().into_string().unwrap()
     }
 }
 
