@@ -131,8 +131,6 @@ macro_rules! collectd_plugin {
                     std::mem::forget(ck);
                     std::mem::forget(pointers);
                 }
-
-                std::mem::forget(data);
             }
         }
 
