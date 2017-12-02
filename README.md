@@ -86,7 +86,7 @@ To ensure a successful build, the following steps are needed:
     - `cargo build --features collectd-55`
     - `cargo build --features collectd-57`
 - Your project crate type must be `cdylib`
-- If you want to use `bindgen` to generate the ffi functions, use the `bindgen` feature (still alongside the desired collectd version)
+- If you want to use `bindgen` to generate the ffi functions, use the `bindgen` feature (still alongside the desired collectd version). Make sure you have an appropriate version of clang installed and `collectd-dev`
 - Collectd expects plugins to not be prefixed with `lib`, so `cp target/debug/libmyplugin.so /usr/lib/collectd/myplugin.so`
 - Add `LoadPlugin myplugin` to collectd.conf
 
