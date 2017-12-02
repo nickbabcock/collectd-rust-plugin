@@ -1,16 +1,20 @@
 #[macro_use]
 extern crate collectd_plugin;
 extern crate failure;
-#[macro_use]
-extern crate lazy_static;
 
 use collectd_plugin::{Plugin, PluginCapabilities, Value, ValueListBuilder};
-use std::sync::Mutex;
 use failure::Error;
 
 struct MyPlugin;
 
+impl MyPlugin {
+    fn new() -> Self {
+        MyPlugin
+    }
+}
+
 impl Plugin for MyPlugin {
+    type Config = ();
     fn name(&self) -> &str {
         "myplugin"
     }
@@ -32,8 +36,4 @@ impl Plugin for MyPlugin {
     }
 }
 
-lazy_static! {
-    static ref PLUGIN: Mutex<MyPlugin> = Mutex::new(MyPlugin);
-}
-
-collectd_plugin!(PLUGIN);
+collectd_plugin!(MyPlugin, MyPlugin::new);
