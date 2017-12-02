@@ -72,18 +72,18 @@ impl Into<value_t> for Value {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct DataSource {
-    pub name: String,
+pub struct DataSource<'a> {
+    pub name: &'a str,
     pub value_type: ValueType,
     pub min: f64,
     pub max: f64,
 }
 
-impl From<data_source_t> for DataSource {
-    fn from(val: data_source_t) -> DataSource {
+impl<'a> From<&'a data_source_t> for DataSource<'a> {
+    fn from(val: &'a data_source_t) -> Self {
         unsafe {
             DataSource {
-                name: from_array(val.name),
+                name: from_array(&val.name),
                 value_type: ::std::mem::transmute(val.type_),
                 min: val.min,
                 max: val.max,
@@ -93,13 +93,13 @@ impl From<data_source_t> for DataSource {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct DataSet {
-    pub metric: String,
-    pub sources: Vec<DataSource>,
+pub struct DataSet<'a> {
+    pub metric: &'a str,
+    pub sources: Vec<DataSource<'a>>,
 }
 
-impl From<data_set_t> for DataSet {
-    fn from(val: data_set_t) -> DataSet {
+impl<'a> From<&'a data_set_t> for DataSet<'a> {
+    fn from(val: &'a data_set_t) -> Self {
         unsafe {
             #[cfg(feature = "collectd-57")]
             let len = val.ds_num;
@@ -109,11 +109,11 @@ impl From<data_set_t> for DataSet {
 
             let ds = slice::from_raw_parts(val.ds, len)
                 .iter()
-                .map(|x| DataSource::from(*x))
+                .map(DataSource::from)
                 .collect();
 
             DataSet {
-                metric: from_array(val.type_),
+                metric: from_array(&val.type_),
                 sources: ds,
             }
         }
@@ -261,12 +261,10 @@ fn to_array_res(s: &str) -> Result<[c_char; ARR_LENGTH], ArrayError> {
     Ok(arr)
 }
 
-fn from_array(mut s: [c_char; ARR_LENGTH]) -> String {
+fn from_array(s: &[c_char; ARR_LENGTH]) -> &str {
     unsafe {
-        // Safe way to make sure everything is null terminated
-        s[ARR_LENGTH - 1] = 0;
-        let a = ::std::mem::transmute(&s);
-        CStr::from_ptr(a).to_owned().into_string().unwrap()
+        let a = s as *const [i8; 128] as *const i8;
+        CStr::from_ptr(a).to_str().unwrap()
     }
 }
 
@@ -353,9 +351,9 @@ mod tests {
             max: 10.0,
         };
 
-        let actual = DataSource::from(val);
+        let actual = DataSource::from(&val);
         assert_eq!(actual, DataSource {
-            name: "hi".to_string(),
+            name: "hi",
             value_type: ValueType::Gauge,
             min: 10.0,
             max: 10.0,
@@ -387,12 +385,12 @@ mod tests {
             ds: v.as_mut_ptr(),
         };
 
-        let actual = DataSet::from(conv);
+        let actual = DataSet::from(&conv);
         assert_eq!(actual, DataSet {
-            metric: "ho".to_string(),
+            metric: "ho",
             sources: vec![
                 DataSource {
-                    name: "hi".to_string(),
+                    name: "hi",
                     value_type: ValueType::Gauge,
                     min: 10.0,
                     max: 10.0,
