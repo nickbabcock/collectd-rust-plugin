@@ -68,8 +68,9 @@ macro_rules! collectd_plugin {
     ($type: ty, $plugin: path) => {
 
         // This global variable is only for the functions of config / init where we know that the
-        // function will be called only once from one thread.
-        static mut COLLECTD_PLUGIN_FOR_INIT: *mut std::os::raw::c_void = std::ptr::null_mut();
+        // function will be called only once from one thread. std::ptr::null_mut is not a const
+        // function on stable, so we inline the function body
+        static mut COLLECTD_PLUGIN_FOR_INIT: *mut std::os::raw::c_void = 0 as *mut std::os::raw::c_void;
 
         #[no_mangle]
         pub extern "C" fn module_register() {
