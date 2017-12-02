@@ -102,7 +102,13 @@ pub struct DataSet {
 impl From<data_set_t> for DataSet {
     fn from(val: data_set_t) -> DataSet {
         unsafe {
-            let ds = slice::from_raw_parts(val.ds, val.ds_num)
+            #[cfg(feature = "collectd-57")]
+            let len = val.ds_num;
+
+            #[cfg(not(feature = "collectd-57"))]
+            let len = val.ds_num as usize;
+
+            let ds = slice::from_raw_parts(val.ds, len)
                 .iter()
                 .map(|x| DataSource::from(*x))
                 .collect();
