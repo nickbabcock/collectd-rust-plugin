@@ -263,7 +263,7 @@ fn to_array_res(s: &str) -> Result<[c_char; ARR_LENGTH], ArrayError> {
 
 fn from_array(s: &[c_char; ARR_LENGTH]) -> &str {
     unsafe {
-        let a = s as *const [i8; 128] as *const i8;
+        let a = s as *const [i8; ARR_LENGTH] as *const i8;
         CStr::from_ptr(a).to_str().unwrap()
     }
 }
