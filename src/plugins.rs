@@ -41,10 +41,14 @@ pub trait Plugin {
         vec![]
     }
 
+    /// A key value pair related to the plugin that collectd parsed from the collectd configuration
+    /// files. Will only be called if a plugin has a capability of at least `CONFIG`
     fn config_callback(&mut self, _key: String, _value: String) -> Result<(), Error> {
         Err(Error::from(NotImplemented))
     }
 
+    /// Initialize any socket, files, or expensive resources that may have been parsed from the
+    /// configuration. If an error is reported, all hooks registered will be unregistered.
     fn initialize(&mut self) -> Result<(), Error> {
         Err(Error::from(NotImplemented))
     }
@@ -93,6 +97,9 @@ macro_rules! collectd_plugin {
                 let dtptr: *mut c_void = std::mem::transmute(Box::into_raw(pl));
                 COLLECTD_PLUGIN_FOR_INIT = dtptr;
 
+                // The user data that is passed to read, writes, logs, etc. It is not passed to
+                // config or init. Since user_data_t implements copy, we don't need to forget about
+                // it. See clippy suggestion (forget_copy)
                 let data = $crate::bindings::user_data_t {
                     data: dtptr,
                     free_func: Some(collectd_plugin_free_user_data),
@@ -101,7 +108,7 @@ macro_rules! collectd_plugin {
                 if should_read {
                     plugin_register_complex_read(
                         ptr::null(),
-                        s.as_ptr(), 
+                        s.as_ptr(),
                         Some(collectd_plugin_read),
                         0,
                         &data
