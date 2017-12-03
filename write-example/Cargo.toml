@@ -1,0 +1,24 @@
+[package]
+name = "write-example"
+version = "0.2.0"
+authors = ["Nick Babcock <nbabcock19@hotmail.com>"]
+publish = false
+
+[dependencies]
+failure = "0.1.1"
+chrono = "0.4"
+
+[dependencies.collectd-plugin]
+path = ".."
+version = "0.2"
+
+[lib]
+crate-type = ["cdylib"]
+name = "testwriteplugin"
+
+[features]
+collectd-54 = ["collectd-plugin/collectd-54"]
+collectd-55 = ["collectd-plugin/collectd-55"]
+collectd-57 = ["collectd-plugin/collectd-57"]
+bindgen = ["collectd-plugin/bindgen"]
+default = []

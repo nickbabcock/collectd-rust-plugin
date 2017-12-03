@@ -24,4 +24,4 @@ collectd-57 = []
 default = []
 
 [workspace]
-members = ['load-example', 'readme-example']
+members = ['load-example', 'readme-example', 'write-example']
