@@ -10,6 +10,7 @@ use chrono::Duration;
 use std::ffi::{CString, CStr};
 use failure::{Error, ResultExt};
 use errors::{ArrayError, SubmitError};
+use std::fmt;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[repr(u32)]
@@ -56,6 +57,17 @@ pub enum Value {
     /// tend to overflow. So instead of reading them normally you reset them after every read to
     /// make sure you have a maximum time available before the next overflow.
     Absolute(u64),
+}
+
+impl fmt::Display for Value {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            Value::Counter(x) => write!(f, "{}", x),
+            Value::Gauge(x) => write!(f, "{}", x),
+            Value::Derive(x) => write!(f, "{}", x),
+            Value::Absolute(x) => write!(f, "{}", x),
+        }
+    }
 }
 
 // Interestingly, I couldn't get `From<Value> for value_t` to work, as any attempts would reference

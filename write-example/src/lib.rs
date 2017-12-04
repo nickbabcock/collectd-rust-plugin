@@ -2,11 +2,13 @@
 extern crate collectd_plugin;
 extern crate failure;
 extern crate chrono;
+extern crate itertools;
 
 use collectd_plugin::{collectd_log, LogLevel, Plugin, PluginCapabilities, RecvValueList};
 use chrono::prelude::*;
 use failure::Error;
 use chrono::Duration;
+use itertools::Itertools;
 
 #[derive(Default)]
 struct TestWritePlugin;
@@ -21,10 +23,7 @@ impl Plugin for TestWritePlugin {
     }
 
     fn write_values<'a>(&mut self, list: RecvValueList<'a>) -> Result<(), Error> {
-        let mut line2 = String::new();
-        for v in list.values {
-            line2 += &format!("{} - {:?}", v.name, v.value);
-        }
+        let values = list.values.iter().map(|v| format!("{} - {}", v.name, v.value)).join(", ");
 
         let line = format!(
             "plugin_instance: {}, plugin: {}, type: {}, type_instance: {}, host: {}, time: {}, interval: {}, values: {}",
