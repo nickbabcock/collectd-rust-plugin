@@ -1,6 +1,4 @@
-#![allow(dead_code)]
-
-use bindings::{data_set_t, data_source_t, hostname_g, plugin_dispatch_values, plugin_log,
+use bindings::{data_set_t, hostname_g, plugin_dispatch_values, plugin_log,
                value_list_t, value_t, ARR_LENGTH, DS_TYPE_ABSOLUTE, DS_TYPE_COUNTER,
                DS_TYPE_DERIVE, DS_TYPE_GAUGE, LOG_DEBUG, LOG_ERR, LOG_INFO, LOG_NOTICE,
                LOG_WARNING};
@@ -26,7 +24,8 @@ pub enum LogLevel {
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[repr(u32)]
-pub enum ValueType {
+#[allow(dead_code)]
+enum ValueType {
     Counter = DS_TYPE_COUNTER,
     Gauge = DS_TYPE_GAUGE,
     Derive = DS_TYPE_DERIVE,
@@ -90,55 +89,6 @@ pub struct ValueReport<'a> {
     pub value: Value,
     pub min: f64,
     pub max: f64,
-}
-
-#[derive(Debug, PartialEq, Clone)]
-pub struct DataSource<'a> {
-    pub name: &'a str,
-    pub value_type: ValueType,
-    pub min: f64,
-    pub max: f64,
-}
-
-impl<'a> From<&'a data_source_t> for DataSource<'a> {
-    fn from(val: &'a data_source_t) -> Self {
-        unsafe {
-            DataSource {
-                name: from_array(&val.name),
-                value_type: ::std::mem::transmute(val.type_),
-                min: val.min,
-                max: val.max,
-            }
-        }
-    }
-}
-
-#[derive(Debug, PartialEq, Clone)]
-pub struct DataSet<'a> {
-    pub metric: &'a str,
-    pub sources: Vec<DataSource<'a>>,
-}
-
-impl<'a> From<&'a data_set_t> for DataSet<'a> {
-    fn from(val: &'a data_set_t) -> Self {
-        unsafe {
-            #[cfg(feature = "collectd-57")]
-            let len = val.ds_num;
-
-            #[cfg(not(feature = "collectd-57"))]
-            let len = val.ds_num as usize;
-
-            let ds = slice::from_raw_parts(val.ds, len)
-                .iter()
-                .map(DataSource::from)
-                .collect();
-
-            DataSet {
-                metric: from_array(&val.type_),
-                sources: ds,
-            }
-        }
-    }
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -403,6 +353,7 @@ pub fn get_default_interval<T>() -> *const T {
 mod tests {
     use super::*;
     use std::os::raw::c_char;
+    use bindings::data_source_t;
 
     #[test]
     fn test_to_array() {
@@ -435,32 +386,8 @@ mod tests {
     }
 
     #[test]
-    fn test_data_source_conversion() {
-        let mut name: [c_char; ARR_LENGTH] = [0; ARR_LENGTH];
-        name[0] = b'h' as c_char;
-        name[1] = b'i' as c_char;
-
-        let val = data_source_t {
-            name: name,
-            type_: DS_TYPE_GAUGE as i32,
-            min: 10.0,
-            max: 10.0,
-        };
-
-        let actual = DataSource::from(&val);
-        assert_eq!(
-            actual,
-            DataSource {
-                name: "hi",
-                value_type: ValueType::Gauge,
-                min: 10.0,
-                max: 10.0,
-            }
-        );
-    }
-
-    #[test]
-    fn test_data_set_conversion() {
+    fn test_recv_value_list_conversion() {
+        let empty: [c_char; ARR_LENGTH] = [0; ARR_LENGTH];
         let mut metric: [c_char; ARR_LENGTH] = [0; ARR_LENGTH];
         metric[0] = b'h' as c_char;
         metric[1] = b'o' as c_char;
@@ -473,7 +400,7 @@ mod tests {
             name: name,
             type_: DS_TYPE_GAUGE as i32,
             min: 10.0,
-            max: 10.0,
+            max: 11.0,
         };
 
         let mut v = vec![val];
@@ -484,19 +411,40 @@ mod tests {
             ds: v.as_mut_ptr(),
         };
 
-        let actual = DataSet::from(&conv);
+        let mut vs = vec![value_t { gauge: 3.0 }];
+
+        let list_t = value_list_t {
+            values: vs.as_mut_ptr(),
+            values_len: 1,
+            time: 0,
+            interval: 0,
+            host: metric,
+            plugin: name,
+            plugin_instance: metric,
+            type_: metric,
+            type_instance: empty,
+            meta: ptr::null_mut()
+        };
+
+        let actual = RecvValueList::from(&conv, &list_t);
         assert_eq!(
             actual,
-            DataSet {
-                metric: "ho",
-                sources: vec![
-                    DataSource {
+            RecvValueList {
+                values: vec![
+                    ValueReport {
                         name: "hi",
-                        value_type: ValueType::Gauge,
+                        value: Value::Gauge(3.0),
                         min: 10.0,
-                        max: 10.0,
-                    },
+                        max: 11.0,
+                    }
                 ],
+                plugin_instance: Some("ho"),
+                plugin: "hi",
+                type_: "ho",
+                type_instance: None,
+                host: Some("ho"),
+                time: None,
+                interval: None,
             }
         );
     }
