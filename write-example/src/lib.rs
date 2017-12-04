@@ -1,13 +1,10 @@
-extern crate chrono;
 #[macro_use]
 extern crate collectd_plugin;
 extern crate failure;
 extern crate itertools;
 
 use collectd_plugin::{collectd_log, LogLevel, Plugin, PluginCapabilities, RecvValueList};
-use chrono::prelude::*;
 use failure::Error;
-use chrono::Duration;
 use itertools::Itertools;
 
 #[derive(Default)]
@@ -29,14 +26,14 @@ impl Plugin for TestWritePlugin {
             .join(", ");
 
         let line = format!(
-            "plugin_instance: {}, plugin: {}, type: {}, type_instance: {}, host: {}, time: {}, interval: {}, values: {}",
+            "plugin_instance: {}, plugin: {}, type: {}, type_instance: {}, host: {}, time: {}, interval: {} seconds, values: {}",
             list.plugin_instance.unwrap_or("<none>"),
             list.plugin,
             list.type_,
             list.type_instance.unwrap_or("<none>"),
-            list.host.unwrap_or("<none>"),
-            list.time.unwrap_or(Utc::now()),
-            list.interval.unwrap_or_else(|| Duration::seconds(10)),
+            list.host,
+            list.time,
+            list.interval.num_seconds(),
             values,
         );
         collectd_log(LogLevel::Warning, &line);

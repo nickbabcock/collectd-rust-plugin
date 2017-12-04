@@ -52,7 +52,7 @@ impl Into<cdtime_t> for CdTime {
 /// very close to nanoseconds. *The* big advantage of storing time in this manner is that comparing
 /// times and calculating differences is as simple as it is with `time_t`, i.e. a simple integer
 /// comparison / subtraction works.
-fn nanos_to_collectd(nanos: u64) -> cdtime_t {
+pub fn nanos_to_collectd(nanos: u64) -> cdtime_t {
     ((nanos / 1_000_000_000) << 30)
         | ((((nanos % 1_000_000_000) << 30) + 500_000_000) / 1_000_000_000)
 }

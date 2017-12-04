@@ -100,9 +100,9 @@ pub struct RecvValueList<'a> {
     pub plugin: &'a str,
     pub type_: &'a str,
     pub type_instance: Option<&'a str>,
-    pub host: Option<&'a str>,
-    pub time: Option<DateTime<Utc>>,
-    pub interval: Option<Duration>,
+    pub host: &'a str,
+    pub time: DateTime<Utc>,
+    pub interval: Duration,
 }
 
 impl<'a> RecvValueList<'a> {
@@ -138,17 +138,8 @@ impl<'a> RecvValueList<'a> {
             })
             .collect();
 
-        let time = if list.time != 0 {
-            Some(CdTime::from(list.time).into())
-        } else {
-            None
-        };
-
-        let interval = if list.interval != 0 {
-            Some(CdTime::from(list.interval).into())
-        } else {
-            None
-        };
+        assert!(list.time > 0);
+        assert!(list.interval > 0);
 
         RecvValueList {
             values: values,
@@ -156,9 +147,9 @@ impl<'a> RecvValueList<'a> {
             plugin: from_array(&list.plugin),
             type_: from_array(&list.type_),
             type_instance: empty_to_none(from_array(&list.type_instance)),
-            host: empty_to_none(from_array(&list.host)),
-            time: time,
-            interval: interval,
+            host: from_array(&list.host),
+            time: CdTime::from(list.time).into(),
+            interval: CdTime::from(list.interval).into(),
         }
     }
 }
@@ -352,6 +343,7 @@ mod tests {
     use super::*;
     use std::os::raw::c_char;
     use bindings::data_source_t;
+    use self::cdtime::nanos_to_collectd;
 
     #[test]
     fn test_to_array() {
@@ -406,8 +398,8 @@ mod tests {
         let list_t = value_list_t {
             values: vs.as_mut_ptr(),
             values_len: 1,
-            time: 0,
-            interval: 0,
+            time: nanos_to_collectd(1_000_000_000),
+            interval: nanos_to_collectd(1_000_000_000),
             host: metric,
             plugin: name,
             plugin_instance: metric,
@@ -432,9 +424,9 @@ mod tests {
                 plugin: "hi",
                 type_: "ho",
                 type_instance: None,
-                host: Some("ho"),
-                time: None,
-                interval: None,
+                host: "ho",
+                time: Utc.ymd(1970, 1, 1).and_hms(0, 0, 1),
+                interval: Duration::seconds(1),
             }
         );
     }
