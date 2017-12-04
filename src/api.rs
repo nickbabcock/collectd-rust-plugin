@@ -1,6 +1,6 @@
-use bindings::{data_set_t, hostname_g, plugin_dispatch_values, plugin_log, value_list_t, value_t,
-               ARR_LENGTH, DS_TYPE_ABSOLUTE, DS_TYPE_COUNTER, DS_TYPE_DERIVE, DS_TYPE_GAUGE,
-               LOG_DEBUG, LOG_ERR, LOG_INFO, LOG_NOTICE, LOG_WARNING, cdtime_t};
+use bindings::{cdtime_t, data_set_t, hostname_g, plugin_dispatch_values, plugin_log, value_list_t,
+               value_t, ARR_LENGTH, DS_TYPE_ABSOLUTE, DS_TYPE_COUNTER, DS_TYPE_DERIVE,
+               DS_TYPE_GAUGE, LOG_DEBUG, LOG_ERR, LOG_INFO, LOG_NOTICE, LOG_WARNING};
 use std::os::raw::c_char;
 use std::ptr;
 use std::slice;
@@ -316,11 +316,7 @@ impl ValueListBuilder {
             type_: to_array_res(&self.list.type_)?,
             type_instance: type_instance,
             host: host,
-            time: self.list
-                .time
-                .map(CdTime::from)
-                .unwrap_or(CdTime(0))
-                .into(),
+            time: self.list.time.map(CdTime::from).unwrap_or(CdTime(0)).into(),
             interval: self.list
                 .interval
                 .map(CdTime::from)
@@ -379,8 +375,7 @@ fn nanos_to_collectd(nanos: u64) -> cdtime_t {
 }
 
 fn collectd_to_nanos(cd: cdtime_t) -> u64 {
-    ((cd >> 30) * 1_000_000_000) +
-     (((cd & 0x3fff_ffff) * 1_000_000_000 + (1 << 29)) >> 30)
+    ((cd >> 30) * 1_000_000_000) + (((cd & 0x3fff_ffff) * 1_000_000_000 + (1 << 29)) >> 30)
 }
 
 /// Sends message and log level to collectd. Collectd configuration determines if a level is logged
