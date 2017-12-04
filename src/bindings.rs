@@ -4,12 +4,8 @@
 #![allow(dead_code)]
 #![cfg_attr(feature = "cargo-clippy", allow(clippy))]
 
-// In collectd 5.7 the max length of textual information was extended to 128 characters
-#[cfg(feature = "collectd-57")]
-pub const ARR_LENGTH: usize = 128;
-
-#[cfg(not(feature = "collectd-57"))]
-pub const ARR_LENGTH: usize = 64;
+// In collectd 5.7 the max length of textual information was extended to 128 characters from 64
+pub const ARR_LENGTH: usize = DATA_MAX_NAME_LEN as usize;
 
 // We have to override the definition of hostname_g from bindgen as it found hostname_g to be an
 // empty array. hostname_g is a global variable defined by collectd to be the hostname to use for
