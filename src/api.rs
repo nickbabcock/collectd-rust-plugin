@@ -62,10 +62,9 @@ pub enum Value {
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Value::Counter(x) => write!(f, "{}", x),
+            Value::Counter(x) | Value::Absolute(x) => write!(f, "{}", x),
             Value::Gauge(x) => write!(f, "{}", x),
             Value::Derive(x) => write!(f, "{}", x),
-            Value::Absolute(x) => write!(f, "{}", x),
         }
     }
 }
