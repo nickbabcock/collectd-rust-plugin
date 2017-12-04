@@ -34,7 +34,7 @@ impl Plugin for TestWritePlugin {
             list.host.unwrap_or("<none>"),
             list.time.unwrap_or(Utc::now()),
             list.interval.unwrap_or_else(|| Duration::seconds(10)),
-            line2,
+            values,
         );
         collectd_log(
             LogLevel::Warning,
