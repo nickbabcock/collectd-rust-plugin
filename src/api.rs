@@ -1,6 +1,6 @@
 use bindings::{data_set_t, hostname_g, plugin_dispatch_values, plugin_log, value_list_t, value_t,
                ARR_LENGTH, DS_TYPE_ABSOLUTE, DS_TYPE_COUNTER, DS_TYPE_DERIVE, DS_TYPE_GAUGE,
-               LOG_DEBUG, LOG_ERR, LOG_INFO, LOG_NOTICE, LOG_WARNING};
+               LOG_DEBUG, LOG_ERR, LOG_INFO, LOG_NOTICE, LOG_WARNING, cdtime_t};
 use std::os::raw::c_char;
 use std::ptr;
 use std::slice;
@@ -79,6 +79,28 @@ impl Into<value_t> for Value {
             Value::Derive(x) => value_t { derive: x },
             Value::Absolute(x) => value_t { absolute: x },
         }
+    }
+}
+
+pub struct CdTime(u64);
+
+impl<Tz: TimeZone> From<DateTime<Tz>> for CdTime {
+    fn from(dt: DateTime<Tz>) -> Self {
+        let nanos = (dt.timestamp() as u64) + u64::from(dt.timestamp_subsec_nanos());
+        CdTime(nanos_to_collectd(nanos))
+    }
+}
+
+impl From<Duration> for CdTime {
+    fn from(d: Duration) -> Self {
+        CdTime(nanos_to_collectd(d.num_nanoseconds().unwrap() as u64))
+    }
+}
+
+impl Into<cdtime_t> for CdTime {
+    fn into(self) -> cdtime_t {
+        let CdTime(x) = self;
+        x
     }
 }
 
@@ -261,16 +283,14 @@ impl ValueListBuilder {
             host: host,
             time: self.list
                 .time
-                .map(|dt| {
-                    nanos_to_collectd(
-                        (dt.timestamp() as u64) + u64::from(dt.timestamp_subsec_nanos()),
-                    )
-                })
-                .unwrap_or(0),
+                .map(CdTime::from)
+                .unwrap_or(CdTime(0))
+                .into(),
             interval: self.list
                 .interval
-                .map(|d| nanos_to_collectd(d.num_nanoseconds().unwrap() as u64))
-                .unwrap_or(0),
+                .map(CdTime::from)
+                .unwrap_or(CdTime(0))
+                .into(),
             meta: ptr::null_mut(),
         };
 
