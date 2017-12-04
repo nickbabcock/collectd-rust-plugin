@@ -1,6 +1,6 @@
 use failure::Error;
 use errors::NotImplemented;
-use api::{LogLevel, RecvValueList, DataSet};
+use api::{LogLevel, RecvValueList};
 
 bitflags! {
     /// Bitflags of capabilities that a plugin advertises to collectd.
@@ -78,7 +78,7 @@ pub trait Plugin {
         Err(Error::from(NotImplemented))
     }
 
-    fn write_values<'a>(&mut self, _set: DataSet<'a>, _list: RecvValueList<'a>) -> Result<(), Error> {
+    fn write_values<'a>(&mut self, _list: RecvValueList<'a>) -> Result<(), Error> {
         Err(Error::from(NotImplemented))
     }
 }
@@ -230,10 +230,9 @@ macro_rules! collectd_plugin {
         ) -> std::os::raw::c_int {
             let ptr: *mut $type = std::mem::transmute((*dt).data);
             let mut plugin = Box::from_raw(ptr);
-            let set = $crate::DataSet::from(&*ds);
-            let list = $crate::RecvValueList::from(&set, &*vl);
+            let list = $crate::RecvValueList::from(&*ds, &*vl);
             let result = 
-                if let Err(ref e) = plugin.write_values(set, list) {
+                if let Err(ref e) = plugin.write_values(list) {
                     $crate::collectd_log(
                         $crate::LogLevel::Error,
                         &format!("writing error: {}", e)

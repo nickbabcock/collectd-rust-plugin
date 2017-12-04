@@ -71,6 +71,14 @@ impl Into<value_t> for Value {
     }
 }
 
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub struct ValueReport<'a> {
+    pub name: &'a str,
+    pub value: Value,
+    pub min: f64,
+    pub max: f64,
+}
+
 #[derive(Debug, PartialEq, Clone)]
 pub struct DataSource<'a> {
     pub name: &'a str,
@@ -122,7 +130,7 @@ impl<'a> From<&'a data_set_t> for DataSet<'a> {
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct RecvValueList<'a> {
-    pub values: Vec<Value>,
+    pub values: Vec<ValueReport<'a>>,
     pub plugin_instance: Option<&'a str>,
     pub plugin: &'a str,
     pub type_: &'a str,
@@ -133,23 +141,36 @@ pub struct RecvValueList<'a> {
 }
 
 impl<'a> RecvValueList<'a> {
-    pub fn from<'b>(set: &DataSet, list: &'b value_list_t) -> RecvValueList<'b> {
+    pub fn from<'b>(set: &'b data_set_t, list: &'b value_list_t) -> RecvValueList<'b> {
         #[cfg(feature = "collectd-57")]
-        let len = list.values_len;
+        let ds_len = set.ds_num;
 
         #[cfg(not(feature = "collectd-57"))]
-        let len = list.values_len as usize;
+        let ds_len = set.ds_num as usize;
 
-        let values = unsafe { slice::from_raw_parts(list.values, len) }
+        #[cfg(feature = "collectd-57")]
+        let list_len = list.values_len;
+
+        #[cfg(not(feature = "collectd-57"))]
+        let list_len = list.values_len as usize;
+
+        let values = unsafe { slice::from_raw_parts(list.values, list_len) }
             .iter()
-            .zip(set.sources.iter())
+            .zip(unsafe { slice::from_raw_parts(set.ds, ds_len) })
             .map(|(val, source)| {
                 unsafe {
-                    match source.value_type {
-                        ValueType::Gauge => Value::Gauge(val.gauge),
-                        ValueType::Counter => Value::Counter(val.counter),
-                        ValueType::Derive => Value::Derive(val.derive),
-                        ValueType::Absolute => Value::Absolute(val.absolute),
+                    let v = 
+                        match ::std::mem::transmute(source.type_) {
+                            ValueType::Gauge => Value::Gauge(val.gauge),
+                            ValueType::Counter => Value::Counter(val.counter),
+                            ValueType::Derive => Value::Derive(val.derive),
+                            ValueType::Absolute => Value::Absolute(val.absolute),
+                        };
+                    ValueReport {
+                        name: from_array(&source.name),
+                        value: v,
+                        min: source.min,
+                        max: source.max,
                     }
                 }
             })
@@ -309,7 +330,7 @@ fn to_array_res(s: &str) -> Result<[c_char; ARR_LENGTH], ArrayError> {
     Ok(arr)
 }
 
-fn from_array(s: &[c_char; ARR_LENGTH]) -> &str {
+pub fn from_array(s: &[c_char; ARR_LENGTH]) -> &str {
     unsafe {
         let a = s as *const [i8; ARR_LENGTH] as *const i8;
         CStr::from_ptr(a).to_str().unwrap()
