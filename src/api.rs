@@ -1,7 +1,6 @@
-use bindings::{data_set_t, hostname_g, plugin_dispatch_values, plugin_log,
-               value_list_t, value_t, ARR_LENGTH, DS_TYPE_ABSOLUTE, DS_TYPE_COUNTER,
-               DS_TYPE_DERIVE, DS_TYPE_GAUGE, LOG_DEBUG, LOG_ERR, LOG_INFO, LOG_NOTICE,
-               LOG_WARNING};
+use bindings::{data_set_t, hostname_g, plugin_dispatch_values, plugin_log, value_list_t, value_t,
+               ARR_LENGTH, DS_TYPE_ABSOLUTE, DS_TYPE_COUNTER, DS_TYPE_DERIVE, DS_TYPE_GAUGE,
+               LOG_DEBUG, LOG_ERR, LOG_INFO, LOG_NOTICE, LOG_WARNING};
 use std::os::raw::c_char;
 use std::ptr;
 use std::slice;
@@ -423,7 +422,7 @@ mod tests {
             plugin_instance: metric,
             type_: metric,
             type_instance: empty,
-            meta: ptr::null_mut()
+            meta: ptr::null_mut(),
         };
 
         let actual = RecvValueList::from(&conv, &list_t);
@@ -436,7 +435,7 @@ mod tests {
                         value: Value::Gauge(3.0),
                         min: 10.0,
                         max: 11.0,
-                    }
+                    },
                 ],
                 plugin_instance: Some("ho"),
                 plugin: "hi",
