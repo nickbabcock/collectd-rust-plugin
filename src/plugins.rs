@@ -231,8 +231,17 @@ macro_rules! collectd_plugin {
             let ptr: *mut $type = std::mem::transmute((*dt).data);
             let mut plugin = Box::from_raw(ptr);
             let list = $crate::RecvValueList::from(&*ds, &*vl);
+            if let Err(ref e) = list {
+                $crate::collectd_log(
+                    $crate::LogLevel::Error,
+                    &format!("Unable to decode collectd data: {}", e)
+                );
+                std::mem::forget(plugin);
+                return -1;
+            }
+
             let result =
-                if let Err(ref e) = plugin.write_values(list) {
+                if let Err(ref e) = plugin.write_values(list.unwrap()) {
                     $crate::collectd_log(
                         $crate::LogLevel::Error,
                         &format!("writing error: {}", e)
