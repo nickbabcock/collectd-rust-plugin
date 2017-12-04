@@ -82,6 +82,7 @@ impl Into<value_t> for Value {
     }
 }
 
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct CdTime(u64);
 
 impl<Tz: TimeZone> From<DateTime<Tz>> for CdTime {
@@ -91,16 +92,38 @@ impl<Tz: TimeZone> From<DateTime<Tz>> for CdTime {
     }
 }
 
+impl Into<DateTime<Utc>> for CdTime {
+    fn into(self) -> DateTime<Utc> {
+        let CdTime(ns) = self;
+        let secs = ns / 1_000_000_000;
+        let left = ns % 1_000_000_000;
+        Utc.timestamp(secs as i64, left as u32)
+    }
+}
+
 impl From<Duration> for CdTime {
     fn from(d: Duration) -> Self {
-        CdTime(nanos_to_collectd(d.num_nanoseconds().unwrap() as u64))
+        CdTime(d.num_nanoseconds().unwrap() as u64)
+    }
+}
+
+impl Into<Duration> for CdTime {
+    fn into(self) -> Duration {
+        let CdTime(ns) = self;
+        Duration::nanoseconds(ns as i64)
+    }
+}
+
+impl From<cdtime_t> for CdTime {
+    fn from(d: cdtime_t) -> Self {
+        CdTime(collectd_to_nanos(d))
     }
 }
 
 impl Into<cdtime_t> for CdTime {
     fn into(self) -> cdtime_t {
         let CdTime(x) = self;
-        x
+        nanos_to_collectd(x)
     }
 }
 
@@ -157,6 +180,18 @@ impl<'a> RecvValueList<'a> {
             })
             .collect();
 
+        let time = if list.time != 0 {
+            Some(CdTime::from(list.time).into())
+        } else {
+            None
+        };
+
+        let interval = if list.interval != 0 {
+            Some(CdTime::from(list.interval).into())
+        } else {
+            None
+        };
+
         RecvValueList {
             values: values,
             plugin_instance: empty_to_none(from_array(&list.plugin_instance)),
@@ -164,8 +199,8 @@ impl<'a> RecvValueList<'a> {
             type_: from_array(&list.type_),
             type_instance: empty_to_none(from_array(&list.type_instance)),
             host: empty_to_none(from_array(&list.host)),
-            time: None,
-            interval: None,
+            time: time,
+            interval: interval,
         }
     }
 }
@@ -338,9 +373,14 @@ fn empty_to_none(s: &str) -> Option<&str> {
 /// very close to nanoseconds. *The* big advantage of storing time in this manner is that comparing
 /// times and calculating differences is as simple as it is with `time_t`, i.e. a simple integer
 /// comparison / subtraction works.
-fn nanos_to_collectd(nanos: u64) -> u64 {
+fn nanos_to_collectd(nanos: u64) -> cdtime_t {
     ((nanos / 1_000_000_000) << 30)
         | ((((nanos % 1_000_000_000) << 30) + 500_000_000) / 1_000_000_000)
+}
+
+fn collectd_to_nanos(cd: cdtime_t) -> u64 {
+    ((cd >> 30) * 1_000_000_000) +
+     (((cd & 0x3fff_ffff) * 1_000_000_000 + (1 << 29)) >> 30)
 }
 
 /// Sends message and log level to collectd. Collectd configuration determines if a level is logged
