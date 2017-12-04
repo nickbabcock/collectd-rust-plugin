@@ -10,7 +10,8 @@ mod errors;
 #[macro_use]
 mod plugins;
 
-pub use api::{collectd_log, LogLevel, Value, ValueListBuilder, get_default_interval, DataSet, DataSource, RecvValueList, from_array};
+pub use api::{collectd_log, from_array, get_default_interval, DataSet, DataSource, LogLevel,
+              RecvValueList, Value, ValueListBuilder};
 pub use errors::{ArrayError, SubmitError};
 pub use plugins::{Plugin, PluginCapabilities};
 

@@ -1,7 +1,7 @@
+extern crate chrono;
 #[macro_use]
 extern crate collectd_plugin;
 extern crate failure;
-extern crate chrono;
 extern crate itertools;
 
 use collectd_plugin::{collectd_log, LogLevel, Plugin, PluginCapabilities, RecvValueList};
@@ -23,7 +23,10 @@ impl Plugin for TestWritePlugin {
     }
 
     fn write_values<'a>(&mut self, list: RecvValueList<'a>) -> Result<(), Error> {
-        let values = list.values.iter().map(|v| format!("{} - {}", v.name, v.value)).join(", ");
+        let values = list.values
+            .iter()
+            .map(|v| format!("{} - {}", v.name, v.value))
+            .join(", ");
 
         let line = format!(
             "plugin_instance: {}, plugin: {}, type: {}, type_instance: {}, host: {}, time: {}, interval: {}, values: {}",
@@ -36,10 +39,7 @@ impl Plugin for TestWritePlugin {
             list.interval.unwrap_or_else(|| Duration::seconds(10)),
             values,
         );
-        collectd_log(
-            LogLevel::Warning,
-            &line
-        );
+        collectd_log(LogLevel::Warning, &line);
         Ok(())
     }
 }
