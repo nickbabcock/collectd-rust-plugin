@@ -92,6 +92,6 @@ mod tests {
     fn test_collectd_to_datetime() {
         let v: cdtime_t = nanos_to_collectd(1_000_000_000);
         let dt: DateTime<Utc> = CdTime::from(v).into();
-        assert_eq!(Utc.ymd(1970, 1, 1).and_hms(0, 0, 1), dt); 
+        assert_eq!(Utc.ymd(1970, 1, 1).and_hms(0, 0, 1), dt);
     }
 }
