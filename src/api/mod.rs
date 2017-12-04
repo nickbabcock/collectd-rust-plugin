@@ -107,7 +107,10 @@ pub struct RecvValueList<'a> {
 }
 
 impl<'a> RecvValueList<'a> {
-    pub fn from<'b>(set: &'b data_set_t, list: &'b value_list_t) -> Result<RecvValueList<'b>, Error> {
+    pub fn from<'b>(
+        set: &'b data_set_t,
+        list: &'b value_list_t,
+    ) -> Result<RecvValueList<'b>, Error> {
         let p = from_array(&list.plugin).context("Plugin could not be parsed")?;
 
         #[cfg(feature = "collectd-57")]
@@ -122,9 +125,9 @@ impl<'a> RecvValueList<'a> {
         #[cfg(not(feature = "collectd-57"))]
         let list_len = list.values_len as usize;
 
-        let values: Result<Vec<ValueReport>, Error> = 
-            unsafe { slice::from_raw_parts(list.values, list_len) }
-            .iter()
+        let values: Result<Vec<ValueReport>, Error> = unsafe {
+            slice::from_raw_parts(list.values, list_len)
+        }.iter()
             .zip(unsafe { slice::from_raw_parts(set.ds, ds_len) })
             .map(|(val, source)| unsafe {
                 let v = match ::std::mem::transmute(source.type_) {
@@ -134,8 +137,9 @@ impl<'a> RecvValueList<'a> {
                     ValueType::Absolute => Value::Absolute(val.absolute),
                 };
 
-                let name = from_array(&source.name)
-                    .with_context(|_e| format!("For plugin: {}, data source name could not be decoded", p))?;
+                let name = from_array(&source.name).with_context(|_e| {
+                    format!("For plugin: {}, data source name could not be decoded", p)
+                })?;
 
                 Ok(ValueReport {
                     name: name,
@@ -151,11 +155,17 @@ impl<'a> RecvValueList<'a> {
 
         Ok(RecvValueList {
             values: values?,
-            plugin_instance: empty_to_none(from_array(&list.plugin_instance).with_context(|_e| format!("For plugin: {}, plugin instance could not be decoded", p))?),
+            plugin_instance: empty_to_none(from_array(&list.plugin_instance).with_context(|_e| {
+                format!("For plugin: {}, plugin instance could not be decoded", p)
+            })?),
             plugin: p,
-            type_: from_array(&list.type_).with_context(|_e| format!("For plugin: {}, type could not be decoded", p))?,
-            type_instance: empty_to_none(from_array(&list.type_instance).with_context(|_e| format!("For plugin: {}, type instance could not be decoded", p))?),
-            host: from_array(&list.host).with_context(|_e| format!("For plugin: {}, host could not be decoded", p))?,
+            type_: from_array(&list.type_)
+                .with_context(|_e| format!("For plugin: {}, type could not be decoded", p))?,
+            type_instance: empty_to_none(from_array(&list.type_instance).with_context(|_e| {
+                format!("For plugin: {}, type instance could not be decoded", p)
+            })?),
+            host: from_array(&list.host)
+                .with_context(|_e| format!("For plugin: {}, host could not be decoded", p))?,
             time: CdTime::from(list.time).into(),
             interval: CdTime::from(list.interval).into(),
         })
