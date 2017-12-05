@@ -13,7 +13,8 @@ mod plugins;
 pub use api::{collectd_log, empty_to_none, from_array, get_default_interval, CdTime, ConfigItem,
               ConfigValue, LogLevel, RecvValueList, Value, ValueListBuilder};
 pub use errors::{ArrayError, SubmitError};
-pub use plugins::{Plugin, PluginCapabilities};
+pub use plugins::{Plugin, PluginCapabilities, PluginManager, PluginRegistration, PluginManagerCapabilities, IdPlugin};
+use failure::Error;
 
 #[cfg(test)]
 #[allow(private_no_mangle_fns)]
@@ -23,19 +24,17 @@ mod tests {
 
     struct MyPlugin;
 
-    impl MyPlugin {
-        fn new() -> Self {
-            MyPlugin
-        }
-    }
-
-    impl Plugin for MyPlugin {
-        fn name(&self) -> &str {
+    impl PluginManager for MyPlugin {
+        fn name() -> &'static str {
             "myplugin"
         }
+
+        fn plugins(_config: Option<&ConfigItem>) -> Result<PluginRegistration, Error> {
+            Ok(PluginRegistration::Multiple(vec![]))
+        }
     }
 
-    collectd_plugin!(MyPlugin, MyPlugin::new);
+    collectd_plugin!(MyPlugin);
 
     #[test]
     fn can_generate_blank_plugin() {
