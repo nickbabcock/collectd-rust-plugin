@@ -1,4 +1,4 @@
-//! # CdTime
+//! # `CdTime`
 //!
 //! Collectd stores time information in a custom type: `cdtime_t`. Below is a snippet from
 //! collectd's docs about why this custom format was chosen.
