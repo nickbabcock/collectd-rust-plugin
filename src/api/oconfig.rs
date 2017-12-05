@@ -3,12 +3,14 @@ use failure::{Error, ResultExt};
 use std::ffi::CStr;
 use std::slice;
 
+#[derive(Debug, PartialEq, Clone)]
 pub enum ConfigValue<'a> {
     Number(f64),
     Boolean(bool),
     String(&'a str),
 }
 
+#[derive(Debug, PartialEq, Clone)]
 pub struct ConfigItem<'a> {
     pub key: &'a str,
     pub values: Vec<ConfigValue<'a>>,
