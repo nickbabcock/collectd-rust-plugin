@@ -1,6 +1,6 @@
 use failure::Error;
 use errors::NotImplemented;
-use api::{LogLevel, RecvValueList, ConfigItem};
+use api::{ConfigItem, LogLevel, RecvValueList};
 use chrono::Duration;
 
 bitflags! {
@@ -101,7 +101,11 @@ pub trait Plugin {
     ///
     /// It is up to you to make sure that this function is thread safe, so make sure anything that
     /// is being worked with implements `Sync`
-    fn flush(&mut self, _timeout: Option<Duration>, _identifier: Option<&str>) -> Result<(), Error> {
+    fn flush(
+        &mut self,
+        _timeout: Option<Duration>,
+        _identifier: Option<&str>,
+    ) -> Result<(), Error> {
         Err(Error::from(NotImplemented))
     }
 }
