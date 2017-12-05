@@ -88,7 +88,7 @@ pub trait Plugin {
         Err(Error::from(NotImplemented))
     }
 
-    fn flush(&mut self, _timeout: Duration, _identifier: Option<&str>) -> Result<(), Error> {
+    fn flush(&mut self, _timeout: Option<Duration>, _identifier: Option<&str>) -> Result<(), Error> {
         Err(Error::from(NotImplemented))
     }
 }
@@ -317,10 +317,10 @@ macro_rules! collectd_plugin {
             let ptr: *mut $type = std::mem::transmute((*dt).data);
             let mut plugin = Box::from_raw(ptr);
 
-            let dur = $crate::CdTime::from(timeout);
+            let dur = if timeout == 0 { None } else { Some($crate::CdTime::from(timeout).into()) };
             let result =
                 if let Ok(ident) = CStr::from_ptr(identifier).to_str() {
-                    if let Err(ref e) = plugin.flush(dur.into(), $crate::empty_to_none(ident)) {
+                    if let Err(ref e) = plugin.flush(dur, $crate::empty_to_none(ident)) {
                         $crate::collectd_log(
                             $crate::LogLevel::Error,
                             &format!("flush error: {}", e)
