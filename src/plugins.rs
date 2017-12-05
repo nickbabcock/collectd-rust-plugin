@@ -1,6 +1,6 @@
 use failure::Error;
 use errors::NotImplemented;
-use api::{LogLevel, RecvValueList};
+use api::{LogLevel, RecvValueList, ConfigItem};
 use chrono::Duration;
 
 bitflags! {
@@ -52,15 +52,9 @@ pub trait Plugin {
         PluginCapabilities::default()
     }
 
-    /// Configuration keys that the plugin configures itself with. Will only be consulted if the
-    /// plugin has at least a capability of `CONFIG`.
-    fn config_keys(&self) -> Vec<String> {
-        vec![]
-    }
-
     /// A key value pair related to the plugin that collectd parsed from the collectd configuration
     /// files. Will only be called if a plugin has a capability of at least `CONFIG`
-    fn config_callback(&mut self, _key: String, _value: String) -> Result<(), Error> {
+    fn config(&mut self, _config: &ConfigItem) -> Result<(), Error> {
         Err(Error::from(NotImplemented))
     }
 
@@ -123,10 +117,10 @@ macro_rules! collectd_plugin {
 
         #[no_mangle]
         pub extern "C" fn module_register() {
-            use std::os::raw::{c_char, c_void};
+            use std::os::raw::c_void;
             use std::ffi::CString;
             use std::ptr;
-            use $crate::bindings::{plugin_register_config, plugin_register_init, plugin_register_write, plugin_register_complex_read, plugin_register_log, plugin_register_flush, plugin_register_complex_config};
+            use $crate::bindings::{plugin_register_init, plugin_register_write, plugin_register_complex_read, plugin_register_log, plugin_register_flush, plugin_register_complex_config};
 
             let pl: Box<$type> = Box::new($plugin());
 
@@ -137,10 +131,6 @@ macro_rules! collectd_plugin {
             let should_log = pl.capabilities().has_log();
             let should_write = pl.capabilities().has_write();
             let should_flush = pl.capabilities().has_flush();
-            let ck: Vec<CString> = pl.config_keys()
-                .into_iter()
-                .map(|x| CString::new(x).expect("Config key to not contain nulls"))
-                .collect();
 
             // Use expects for assertions -- no one really should be passing us strings that
             // contain nulls
@@ -185,24 +175,6 @@ macro_rules! collectd_plugin {
                         s.as_ptr(),
                         Some(collectd_plugin_complex_config)
                     );
-
-                    // Now grab all the pointers to the c strings for ffi
-                    let mut pointers: Vec<*const c_char> = ck.iter()
-                        .map(|arg| arg.as_ptr())
-                        .collect();
-
-                    plugin_register_config(
-                        s.as_ptr(),
-                        Some(collectd_plugin_config),
-                        pointers.as_mut_ptr(),
-                        pointers.len() as i32,
-                    );
-
-                    // We must forget the vector as collectd hangs on to the info and if we were to
-                    // drop it, collectd would segfault trying to read the newly freed up data
-                    // structure
-                    std::mem::forget(ck);
-                    std::mem::forget(pointers);
                 }
 
                 if should_log {
@@ -306,31 +278,6 @@ macro_rules! collectd_plugin {
             result
         }
 
-        unsafe extern "C" fn collectd_plugin_config(
-            key: *const std::os::raw::c_char,
-            value: *const std::os::raw::c_char
-        ) -> std::os::raw::c_int {
-            use std::ffi::CStr;
-            let mut plugin = Box::from_raw(COLLECTD_PLUGIN_FOR_INIT);
-            let mut result = -1;
-
-            if let Ok(key) = CStr::from_ptr(key).to_owned().into_string() {
-                if let Ok(value) = CStr::from_ptr(value).to_owned().into_string() {
-                    if let Err(ref e) = plugin.config_callback(key, value) {
-                        $crate::collectd_log(
-                            $crate::LogLevel::Error,
-                            &format!("config error: {}", e)
-                        );
-                    } else {
-                        result = 0;
-                    }
-                }
-            }
-
-            std::mem::forget(plugin);
-            result
-        }
-
         unsafe extern "C" fn collectd_plugin_flush(
             timeout: $crate::bindings::cdtime_t,
             identifier: *const std::os::raw::c_char,
@@ -364,11 +311,25 @@ macro_rules! collectd_plugin {
         unsafe extern "C" fn collectd_plugin_complex_config(
             config: *mut $crate::bindings::oconfig_item_t
         ) -> std::os::raw::c_int {
-            if let Ok(config) = $crate::ConfigItem::from(&*config) {
-                0
-            } else {
-                -1
-            }
+            let mut plugin = Box::from_raw(COLLECTD_PLUGIN_FOR_INIT);
+            let result =
+                if let Ok(config) = $crate::ConfigItem::from(&*config) {
+                    match plugin.config(&config) {
+                        Ok(()) => 0,
+                        Err(ref e) => {
+                            $crate::collectd_log(
+                                $crate::LogLevel::Error,
+                                &format!("config error: {}", e)
+                            );
+                            -1
+                        }
+                    }
+                } else {
+                    -1
+                };
+
+            std::mem::forget(plugin);
+            result
         }
     };
 }

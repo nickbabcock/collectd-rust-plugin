@@ -10,9 +10,9 @@ pub enum ConfigValue<'a> {
 }
 
 pub struct ConfigItem<'a> {
-    key: &'a str,
-    values: Vec<ConfigValue<'a>>,
-    children: Vec<ConfigItem<'a>>,
+    pub key: &'a str,
+    pub values: Vec<ConfigValue<'a>>,
+    pub children: Vec<ConfigItem<'a>>,
 }
 
 impl<'a> ConfigValue<'a> {
