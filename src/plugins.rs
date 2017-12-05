@@ -1,6 +1,7 @@
 use failure::Error;
 use errors::NotImplemented;
 use api::{LogLevel, RecvValueList};
+use chrono::Duration;
 
 bitflags! {
     /// Bitflags of capabilities that a plugin advertises to collectd.
@@ -11,6 +12,7 @@ bitflags! {
         const INIT =   0b0000_0100;
         const LOG =    0b0000_1000;
         const WRITE =  0b0001_0000;
+        const FLUSH =  0b0010_0000;
     }
 }
 
@@ -33,6 +35,10 @@ impl PluginCapabilities {
 
     pub fn has_write(&self) -> bool {
         self.intersects(PluginCapabilities::WRITE)
+    }
+
+    pub fn has_flush(&self) -> bool {
+        self.intersects(PluginCapabilities::FLUSH)
     }
 }
 
@@ -81,6 +87,10 @@ pub trait Plugin {
     fn write_values<'a>(&mut self, _list: RecvValueList<'a>) -> Result<(), Error> {
         Err(Error::from(NotImplemented))
     }
+
+    fn flush(&mut self, _timeout: Duration, _identifier: Option<&str>) -> Result<(), Error> {
+        Err(Error::from(NotImplemented))
+    }
 }
 
 #[macro_export]
@@ -97,7 +107,7 @@ macro_rules! collectd_plugin {
             use std::os::raw::{c_char, c_void};
             use std::ffi::CString;
             use std::ptr;
-            use $crate::bindings::{plugin_register_config, plugin_register_init, plugin_register_write, plugin_register_complex_read, plugin_register_log};
+            use $crate::bindings::{plugin_register_config, plugin_register_init, plugin_register_write, plugin_register_complex_read, plugin_register_log, plugin_register_flush};
 
             let pl: Box<$type> = Box::new($plugin());
 
@@ -107,6 +117,7 @@ macro_rules! collectd_plugin {
             let should_init = pl.capabilities().has_init();
             let should_log = pl.capabilities().has_log();
             let should_write = pl.capabilities().has_write();
+            let should_flush = pl.capabilities().has_flush();
             let ck: Vec<CString> = pl.config_keys()
                 .into_iter()
                 .map(|x| CString::new(x).expect("Config key to not contain nulls"))
@@ -172,6 +183,10 @@ macro_rules! collectd_plugin {
 
                 if should_log {
                     plugin_register_log(s.as_ptr(), Some(collectd_plugin_log), &mut data);
+                }
+
+                if should_flush {
+                    plugin_register_flush(s.as_ptr(), Some(collectd_plugin_flush), &mut data);
                 }
             }
         }
@@ -287,6 +302,36 @@ macro_rules! collectd_plugin {
                     }
                 }
             }
+
+            std::mem::forget(plugin);
+            result
+        }
+
+        unsafe extern "C" fn collectd_plugin_flush(
+            timeout: $crate::bindings::cdtime_t,
+            identifier: *const std::os::raw::c_char,
+            dt: *mut $crate::bindings::user_data_t
+        ) -> std::os::raw::c_int {
+            use std::ffi::CStr;
+
+            let ptr: *mut $type = std::mem::transmute((*dt).data);
+            let mut plugin = Box::from_raw(ptr);
+
+            let dur = $crate::CdTime::from(timeout);
+            let result =
+                if let Ok(ident) = CStr::from_ptr(identifier).to_str() {
+                    if let Err(ref e) = plugin.flush(dur.into(), $crate::empty_to_none(ident)) {
+                        $crate::collectd_log(
+                            $crate::LogLevel::Error,
+                            &format!("flush error: {}", e)
+                        );
+                        -1
+                    } else {
+                        0
+                    }
+                } else {
+                    -1
+                };
 
             std::mem::forget(plugin);
             result

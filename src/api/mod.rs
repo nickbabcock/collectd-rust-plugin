@@ -11,7 +11,7 @@ use failure::{Error, ResultExt};
 use errors::{ArrayError, SubmitError};
 use std::fmt;
 use std::str::Utf8Error;
-use self::cdtime::CdTime;
+pub use self::cdtime::CdTime;
 
 mod cdtime;
 
@@ -323,7 +323,7 @@ pub fn from_array(s: &[c_char; ARR_LENGTH]) -> Result<&str, Utf8Error> {
     }
 }
 
-fn empty_to_none(s: &str) -> Option<&str> {
+pub fn empty_to_none(s: &str) -> Option<&str> {
     if s.is_empty() {
         None
     } else {
