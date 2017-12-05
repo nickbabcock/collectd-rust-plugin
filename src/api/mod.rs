@@ -12,8 +12,10 @@ use errors::{ArrayError, SubmitError};
 use std::fmt;
 use std::str::Utf8Error;
 pub use self::cdtime::CdTime;
+pub use self::oconfig::{ConfigItem, ConfigValue};
 
 mod cdtime;
+mod oconfig;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[repr(u32)]
@@ -112,18 +114,8 @@ impl<'a> RecvValueList<'a> {
         list: &'b value_list_t,
     ) -> Result<RecvValueList<'b>, Error> {
         let p = from_array(&list.plugin).context("Plugin could not be parsed")?;
-
-        #[cfg(feature = "collectd-57")]
-        let ds_len = set.ds_num;
-
-        #[cfg(not(feature = "collectd-57"))]
-        let ds_len = set.ds_num as usize;
-
-        #[cfg(feature = "collectd-57")]
-        let list_len = list.values_len;
-
-        #[cfg(not(feature = "collectd-57"))]
-        let list_len = list.values_len as usize;
+        let ds_len = length(set.ds_num);
+        let list_len = length(list.values_len);
 
         let values: Result<Vec<ValueReport>, Error> = unsafe {
             slice::from_raw_parts(list.values, list_len)
@@ -368,6 +360,16 @@ pub fn collectd_log(lvl: LogLevel, message: &str) {
     unsafe {
         plugin_log(lvl as i32, cs.as_ptr());
     }
+}
+
+#[cfg(feature = "collectd-57")]
+pub fn length(len: usize) -> usize {
+    len
+}
+
+#[cfg(not(feature = "collectd-57"))]
+pub fn length(len: i32) -> usize {
+    len as usize
 }
 
 #[cfg(feature = "collectd-57")]

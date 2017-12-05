@@ -11,7 +11,7 @@ mod errors;
 mod plugins;
 
 pub use api::{collectd_log, from_array, get_default_interval, LogLevel, RecvValueList, Value,
-              ValueListBuilder, CdTime, empty_to_none};
+              ValueListBuilder, CdTime, empty_to_none, ConfigItem, ConfigValue};
 pub use errors::{ArrayError, SubmitError};
 pub use plugins::{Plugin, PluginCapabilities};
 

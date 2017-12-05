@@ -126,7 +126,7 @@ macro_rules! collectd_plugin {
             use std::os::raw::{c_char, c_void};
             use std::ffi::CString;
             use std::ptr;
-            use $crate::bindings::{plugin_register_config, plugin_register_init, plugin_register_write, plugin_register_complex_read, plugin_register_log, plugin_register_flush};
+            use $crate::bindings::{plugin_register_config, plugin_register_init, plugin_register_write, plugin_register_complex_read, plugin_register_log, plugin_register_flush, plugin_register_complex_config};
 
             let pl: Box<$type> = Box::new($plugin());
 
@@ -181,6 +181,11 @@ macro_rules! collectd_plugin {
                 }
 
                 if should_config {
+                    plugin_register_complex_config(
+                        s.as_ptr(),
+                        Some(collectd_plugin_complex_config)
+                    );
+
                     // Now grab all the pointers to the c strings for ffi
                     let mut pointers: Vec<*const c_char> = ck.iter()
                         .map(|arg| arg.as_ptr())
@@ -354,6 +359,16 @@ macro_rules! collectd_plugin {
 
             std::mem::forget(plugin);
             result
+        }
+
+        unsafe extern "C" fn collectd_plugin_complex_config(
+            config: *mut $crate::bindings::oconfig_item_t
+        ) -> std::os::raw::c_int {
+            if let Ok(config) = $crate::ConfigItem::from(&*config) {
+                0
+            } else {
+                -1
+            }
         }
     };
 }
