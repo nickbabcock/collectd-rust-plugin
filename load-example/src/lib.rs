@@ -18,11 +18,23 @@ pub enum ConfigError {
     #[fail(display = "config key {} not recognized", _0)] UnrecognizedKey(String),
 }
 
-#[derive(Debug, PartialEq, Default)]
+#[derive(Debug, PartialEq)]
 struct MyLoadPlugin {
-    short: Option<f64>,
-    mid: Option<f64>,
-    long: Option<f64>,
+    short: f64,
+    mid: f64,
+    long: f64,
+}
+
+impl MyLoadPlugin {
+    fn new() -> Self {
+        // By default we'll use contrived values for the load plugin unless they are overridden at
+        // the config level
+        MyLoadPlugin {
+            short: 15.0,
+            mid: 10.0,
+            long: 12.0,
+        }
+    }
 }
 
 fn parse_number(value: &str) -> Result<f64, ConfigError> {
@@ -50,15 +62,15 @@ impl Plugin for MyLoadPlugin {
     fn config_callback(&mut self, key: String, value: String) -> Result<(), Error> {
         match key.as_str() {
             "Short" => {
-                self.short = Some(parse_number(&value)?);
+                self.short = parse_number(&value)?;
                 Ok(())
             }
             "Mid" => {
-                self.mid = Some(parse_number(&value)?);
+                self.mid = parse_number(&value)?;
                 Ok(())
             }
             "Long" => {
-                self.long = Some(parse_number(&value)?);
+                self.long = parse_number(&value)?;
                 Ok(())
             }
             _ => Err(ConfigError::UnrecognizedKey(key.clone()).into()),
@@ -70,9 +82,9 @@ impl Plugin for MyLoadPlugin {
         // "load" type. Short-term load is first followed by mid-term and long-term. The number of
         // values that you submit at a time depends on types.db in collectd configurations
         let values: Vec<Value> = vec![
-            Value::Gauge(self.short.unwrap_or(15.0)),
-            Value::Gauge(self.mid.unwrap_or(10.0)),
-            Value::Gauge(self.long.unwrap_or(12.0)),
+            Value::Gauge(self.short),
+            Value::Gauge(self.mid),
+            Value::Gauge(self.long),
         ];
 
         // Submit our values to collectd. A plugin can submit any number of times.
@@ -82,4 +94,4 @@ impl Plugin for MyLoadPlugin {
     }
 }
 
-collectd_plugin!(MyLoadPlugin, Default::default);
+collectd_plugin!(MyLoadPlugin, MyLoadPlugin::new);
