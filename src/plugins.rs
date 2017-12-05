@@ -23,7 +23,7 @@ bitflags! {
 
 pub enum PluginRegistration {
     Single(Box<Plugin>),
-    Multiple(Vec<Box<IdPlugin>>),
+    Multiple(Vec<(String, Box<Plugin>)>),
 }
 
 impl PluginCapabilities {
@@ -115,11 +115,6 @@ pub trait Plugin {
     }
 }
 
-pub trait IdPlugin: Plugin {
-    /// Id of the plugin.
-    fn id(&self) -> &str;
-}
-
 #[macro_export]
 macro_rules! collectd_plugin {
     ($type: ty) => {
@@ -133,7 +128,7 @@ macro_rules! collectd_plugin {
         #[no_mangle]
         pub extern "C" fn module_register() {
             use std::ffi::CString;
-            use $crate::bindings::{plugin_register_init, plugin_register_write, plugin_register_complex_read, plugin_register_log, plugin_register_flush, plugin_register_complex_config};
+            use $crate::bindings::{plugin_register_init, plugin_register_complex_config};
 
             let s = CString::new(<$type as PluginManager>::name())
                 .expect("Plugin name to not contain nulls");
@@ -309,13 +304,13 @@ macro_rules! collectd_plugin {
                             );
                         }
                         $crate::PluginRegistration::Multiple(v) => {
-                            for pl in v.into_iter() {
+                            for (id, pl) in v.into_iter() {
                                 let name = format!("{}/{}",
                                     <$type as $crate::PluginManager>::name(),
-                                    pl.id()
+                                    id
                                 );
 
-                                collectd_plugin_registration_id(name.as_str(), pl);
+                                collectd_plugin_registration(name.as_str(), pl);
                             }
                         }
                     }
@@ -335,7 +330,7 @@ macro_rules! collectd_plugin {
             use std::os::raw::c_void;
             use std::ptr;
             use std::ffi::CString;
-            use $crate::bindings::{plugin_register_init, plugin_register_write, plugin_register_complex_read, plugin_register_log, plugin_register_flush, plugin_register_complex_config};
+            use $crate::bindings::{plugin_register_write, plugin_register_complex_read, plugin_register_log, plugin_register_flush};
 
             let pl: Box<Box<$crate::Plugin>> = Box::new(plugin);
 
@@ -383,61 +378,6 @@ macro_rules! collectd_plugin {
                     plugin_register_flush(s.as_ptr(), Some(collectd_plugin_flush), &mut data);
                 }
             }
-        }
-
-        fn collectd_plugin_registration_id(name: &str, plugin: Box<$crate::IdPlugin>) {
-            use std::os::raw::c_void;
-            use std::ptr;
-            use std::ffi::CString;
-            use $crate::bindings::{plugin_register_init, plugin_register_write, plugin_register_complex_read, plugin_register_log, plugin_register_flush, plugin_register_complex_config};
-
-            let pl: Box<Box<$crate::IdPlugin>> = Box::new(plugin);
-
-            // Grab all the properties we need until `into_raw` away
-            let should_read = pl.capabilities().has_read();
-            let should_log = pl.capabilities().has_log();
-            let should_write = pl.capabilities().has_write();
-            let should_flush = pl.capabilities().has_flush();
-
-            let s = CString::new(name).expect("Plugin name to not contain nulls");
-            unsafe {
-                let plugin_ptr: *mut c_void = std::mem::transmute(Box::into_raw(pl));
-
-                // The user data that is passed to read, writes, logs, etc. It is not passed to
-                // config or init. Since user_data_t implements copy, we don't need to forget about
-                // it. See clippy suggestion (forget_copy)
-                let mut data = $crate::bindings::user_data_t {
-                    data: plugin_ptr,
-                    free_func: Some(collectd_plugin_free_user_data),
-                };
-
-                if should_read {
-                    plugin_register_complex_read(
-                        ptr::null(),
-                        s.as_ptr(),
-                        Some(collectd_plugin_read),
-                        $crate::get_default_interval(),
-                        &mut data
-                    );
-                }
-
-                if should_write {
-                    plugin_register_write(
-                        s.as_ptr(),
-                        Some(collectd_plugin_write),
-                        &mut data
-                    );
-                }
-
-                if should_log {
-                    plugin_register_log(s.as_ptr(), Some(collectd_plugin_log), &mut data);
-                }
-
-                if should_flush {
-                    plugin_register_flush(s.as_ptr(), Some(collectd_plugin_flush), &mut data);
-                }
-            }
-
         }
     };
 }

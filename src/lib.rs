@@ -13,14 +13,14 @@ mod plugins;
 pub use api::{collectd_log, empty_to_none, from_array, get_default_interval, CdTime, ConfigItem,
               ConfigValue, LogLevel, RecvValueList, Value, ValueListBuilder};
 pub use errors::{ArrayError, SubmitError};
-pub use plugins::{Plugin, PluginCapabilities, PluginManager, PluginRegistration, PluginManagerCapabilities, IdPlugin};
-use failure::Error;
+pub use plugins::{Plugin, PluginCapabilities, PluginManager, PluginRegistration, PluginManagerCapabilities};
 
 #[cfg(test)]
 #[allow(private_no_mangle_fns)]
 #[allow(dead_code)]
 mod tests {
     use super::*;
+    use failure::Error;
 
     struct MyPlugin;
 
