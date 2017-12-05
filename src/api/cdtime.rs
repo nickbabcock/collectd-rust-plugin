@@ -1,7 +1,20 @@
+//! # CdTime
+//!
+//! Collectd stores time information in a custom type: `cdtime_t`. Below is a snippet from
+//! collectd's docs about why this custom format was chosen.
+//!
+//! The time is stored at a 2^-30 second resolution, i.e. the most significant 34 bit are used to
+//! store the time in seconds, the least significant bits store the sub-second part in something
+//! very close to nanoseconds. *The* big advantage of storing time in this manner is that comparing
+//! times and calculating differences is as simple as it is with `time_t`, i.e. a simple integer
+//! comparison / subtraction works.
+
 use bindings::cdtime_t;
 use chrono::prelude::*;
 use chrono::Duration;
 
+/// `CdTime` allows for ergonomic interop between collectd's `cdtime_t` and chrono's `Duration` and
+/// `DateTime`. The single field represents epoch nanoseconds.
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct CdTime(pub u64);
 
@@ -47,16 +60,13 @@ impl Into<cdtime_t> for CdTime {
     }
 }
 
-/// The time is stored at a 2^-30 second resolution, i.e. the most significant 34 bit are used to
-/// store the time in seconds, the least significant bits store the sub-second part in something
-/// very close to nanoseconds. *The* big advantage of storing time in this manner is that comparing
-/// times and calculating differences is as simple as it is with `time_t`, i.e. a simple integer
-/// comparison / subtraction works.
+/// Convert epoch nanoseconds into collectd's 2^-30 second resolution
 pub fn nanos_to_collectd(nanos: u64) -> cdtime_t {
     ((nanos / 1_000_000_000) << 30)
         | ((((nanos % 1_000_000_000) << 30) + 500_000_000) / 1_000_000_000)
 }
 
+/// Convert collectd's 2^-30 second resolution into epoch nanoseconds
 fn collectd_to_nanos(cd: cdtime_t) -> u64 {
     ((cd >> 30) * 1_000_000_000) + (((cd & 0x3fff_ffff) * 1_000_000_000 + (1 << 29)) >> 30)
 }
