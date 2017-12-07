@@ -219,16 +219,7 @@ macro_rules! collectd_plugin {
 
         unsafe extern "C" fn collectd_plugin_init() -> std::os::raw::c_int {
             let mut result = if !CONFIG_SEEN {
-                match <$type as PluginManager>::plugins(None) {
-                    Ok(_) => 0,
-                    Err(ref e) => {
-                        $crate::collectd_log(
-                            $crate::LogLevel::Error,
-                            &format!("config error: {}", e)
-                        );
-                        -1
-                    }
-                }
+                collectd_register_all_plugins(None)
             } else {
                 0
             };
