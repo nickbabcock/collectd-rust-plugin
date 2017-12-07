@@ -29,7 +29,7 @@ mod tests {
             "myplugin"
         }
 
-        fn plugins(_config: Option<&ConfigItem>) -> Result<PluginRegistration, Error> {
+        fn plugins(_config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Error> {
             Ok(PluginRegistration::Multiple(vec![]))
         }
     }

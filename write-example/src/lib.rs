@@ -3,18 +3,24 @@ extern crate collectd_plugin;
 extern crate failure;
 extern crate itertools;
 
-use collectd_plugin::{collectd_log, LogLevel, Plugin, PluginCapabilities, RecvValueList};
+use collectd_plugin::{collectd_log, LogLevel, Plugin, PluginCapabilities, RecvValueList, PluginManager,PluginRegistration, ConfigItem};
 use failure::Error;
 use itertools::Itertools;
 
 #[derive(Default)]
 struct TestWritePlugin;
 
-impl Plugin for TestWritePlugin {
-    fn name(&self) -> &str {
+impl PluginManager for TestWritePlugin {
+    fn name() -> &'static str {
         "testwriteplugin"
     }
 
+    fn plugins(_config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Error> {
+        Ok(PluginRegistration::Single(Box::new(TestWritePlugin)))
+    }
+}
+
+impl Plugin for TestWritePlugin {
     fn capabilities(&self) -> PluginCapabilities {
         PluginCapabilities::WRITE
     }
@@ -41,4 +47,4 @@ impl Plugin for TestWritePlugin {
     }
 }
 
-collectd_plugin!(TestWritePlugin, Default::default);
+collectd_plugin!(TestWritePlugin);

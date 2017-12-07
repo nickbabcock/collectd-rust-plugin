@@ -52,7 +52,7 @@ pub trait PluginManager {
         PluginManagerCapabilities::default()
     }
 
-    fn plugins(_config: Option<&ConfigItem>) -> Result<PluginRegistration, Error>;
+    fn plugins(_config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Error>;
 
     fn initialize() -> Result<(), Error> {
         Err(Error::from(NotImplemented))
@@ -283,7 +283,7 @@ macro_rules! collectd_plugin {
             CONFIG_SEEN = true;
             let result =
                 if let Ok(config) = $crate::ConfigItem::from(&*config) {
-                    collectd_register_all_plugins(Some(&config))
+                    collectd_register_all_plugins(Some(&config.children))
                 } else {
                     -1
                 };
@@ -292,7 +292,7 @@ macro_rules! collectd_plugin {
         }
 
         fn collectd_register_all_plugins(
-            config: Option<&$crate::ConfigItem>
+            config: Option<&[$crate::ConfigItem]>
         ) -> std::os::raw::c_int {
             match <$type as PluginManager>::plugins(config) {
                 Ok(registration) => {

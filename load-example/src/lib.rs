@@ -3,18 +3,11 @@ extern crate collectd_plugin;
 #[macro_use]
 extern crate failure;
 
-use std::num::ParseFloatError;
-use collectd_plugin::{Plugin, PluginCapabilities, Value, ValueListBuilder};
+use collectd_plugin::{LogLevel, collectd_log, Plugin, PluginCapabilities, Value, ValueListBuilder,PluginManager,PluginRegistration, ConfigItem, ConfigValue};
 use failure::Error;
 
 #[derive(Fail, Debug)]
 pub enum ConfigError {
-    #[fail(display = "value {} is not a number", value)]
-    InvalidValue {
-        value: String,
-        #[cause] err: ParseFloatError,
-    },
-
     #[fail(display = "config key {} not recognized", _0)] UnrecognizedKey(String),
 }
 
@@ -25,56 +18,50 @@ struct MyLoadPlugin {
     long: f64,
 }
 
-impl MyLoadPlugin {
-    fn new() -> Self {
-        // By default we'll use contrived values for the load plugin unless they are overridden at
-        // the config level
-        MyLoadPlugin {
-            short: 15.0,
-            mid: 10.0,
-            long: 12.0,
-        }
-    }
-}
-
-fn parse_number(value: &str) -> Result<f64, ConfigError> {
-    value.parse::<f64>().map_err(|x| {
-        ConfigError::InvalidValue {
-            value: value.to_owned(),
-            err: x,
-        }
-    })
-}
-
-impl Plugin for MyLoadPlugin {
-    fn name(&self) -> &str {
+impl PluginManager for MyLoadPlugin {
+    fn name() -> &'static str {
         "myplugin"
     }
 
-    fn capabilities(&self) -> PluginCapabilities {
-        PluginCapabilities::READ | PluginCapabilities::CONFIG
-    }
+    fn plugins(config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Error> {
+        let mut short = 15.0;
+        let mut mid = 10.0;
+        let mut long = 12.0;
+        let line = format!("{:?}", config);
+        collectd_log(LogLevel::Info, &line);
+        if let Some(ref fields) = config {
+            for f in fields.iter() {
+                if f.values.len() > 1 {
+                    return Err(format_err!("{} does not support more than one entry", f.key))
+                }
 
-    fn config_keys(&self) -> Vec<String> {
-        vec!["Short".to_string(), "Mid".to_string(), "Long".to_string()]
-    }
-
-    fn config_callback(&mut self, key: String, value: String) -> Result<(), Error> {
-        match key.as_str() {
-            "Short" => {
-                self.short = parse_number(&value)?;
-                Ok(())
+                let value = &f.values[0];
+                if let ConfigValue::Number(x) = *value {
+                    match f.key {
+                        "Short" => short = x,
+                        "Mid" => mid = x,
+                        "Long" => long = x,
+                        y => { return Err(format_err!("{} is not recognized", y)) }
+                    }
+                } else {
+                    return Err(format_err!("{} is not a number: {:?}", f.key, value));
+                };
             }
-            "Mid" => {
-                self.mid = parse_number(&value)?;
-                Ok(())
-            }
-            "Long" => {
-                self.long = parse_number(&value)?;
-                Ok(())
-            }
-            _ => Err(ConfigError::UnrecognizedKey(key.clone()).into()),
         }
+
+        let plugin = MyLoadPlugin {
+            short: short,
+            mid: mid,
+            long: long,
+        };
+
+        Ok(PluginRegistration::Single(Box::new(plugin)))
+    }
+}
+
+impl Plugin for MyLoadPlugin {
+    fn capabilities(&self) -> PluginCapabilities {
+        PluginCapabilities::READ
     }
 
     fn read_values(&mut self) -> Result<(), Error> {
@@ -88,10 +75,10 @@ impl Plugin for MyLoadPlugin {
         ];
 
         // Submit our values to collectd. A plugin can submit any number of times.
-        ValueListBuilder::new(self.name(), "load")
+        ValueListBuilder::new(Self::name(), "load")
             .values(values)
             .submit()
     }
 }
 
-collectd_plugin!(MyLoadPlugin, MyLoadPlugin::new);
+collectd_plugin!(MyLoadPlugin);
