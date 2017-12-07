@@ -29,7 +29,7 @@ impl PluginManager for MyLoadPlugin {
         let mut long = 12.0;
         let line = format!("{:?}", config);
         collectd_log(LogLevel::Info, &line);
-        if let Some(ref fields) = config {
+        if let Some(fields) = config {
             for f in fields.iter() {
                 if f.values.len() > 1 {
                     return Err(format_err!("{} does not support more than one entry", f.key))

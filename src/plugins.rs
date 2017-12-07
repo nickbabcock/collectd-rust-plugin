@@ -304,7 +304,7 @@ macro_rules! collectd_plugin {
                             );
                         }
                         $crate::PluginRegistration::Multiple(v) => {
-                            for (id, pl) in v.into_iter() {
+                            for (id, pl) in v {
                                 let name = format!("{}/{}",
                                     <$type as $crate::PluginManager>::name(),
                                     id
