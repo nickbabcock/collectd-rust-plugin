@@ -3,7 +3,8 @@ extern crate collectd_plugin;
 extern crate failure;
 extern crate itertools;
 
-use collectd_plugin::{collectd_log, LogLevel, Plugin, PluginCapabilities, RecvValueList, PluginManager,PluginRegistration, ConfigItem};
+use collectd_plugin::{collectd_log, ConfigItem, LogLevel, Plugin, PluginCapabilities,
+                      PluginManager, PluginRegistration, RecvValueList};
 use failure::Error;
 use itertools::Itertools;
 

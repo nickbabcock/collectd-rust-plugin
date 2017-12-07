@@ -2,7 +2,8 @@
 extern crate collectd_plugin;
 extern crate failure;
 
-use collectd_plugin::{Plugin, PluginCapabilities, Value, ValueListBuilder, PluginManager,PluginRegistration, ConfigItem};
+use collectd_plugin::{ConfigItem, Plugin, PluginCapabilities, PluginManager, PluginRegistration,
+                      Value, ValueListBuilder};
 use failure::Error;
 
 #[derive(Default)]

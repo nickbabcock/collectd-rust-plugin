@@ -3,7 +3,8 @@ extern crate collectd_plugin;
 #[macro_use]
 extern crate failure;
 
-use collectd_plugin::{LogLevel, collectd_log, Plugin, PluginCapabilities, Value, ValueListBuilder,PluginManager,PluginRegistration, ConfigItem, ConfigValue};
+use collectd_plugin::{collectd_log, ConfigItem, ConfigValue, LogLevel, Plugin, PluginCapabilities,
+                      PluginManager, PluginRegistration, Value, ValueListBuilder};
 use failure::Error;
 
 #[derive(Fail, Debug)]
@@ -32,7 +33,10 @@ impl PluginManager for MyLoadPlugin {
         if let Some(fields) = config {
             for f in fields.iter() {
                 if f.values.len() > 1 {
-                    return Err(format_err!("{} does not support more than one entry", f.key))
+                    return Err(format_err!(
+                        "{} does not support more than one entry",
+                        f.key
+                    ));
                 }
 
                 let value = &f.values[0];
@@ -41,7 +45,7 @@ impl PluginManager for MyLoadPlugin {
                         "Short" => short = x,
                         "Mid" => mid = x,
                         "Long" => long = x,
-                        y => { return Err(format_err!("{} is not recognized", y)) }
+                        y => return Err(format_err!("{} is not recognized", y)),
                     }
                 } else {
                     return Err(format_err!("{} is not a number: {:?}", f.key, value));
