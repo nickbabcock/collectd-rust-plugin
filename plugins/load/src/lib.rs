@@ -28,8 +28,6 @@ impl PluginManager for MyLoadPlugin {
         let mut short = 15.0;
         let mut mid = 10.0;
         let mut long = 12.0;
-        let line = format!("{:?}", config);
-        collectd_log(LogLevel::Info, &line);
         if let Some(fields) = config {
             for f in fields.iter() {
                 if f.values.len() > 1 {
