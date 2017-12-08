@@ -279,14 +279,11 @@ macro_rules! collectd_plugin {
             }
 
             CONFIG_SEEN = true;
-            let result =
-                if let Ok(config) = $crate::ConfigItem::from(&*config) {
-                    collectd_register_all_plugins(Some(&config.children))
-                } else {
-                    -1
-                };
-
-            result
+            if let Ok(config) = $crate::ConfigItem::from(&*config) {
+                collectd_register_all_plugins(Some(&config.children))
+            } else {
+                -1
+            }
         }
 
         fn collectd_register_all_plugins(
