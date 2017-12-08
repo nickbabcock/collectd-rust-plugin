@@ -58,15 +58,15 @@ impl<'a> Deserializer<'a> {
     }
 
     fn grab_val(&self) -> Result<&ConfigValue> {
-        match self.current()? {
-            &DeType::Struct(item) => {
+        match *(self.current()?) {
+            DeType::Struct(item) => {
                 if item.values.len() != 1 {
                     return Err(Err2(format_err!("Expecting values to hold a single value")))
                 }
 
                 Ok(&item.values[0])
             },
-            &DeType::Seq(item) => Ok(item),
+            DeType::Seq(item) => Ok(item),
         }
     }
 
@@ -199,15 +199,13 @@ impl<'de: 'a, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         where V: Visitor<'de>
     {
         let v = &self.depth[self.depth.len() - 1];
-        if let &DeType::Struct(ref item) = v {
+        if let DeType::Struct(item) = *v {
             if item.children.is_empty() || item.values.is_empty() {
-                visitor.visit_borrowed_str(&item.key)
+                visitor.visit_borrowed_str(item.key)
+            } else if let ConfigValue::String(x) = item.values[0] {
+                visitor.visit_borrowed_str(x)
             } else {
-                if let &ConfigValue::String(x) = &item.values[0] {
-                    visitor.visit_borrowed_str(x)
-                } else {
-                    Err(Err2(format_err!("Expected string")))
-                }
+                Err(Err2(format_err!("Expected string")))
             }
         } else {
             Err(Err2(format_err!("Expecting struct")))
@@ -221,9 +219,9 @@ impl<'de: 'a, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
             return Err(Err2(format_err!("No more values left, this should never happen")));
         }
 
-        match &self.depth[self.depth.len() - 1] {
-            &DeType::Struct(item) => visitor.visit_seq(SeqSeparated::new(&mut self, &item.values)),
-            &DeType::Seq(_item) => Err(Err2(format_err!("Did not expect sequence"))),
+        match self.depth[self.depth.len() - 1] {
+            DeType::Struct(item) => visitor.visit_seq(SeqSeparated::new(&mut self, &item.values)),
+            DeType::Seq(_item) => Err(Err2(format_err!("Did not expect sequence"))),
         }
     }
 
@@ -240,7 +238,7 @@ impl<'de: 'a, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
             visitor.visit_map(FieldSeparated::new(&mut self, self.input))
         } else {
             let ind = self.depth.len() - 1;
-            let children = if let &DeType::Struct(ref item) = &self.depth[ind] {
+            let children = if let DeType::Struct(item) = self.depth[ind] {
                 Ok(&item.children[..])
             } else {
                 Err(Err2(format_err!("Expecting struct")))
