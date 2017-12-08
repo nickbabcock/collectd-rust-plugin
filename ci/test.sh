@@ -22,8 +22,8 @@ LoadPlugin csv
   StoreRates false
 </Plugin>
 <Plugin myplugin>
-  Short "2"
-  Long "5.5"
+  Short 2
+  Long 5.5
 </Plugin>
 EOF
 
