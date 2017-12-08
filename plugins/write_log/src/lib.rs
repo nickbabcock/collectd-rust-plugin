@@ -16,7 +16,9 @@ impl PluginManager for TestWritePlugin {
         "testwriteplugin"
     }
 
-    fn plugins(_config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Error> {
+    fn plugins(config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Error> {
+        let line = format!("Received configuration of {:?}", config);
+        collectd_log(LogLevel::Info, &line);
         Ok(PluginRegistration::Single(Box::new(TestWritePlugin)))
     }
 }
@@ -43,7 +45,7 @@ impl Plugin for TestWritePlugin {
             list.interval.num_seconds(),
             values,
         );
-        collectd_log(LogLevel::Warning, &line);
+        collectd_log(LogLevel::Info, &line);
         Ok(())
     }
 }
