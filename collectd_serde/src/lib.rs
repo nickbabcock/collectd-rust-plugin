@@ -191,6 +191,12 @@ impl<'de: 'a, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         self.grab_number().and_then(|x| visitor.visit_f64(x))
     }
 
+    fn deserialize_option<V>(self, visitor: V) -> Result<V::Value>
+        where V: Visitor<'de>
+    {
+        visitor.visit_some(self)
+    }
+
     fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value>
         where V: Visitor<'de>
     {
@@ -233,8 +239,8 @@ impl<'de: 'a, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     }
 
     forward_to_deserialize_any! {
-        char bytes str
-        byte_buf option unit unit_struct newtype_struct tuple
+        bytes str
+        byte_buf unit unit_struct newtype_struct tuple
         tuple_struct map enum ignored_any
     }
 }
@@ -322,7 +328,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn simple_bool() {
+    fn test_serde_simple_bool() {
         #[derive(Deserialize, PartialEq, Eq, Debug)]
         struct MyStruct {
             my_bool: bool
@@ -343,7 +349,7 @@ mod tests {
     }
 
     #[test]
-    fn simple_number() {
+    fn test_serde_simple_number() {
         #[derive(Deserialize, PartialEq, Eq, Debug)]
         struct MyStruct {
             my_int: i8
@@ -364,7 +370,7 @@ mod tests {
     }
 
     #[test]
-    fn simple_string() {
+    fn test_serde_simple_string() {
         #[derive(Deserialize, PartialEq, Eq, Debug)]
         struct MyStruct {
             my_string: String
@@ -385,7 +391,7 @@ mod tests {
     }
 
     #[test]
-    fn bool_vec() {
+    fn test_serde_bool_vec() {
         #[derive(Deserialize, PartialEq, Eq, Debug)]
         struct MyStruct {
             my_bool: Vec<bool>
@@ -404,5 +410,27 @@ mod tests {
 
         let actual = from_collectd(&items).unwrap();
         assert_eq!(MyStruct { my_bool: vec![true, false] }, actual);
+    }
+
+    #[test]
+    fn test_serde_options() {
+        #[derive(Deserialize, PartialEq, Eq, Debug)]
+        struct MyStruct {
+            my_bool: Option<bool>,
+            my_string: Option<String>,
+        };
+
+        let items = vec![
+            ConfigItem {
+                key: "my_bool",
+                values: vec![
+                    ConfigValue::Boolean(true),
+                ],
+                children: vec![],
+            }
+        ];
+
+        let actual = from_collectd(&items).unwrap();
+        assert_eq!(MyStruct { my_bool: Some(true), my_string: None }, actual);
     }
 }
