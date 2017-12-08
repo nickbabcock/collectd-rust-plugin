@@ -4,6 +4,17 @@ extern crate chrono;
 #[macro_use]
 extern crate failure;
 
+#[cfg(feature = "serde")]
+#[macro_use]
+extern crate serde;
+
+#[cfg(test)]
+#[macro_use]
+extern crate serde_derive;
+
+#[cfg(feature = "serde")]
+mod de;
+
 pub mod bindings;
 mod api;
 mod errors;

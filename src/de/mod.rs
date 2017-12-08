@@ -1,19 +1,8 @@
-#![allow(dead_code)]
-#![allow(unused)]
-#[macro_use]
-extern crate serde;
-#[macro_use]
-extern crate failure;
-extern crate collectd_plugin;
-
-#[cfg(test)]
-#[macro_use]
-extern crate serde_derive;
-
 use failure::Error;
+use std;
 use std::fmt::{self, Display};
 
-use collectd_plugin::{ConfigItem, ConfigValue};
+use api::{ConfigItem, ConfigValue};
 use serde::de::{self, Deserialize, DeserializeSeed, Visitor, SeqAccess,
                 MapAccess, EnumAccess, VariantAccess, IntoDeserializer};
 
