@@ -13,7 +13,7 @@ extern crate serde;
 extern crate serde_derive;
 
 #[cfg(feature = "serde")]
-mod de;
+pub mod de;
 
 pub mod bindings;
 mod api;

@@ -4,7 +4,7 @@ use std::fmt::{self, Display};
 
 use api::{ConfigItem, ConfigValue};
 use serde::de::{self, Deserialize, DeserializeSeed, Visitor, SeqAccess,
-                MapAccess, EnumAccess, VariantAccess, IntoDeserializer};
+                MapAccess};
 
 pub type Result<T> = std::result::Result<T, Err2>;
 
@@ -55,16 +55,6 @@ impl<'a> Deserializer<'a> {
         }
 
         Ok(&self.depth[self.depth.len() - 1])
-    }
-
-    fn struct_children(&self) -> Result<&[ConfigItem]> {
-        let ind = self.depth.len() - 1;
-        let a = &self.depth[ind];
-        if let &DeType::Struct(ref item) = a {
-            Ok(&item.children[..])
-        } else {
-            Err(Err2(format_err!("Expecting struct")))
-        }
     }
 
     fn grab_val(&self) -> Result<&ConfigValue> {
@@ -233,7 +223,7 @@ impl<'de: 'a, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
 
         match &self.depth[self.depth.len() - 1] {
             &DeType::Struct(item) => visitor.visit_seq(SeqSeparated::new(&mut self, &item.values)),
-            &DeType::Seq(item) => Err(Err2(format_err!("Did not expect sequence"))),
+            &DeType::Seq(_item) => Err(Err2(format_err!("Did not expect sequence"))),
         }
     }
 
@@ -266,10 +256,10 @@ impl<'de: 'a, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         visitor.visit_none()
     }
 
-    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value>
+    fn deserialize_any<V>(self, _visitor: V) -> Result<V::Value>
         where V: Visitor<'de>
     {
-        unimplemented!()
+        Err(Err2(format_err!("Collectd cannot map to your data type")))
     }
 
     forward_to_deserialize_any! {
