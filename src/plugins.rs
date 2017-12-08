@@ -119,10 +119,7 @@ pub trait Plugin {
 macro_rules! collectd_plugin {
     ($type: ty) => {
 
-        // This global variable is only for the functions of config / init where we know that the
-        // function will be called only once from one thread. std::ptr::null_mut is not a const
-        // function on stable, so we inline the function body
-//        static mut COLLECTD_PLUGIN_FOR_INIT: *mut $type = 0 as *mut $type;
+        // Let's us know if we've seen our config section before
         static mut CONFIG_SEEN: bool = false;
 
         #[no_mangle]
@@ -271,6 +268,16 @@ macro_rules! collectd_plugin {
         unsafe extern "C" fn collectd_plugin_complex_config(
             config: *mut $crate::bindings::oconfig_item_t
         ) -> std::os::raw::c_int {
+            // If we've already seen the config, let's error out as one shouldn't use multiple
+            // sections of configuration (group them under nodes like write_graphite)
+            if CONFIG_SEEN {
+                $crate::collectd_log(
+                    $crate::LogLevel::Error,
+                    &format!("Already seen a config section for {}", <$type as PluginManager>::name())
+                );
+                return -1;
+            }
+
             CONFIG_SEEN = true;
             let result =
                 if let Ok(config) = $crate::ConfigItem::from(&*config) {
