@@ -1,4 +1,4 @@
-use failure::Error;
+use failure::{err_msg, Error};
 use std;
 use std::fmt::{self, Display};
 
@@ -13,7 +13,7 @@ pub struct Err2(Error);
 
 impl de::Error for Err2 {
     fn custom<T: Display>(msg: T) -> Self {
-        Err2(format_err!("{}", msg.to_string()))
+        Err2(err_msg(msg.to_string()))
     }
 }
 
@@ -51,7 +51,7 @@ impl<'a> Deserializer<'a> {
 
     fn current(&self) -> Result<&DeType> {
         if self.depth.is_empty() {
-            return Err(Err2(format_err!("No more values left, this should never happen")));
+            return Err(Err2(err_msg("No more values left, this should never happen")));
         }
 
         Ok(&self.depth[self.depth.len() - 1])
@@ -61,7 +61,7 @@ impl<'a> Deserializer<'a> {
         match *(self.current()?) {
             DeType::Struct(item) => {
                 if item.values.len() != 1 {
-                    return Err(Err2(format_err!("Expecting values to hold a single value")))
+                    return Err(Err2(err_msg("Expecting values to hold a single value")))
                 }
 
                 Ok(&item.values[0])
@@ -74,7 +74,7 @@ impl<'a> Deserializer<'a> {
         if let ConfigValue::String(x) = *self.grab_val()? {
             Ok(x)
         } else {
-            Err(Err2(format_err!("Expected string")))
+            Err(Err2(err_msg("Expected string")))
         }
     }
 
@@ -82,7 +82,7 @@ impl<'a> Deserializer<'a> {
         if let ConfigValue::Boolean(x) = *self.grab_val()? {
             Ok(x)
         } else {
-            Err(Err2(format_err!("Expected boolean")))
+            Err(Err2(err_msg("Expected boolean")))
         }
     }
 
@@ -90,7 +90,7 @@ impl<'a> Deserializer<'a> {
         if let ConfigValue::Number(x) = *self.grab_val()? {
             Ok(x)
         } else {
-            Err(Err2(format_err!("Expected number")))
+            Err(Err2(err_msg("Expected number")))
         }
     }
 }
@@ -188,7 +188,7 @@ impl<'de: 'a, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     {
         self.grab_string().and_then(|x| {
             if x.len() != 1 {
-                Err(Err2(format_err!("For character, expected string of length 1")))
+                Err(Err2(err_msg("For character, expected string of length 1")))
             } else {
                 visitor.visit_char(x.chars().next().unwrap())
             }
@@ -205,10 +205,10 @@ impl<'de: 'a, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
             } else if let ConfigValue::String(x) = item.values[0] {
                 visitor.visit_borrowed_str(x)
             } else {
-                Err(Err2(format_err!("Expected string")))
+                Err(Err2(err_msg("Expected string")))
             }
         } else {
-            Err(Err2(format_err!("Expecting struct")))
+            Err(Err2(err_msg("Expecting struct")))
         }
     }
 
@@ -216,12 +216,12 @@ impl<'de: 'a, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         where V: Visitor<'de>
     {
         if self.depth.is_empty() {
-            return Err(Err2(format_err!("No more values left, this should never happen")));
+            return Err(Err2(err_msg("No more values left, this should never happen")));
         }
 
         match self.depth[self.depth.len() - 1] {
             DeType::Struct(item) => visitor.visit_seq(SeqSeparated::new(&mut self, &item.values)),
-            DeType::Seq(_item) => Err(Err2(format_err!("Did not expect sequence"))),
+            DeType::Seq(_item) => Err(Err2(err_msg("Did not expect sequence"))),
         }
     }
 
@@ -241,7 +241,7 @@ impl<'de: 'a, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
             let children = if let DeType::Struct(item) = self.depth[ind] {
                 Ok(&item.children[..])
             } else {
-                Err(Err2(format_err!("Expecting struct")))
+                Err(Err2(err_msg("Expecting struct")))
             };
 
             visitor.visit_map(FieldSeparated::new(&mut self, children?))
@@ -257,7 +257,7 @@ impl<'de: 'a, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     fn deserialize_any<V>(self, _visitor: V) -> Result<V::Value>
         where V: Visitor<'de>
     {
-        Err(Err2(format_err!("Collectd cannot map to your data type")))
+        Err(Err2(err_msg("Collectd cannot map to your data type")))
     }
 
     forward_to_deserialize_any! {
