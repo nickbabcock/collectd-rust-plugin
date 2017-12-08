@@ -1,19 +1,20 @@
 [package]
-authors = ["Nick Babcock <nbabcock19@hotmail.com>"]
-name = "load-example"
+name = "write_log"
 version = "0.2.0"
+authors = ["Nick Babcock <nbabcock19@hotmail.com>"]
 publish = false
 
 [dependencies]
 failure = "0.1.1"
+itertools = "0.7.3"
 
 [dependencies.collectd-plugin]
-path = ".."
+path = "../.."
 version = "0.2"
 
 [lib]
 crate-type = ["cdylib"]
-name = "myplugin"
+name = "testwriteplugin"
 
 [features]
 collectd-54 = ["collectd-plugin/collectd-54"]
