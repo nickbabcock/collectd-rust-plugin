@@ -197,6 +197,18 @@ impl<'de: 'a, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         visitor.visit_some(self)
     }
 
+    fn deserialize_char<V>(self, visitor: V) -> Result<V::Value>
+        where V: Visitor<'de>
+    {
+        self.grab_string().and_then(|x| {
+            if x.len() != 1 {
+                Err(Err2(format_err!("For character, expected string of length 1")))
+            } else {
+                visitor.visit_char(x.chars().next().unwrap())
+            }
+        })
+    }
+
     fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value>
         where V: Visitor<'de>
     {
@@ -432,5 +444,26 @@ mod tests {
 
         let actual = from_collectd(&items).unwrap();
         assert_eq!(MyStruct { my_bool: Some(true), my_string: None }, actual);
+    }
+
+    #[test]
+    fn test_serde_char() {
+        #[derive(Deserialize, PartialEq, Eq, Debug)]
+        struct MyStruct {
+            my_char: char,
+        };
+
+        let items = vec![
+            ConfigItem {
+                key: "my_char",
+                values: vec![
+                    ConfigValue::String("/"),
+                ],
+                children: vec![],
+            }
+        ];
+
+        let actual = from_collectd(&items).unwrap();
+        assert_eq!(MyStruct { my_char: '/' }, actual);
     }
 }
