@@ -24,4 +24,4 @@ collectd-57 = []
 default = []
 
 [workspace]
-members = ['plugins/load', 'plugins/readme', 'plugins/write_log']
+members = ['plugins/load', 'plugins/readme', 'plugins/write_log', 'collectd_serde']
