@@ -40,28 +40,43 @@ impl Display for Err2 {
     }
 }
 
+enum DeType<'a> {
+    Struct(&'a ConfigItem<'a>),
+    Seq(&'a ConfigValue<'a>),
+}
+
 pub struct Deserializer<'a> {
     input: &'a [ConfigItem<'a>],
-    item: Option<&'a ConfigItem<'a>>,
-    value: Option<&'a ConfigValue<'a>>,
+    depth: Vec<DeType<'a>>,
 }
 
 impl<'a> Deserializer<'a> {
     pub fn from_collectd(input: &'a [ConfigItem]) -> Self {
         Deserializer {
             input: input,
-            item: None,
-            value: None,
+            depth: vec![],
         }
     }
 
-    fn grab_val(&self) -> Result<&ConfigValue> {
-        let vs = &self.item.unwrap().values;
-        if vs.len() != 1 {
-            return Err(Err2(format_err!("Expecting values to hold a single value")))
+    fn current(&self) -> Result<&DeType> {
+        if self.depth.is_empty() {
+            return Err(Err2(format_err!("No more values left, this should never happen")));
         }
 
-        return Ok(&vs[0])
+        Ok(&self.depth[self.depth.len() - 1])
+    }
+
+    fn grab_val(&self) -> Result<&ConfigValue> {
+        match self.current()? {
+            &DeType::Struct(item) => {
+                if item.values.len() != 1 {
+                    return Err(Err2(format_err!("Expecting values to hold a single value")))
+                }
+
+                Ok(&item.values[0])
+            },
+            &DeType::Seq(item) => Ok(item),
+        }
     }
 
     fn grab_string(&self) -> Result<&str> {
@@ -179,7 +194,25 @@ impl<'de: 'a, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value>
         where V: Visitor<'de>
     {
-        visitor.visit_borrowed_str(self.item.unwrap().key)
+        let v = &self.depth[self.depth.len() - 1];
+        if let &DeType::Struct(ref item) = v {
+            visitor.visit_borrowed_str(&item.key)
+        } else {
+            Err(Err2(format_err!("Expecting struct")))
+        }
+    }
+
+    fn deserialize_seq<V>(mut self, visitor: V) -> Result<V::Value>
+        where V: Visitor<'de>
+    {
+        if self.depth.is_empty() {
+            return Err(Err2(format_err!("No more values left, this should never happen")));
+        }
+
+        match &self.depth[self.depth.len() - 1] {
+            &DeType::Struct(item) => visitor.visit_seq(SeqSeparated::new(&mut self, &item.values)),
+            &DeType::Seq(item) => Err(Err2(format_err!("Did not expect sequence"))),
+        }
     }
 
     fn deserialize_struct<V>(
@@ -190,8 +223,7 @@ impl<'de: 'a, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     ) -> Result<V::Value>
         where V: Visitor<'de>
     {
-		let value = visitor.visit_map(FieldSeparated::new(&mut self))?;
-        Ok(value)
+		visitor.visit_map(FieldSeparated::new(&mut self))
     }
 
     fn deserialize_any<V>(self, visitor: V) -> Result<V::Value>
@@ -202,18 +234,19 @@ impl<'de: 'a, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
 
     forward_to_deserialize_any! {
         char bytes str
-        byte_buf option unit unit_struct newtype_struct seq tuple
+        byte_buf option unit unit_struct newtype_struct tuple
         tuple_struct map enum ignored_any
     }
 }
 
 struct FieldSeparated<'a, 'de: 'a> {
     de: &'a mut Deserializer<'de>,
+    first: bool,
 }
 
 impl<'a, 'de> FieldSeparated<'a, 'de> {
     fn new(de: &'a mut Deserializer<'de>) -> Self {
-        FieldSeparated { de: de }
+        FieldSeparated { de: de, first: true }
     }
 }
 
@@ -225,20 +258,62 @@ impl<'de, 'a> MapAccess<'de> for FieldSeparated<'a, 'de> {
     {
         // Check if there are no more entries.
 		if self.de.input.is_empty() {
+            self.de.depth.pop().unwrap();
             return Ok(None)
         }
 
-		self.de.item = Some(&self.de.input[0]);
-        self.de.input = &self.de.input[1..];
+        if self.first {
+            self.de.depth.push(DeType::Struct(&self.de.input[0]));
+            self.first = false;
+        } else {
+            let ind = self.de.depth.len() - 1;
+            self.de.depth[ind] = DeType::Struct(&self.de.input[0]);
+        }
 
+        self.de.input = &self.de.input[1..];
         seed.deserialize(&mut *self.de).map(Some)
     }
 
     fn next_value_seed<V>(&mut self, seed: V) -> Result<V::Value>
         where V: DeserializeSeed<'de>
     {
-        // Deserialize a map value.
         seed.deserialize(&mut *self.de)
+    }
+}
+
+struct SeqSeparated<'a, 'de: 'a> {
+    de: &'a mut Deserializer<'de>,
+	values: &'de [ConfigValue<'de>],
+    first: bool,
+}
+
+impl<'a, 'de> SeqSeparated<'a, 'de> {
+    fn new(de: &'a mut Deserializer<'de>, v: &'de [ConfigValue<'de>]) -> Self {
+        SeqSeparated { de: de, values: v, first: true }
+    }
+}
+
+impl<'de, 'a> SeqAccess<'de> for SeqSeparated<'a, 'de> {
+    type Error = Err2;
+
+    fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>>
+        where T: DeserializeSeed<'de>
+    {
+        if self.values.is_empty() {
+            self.de.depth.pop().unwrap();
+            return Ok(None);
+        }
+
+        if self.first {
+            self.de.depth.push(DeType::Seq(&self.values[0]));
+            self.first = false;
+        } else {
+            let ind = self.de.depth.len() - 1;
+            self.de.depth[ind] = DeType::Seq(&self.values[0]);
+        }
+
+        self.values = &self.values[1..];
+        seed.deserialize(&mut *self.de).map(Some)
     }
 }
 
@@ -307,5 +382,27 @@ mod tests {
 
         let actual = from_collectd(&items).unwrap();
         assert_eq!(MyStruct { my_string: String::from("HEY") }, actual);
+    }
+
+    #[test]
+    fn bool_vec() {
+        #[derive(Deserialize, PartialEq, Eq, Debug)]
+        struct MyStruct {
+            my_bool: Vec<bool>
+        };
+
+        let items = vec![
+            ConfigItem {
+                key: "my_bool",
+                values: vec![
+                    ConfigValue::Boolean(true),
+                    ConfigValue::Boolean(false),
+                ],
+                children: vec![],
+            }
+        ];
+
+        let actual = from_collectd(&items).unwrap();
+        assert_eq!(MyStruct { my_bool: vec![true, false] }, actual);
     }
 }
