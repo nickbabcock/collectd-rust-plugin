@@ -48,6 +48,7 @@ enum DeType<'a> {
 pub struct Deserializer<'a> {
     input: &'a [ConfigItem<'a>],
     depth: Vec<DeType<'a>>,
+    root: bool,
 }
 
 impl<'a> Deserializer<'a> {
@@ -55,6 +56,7 @@ impl<'a> Deserializer<'a> {
         Deserializer {
             input: input,
             depth: vec![],
+            root: true,
         }
     }
 
@@ -64,6 +66,16 @@ impl<'a> Deserializer<'a> {
         }
 
         Ok(&self.depth[self.depth.len() - 1])
+    }
+
+    fn struct_children(&self) -> Result<&[ConfigItem]> {
+        let ind = self.depth.len() - 1;
+        let a = &self.depth[ind];
+        if let &DeType::Struct(ref item) = a {
+            Ok(&item.children[..])
+        } else {
+            Err(Err2(format_err!("Expecting struct")))
+        }
     }
 
     fn grab_val(&self) -> Result<&ConfigValue> {
@@ -108,12 +120,7 @@ pub fn from_collectd<'a, T>(s: &'a [ConfigItem<'a>]) -> Result<T>
     where T: Deserialize<'a>
 {
     let mut deserializer = Deserializer::from_collectd(s);
-    let t = T::deserialize(&mut deserializer)?;
-    if deserializer.input.is_empty() {
-        Ok(t)
-    } else {
-        Err(Err2(format_err!("Trailing items")))
-    }
+    T::deserialize(&mut deserializer)
 }
 
 impl<'de: 'a, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
@@ -214,7 +221,15 @@ impl<'de: 'a, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     {
         let v = &self.depth[self.depth.len() - 1];
         if let &DeType::Struct(ref item) = v {
-            visitor.visit_borrowed_str(&item.key)
+            if item.children.is_empty() || item.values.is_empty() {
+                visitor.visit_borrowed_str(&item.key)
+            } else {
+                if let &ConfigValue::String(x) = &item.values[0] {
+                    visitor.visit_borrowed_str(x)
+                } else {
+                    Err(Err2(format_err!("Expected string")))
+                }
+            }
         } else {
             Err(Err2(format_err!("Expecting struct")))
         }
@@ -241,7 +256,19 @@ impl<'de: 'a, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     ) -> Result<V::Value>
         where V: Visitor<'de>
     {
-		visitor.visit_map(FieldSeparated::new(&mut self))
+        if self.root {
+            self.root = false;
+            visitor.visit_map(FieldSeparated::new(&mut self, self.input))
+        } else {
+            let ind = self.depth.len() - 1;
+            let children = if let &DeType::Struct(ref item) = &self.depth[ind] {
+                Ok(&item.children[..])
+            } else {
+                Err(Err2(format_err!("Expecting struct")))
+            };
+
+            visitor.visit_map(FieldSeparated::new(&mut self, children?))
+        }
     }
 
     fn deserialize_any<V>(self, visitor: V) -> Result<V::Value>
@@ -259,12 +286,13 @@ impl<'de: 'a, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
 
 struct FieldSeparated<'a, 'de: 'a> {
     de: &'a mut Deserializer<'de>,
+	items: &'de [ConfigItem<'de>],
     first: bool,
 }
 
 impl<'a, 'de> FieldSeparated<'a, 'de> {
-    fn new(de: &'a mut Deserializer<'de>) -> Self {
-        FieldSeparated { de: de, first: true }
+    fn new(de: &'a mut Deserializer<'de>, items: &'de [ConfigItem<'de>]) -> Self {
+        FieldSeparated { de: de, first: true, items: items }
     }
 }
 
@@ -275,20 +303,20 @@ impl<'de, 'a> MapAccess<'de> for FieldSeparated<'a, 'de> {
         where K: DeserializeSeed<'de>
     {
         // Check if there are no more entries.
-		if self.de.input.is_empty() {
+		if self.items.is_empty() {
             self.de.depth.pop().unwrap();
             return Ok(None)
         }
 
         if self.first {
-            self.de.depth.push(DeType::Struct(&self.de.input[0]));
+            self.de.depth.push(DeType::Struct(&self.items[0]));
             self.first = false;
         } else {
             let ind = self.de.depth.len() - 1;
-            self.de.depth[ind] = DeType::Struct(&self.de.input[0]);
+            self.de.depth[ind] = DeType::Struct(&self.items[0]);
         }
 
-        self.de.input = &self.de.input[1..];
+        self.items = &self.items[1..];
         seed.deserialize(&mut *self.de).map(Some)
     }
 
@@ -465,5 +493,39 @@ mod tests {
 
         let actual = from_collectd(&items).unwrap();
         assert_eq!(MyStruct { my_char: '/' }, actual);
+    }
+
+    #[test]
+    fn test_serde_graphite() {
+        #[derive(Deserialize, PartialEq, Eq, Debug)]
+        struct Node {
+            port: i32,
+        };
+
+        #[derive(Deserialize, PartialEq, Eq, Debug)]
+        struct MyStruct {
+            example: Node,
+        };
+
+        let items = vec![
+            ConfigItem {
+                key: "node",
+                values: vec![
+                    ConfigValue::String("example")
+                ],
+                children: vec![
+                    ConfigItem {
+                        key: "port",
+                        values: vec![
+                            ConfigValue::Number(2003.0)
+                        ],
+                        children: vec![],
+                    },
+                ],
+            }
+        ];
+
+        let actual = from_collectd(&items).unwrap();
+        assert_eq!(MyStruct { example: Node { port: 2003} }, actual);
     }
 }
