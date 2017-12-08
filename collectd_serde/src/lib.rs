@@ -64,11 +64,27 @@ impl<'a> Deserializer<'a> {
         return Ok(&vs[0])
     }
 
+    fn grab_string(&self) -> Result<&str> {
+        if let ConfigValue::String(x) = *self.grab_val()? {
+            Ok(x)
+        } else {
+            Err(Err2(format_err!("Expected string")))
+        }
+    }
+
+    fn grab_bool(&self) -> Result<bool> {
+        if let ConfigValue::Boolean(x) = *self.grab_val()? {
+            Ok(x)
+        } else {
+            Err(Err2(format_err!("Expected boolean")))
+        }
+    }
+
     fn grab_number(&self) -> Result<f64> {
         if let ConfigValue::Number(x) = *self.grab_val()? {
             Ok(x)
         } else {
-            Err(Err2(format_err!("Expected boolean")))
+            Err(Err2(format_err!("Expected number")))
         }
     }
 }
@@ -91,21 +107,13 @@ impl<'de: 'a, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     fn deserialize_bool<V>(self, visitor: V) -> Result<V::Value>
         where V: Visitor<'de>
     {
-        if let ConfigValue::Boolean(x) = *self.grab_val()? {
-            visitor.visit_bool(x)
-        } else {
-            Err(Err2(format_err!("Expected boolean")))
-        }
+        self.grab_bool().and_then(|x| visitor.visit_bool(x))
     }
 
     fn deserialize_string<V>(self, visitor: V) -> Result<V::Value>
         where V: Visitor<'de>
     {
-        if let ConfigValue::String(x) = *self.grab_val()? {
-            visitor.visit_string(String::from(x))
-        } else {
-            Err(Err2(format_err!("Expected string")))
-        }
+        self.grab_string().and_then(|x| visitor.visit_string(String::from(x)))
     }
 
     fn deserialize_i8<V>(self, visitor: V) -> Result<V::Value>
