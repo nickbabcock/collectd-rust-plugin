@@ -260,6 +260,12 @@ impl<'de: 'a, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         }
     }
 
+    fn deserialize_ignored_any<V>(self, visitor: V) -> Result<V::Value>
+        where V: Visitor<'de>
+    {
+        visitor.visit_none()
+    }
+
     fn deserialize_any<V>(self, visitor: V) -> Result<V::Value>
         where V: Visitor<'de>
     {
@@ -269,7 +275,7 @@ impl<'de: 'a, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     forward_to_deserialize_any! {
         bytes str
         byte_buf unit unit_struct newtype_struct tuple
-        tuple_struct map enum ignored_any
+        tuple_struct map enum
     }
 }
 
@@ -473,6 +479,34 @@ mod tests {
         let items = vec![
             ConfigItem {
                 key: "my_char",
+                values: vec![
+                    ConfigValue::String("/"),
+                ],
+                children: vec![],
+            }
+        ];
+
+        let actual = from_collectd(&items).unwrap();
+        assert_eq!(MyStruct { my_char: '/' }, actual);
+    }
+
+    #[test]
+    fn test_serde_ignore() {
+        #[derive(Deserialize, PartialEq, Eq, Debug)]
+        struct MyStruct {
+            my_char: char,
+        };
+
+        let items = vec![
+            ConfigItem {
+                key: "my_char",
+                values: vec![
+                    ConfigValue::String("/"),
+                ],
+                children: vec![],
+            },
+            ConfigItem {
+                key: "my_boat",
                 values: vec![
                     ConfigValue::String("/"),
                 ],
