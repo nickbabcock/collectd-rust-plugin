@@ -108,7 +108,7 @@ contrived numbers that can be overridden using the standard Collectd config:
 # In this example configuration we provide short and long term load and leave
 # Mid to the default value. Yes, this is very much contrived
 <Plugin myplugin>
-    Short "2"
-    Long "5.5"
+    Short 2
+    Long 5.5
 </Plugin>
 ```
