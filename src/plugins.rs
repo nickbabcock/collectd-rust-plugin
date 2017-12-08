@@ -279,10 +279,15 @@ macro_rules! collectd_plugin {
             }
 
             CONFIG_SEEN = true;
-            if let Ok(config) = $crate::ConfigItem::from(&*config) {
-                collectd_register_all_plugins(Some(&config.children))
-            } else {
-                -1
+            match $crate::ConfigItem::from(&*config) {
+                Ok(config) => collectd_register_all_plugins(Some(&config.children)),
+                Err(ref e) => {
+                    $crate::collectd_log(
+                        $crate::LogLevel::Error,
+                        &format!("Can't convert from collectd config: {}", e)
+                    );
+                    -1
+                }
             }
         }
 
