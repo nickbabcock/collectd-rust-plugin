@@ -19,17 +19,31 @@ Below is a complete plugin that dummy reports [load](https://en.wikipedia.org/wi
 extern crate collectd_plugin;
 extern crate failure;
 
-use collectd_plugin::{Plugin, PluginCapabilities, Value, ValueListBuilder};
+use collectd_plugin::{ConfigItem, Plugin, PluginCapabilities, PluginManager, PluginRegistration,
+                      Value, ValueListBuilder};
 use failure::Error;
 
 #[derive(Default)]
 struct MyPlugin;
 
-impl Plugin for MyPlugin {
-    fn name(&self) -> &str {
+// A manager decides the name of the family of plugins and also registers one or more plugins based
+// on collectd's configuration files
+impl PluginManager for MyPlugin {
+    // A plugin needs a unique name to be referenced by collectd
+    fn name() -> &'static str {
         "myplugin"
     }
 
+    // Our plugin might have configuration section in collectd.conf, which will be passed here if
+    // present. Our contrived plugin doesn't care about configuration so it returns only a single
+    // plugin (itself).
+    fn plugins(_config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Error> {
+        Ok(PluginRegistration::Single(Box::new(MyPlugin)))
+    }
+}
+
+impl Plugin for MyPlugin {
+    // We define that our plugin will only be reporting / submitting values to writers
     fn capabilities(&self) -> PluginCapabilities {
         PluginCapabilities::READ
     }
@@ -41,13 +55,14 @@ impl Plugin for MyPlugin {
         let values = vec![Value::Gauge(15.0), Value::Gauge(10.0), Value::Gauge(12.0)];
 
         // Submit our values to collectd. A plugin can submit any number of times.
-        ValueListBuilder::new(self.name(), "load")
+        ValueListBuilder::new(Self::name(), "load")
             .values(values)
             .submit()
     }
 }
 
-collectd_plugin!(MyPlugin, Default::default);
+// We pass in our plugin manager type
+collectd_plugin!(MyPlugin);
 ```
 
 ## Motivation

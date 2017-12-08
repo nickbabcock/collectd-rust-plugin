@@ -9,17 +9,24 @@ use failure::Error;
 #[derive(Default)]
 struct MyPlugin;
 
+// A manager decides the name of the family of plugins and also registers one or more plugins based
+// on collectd's configuration files
 impl PluginManager for MyPlugin {
+    // A plugin needs a unique name to be referenced by collectd
     fn name() -> &'static str {
         "myplugin"
     }
 
+    // Our plugin might have configuration section in collectd.conf, which will be passed here if
+    // present. Our contrived plugin doesn't care about configuration so it returns only a single
+    // plugin (itself).
     fn plugins(_config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Error> {
         Ok(PluginRegistration::Single(Box::new(MyPlugin)))
     }
 }
 
 impl Plugin for MyPlugin {
+    // We define that our plugin will only be reporting / submitting values to writers
     fn capabilities(&self) -> PluginCapabilities {
         PluginCapabilities::READ
     }
@@ -37,4 +44,5 @@ impl Plugin for MyPlugin {
     }
 }
 
+// We pass in our plugin manager type
 collectd_plugin!(MyPlugin);
