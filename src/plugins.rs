@@ -15,14 +15,19 @@ bitflags! {
 }
 
 bitflags! {
+    /// Bitflags of capabilities that a plugin manager advertises to collectd
     #[derive(Default)]
     pub struct PluginManagerCapabilities: u32 {
         const INIT = 0b0000_0001;
     }
 }
 
+/// How many instances of the plugin will be registered
 pub enum PluginRegistration {
+    /// Our module will only register a single plugin
     Single(Box<Plugin>),
+
+    /// Our module registers several modules. The String in the tuple must be unique identifier
     Multiple(Vec<(String, Box<Plugin>)>),
 }
 
@@ -54,6 +59,9 @@ pub trait PluginManager {
 
     fn plugins(_config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Error>;
 
+    /// Initialize any socket, files, or expensive resources that may have been parsed from the
+    /// configuration. If an error is reported, all hooks registered will be unregistered. This is
+    /// really only useful for `PluginRegistration::Single` modules who want global data.
     fn initialize() -> Result<(), Error> {
         Err(Error::from(NotImplemented))
     }
@@ -65,9 +73,6 @@ pub trait Plugin {
     fn capabilities(&self) -> PluginCapabilities {
         PluginCapabilities::default()
     }
-
-    /// Initialize any socket, files, or expensive resources that may have been parsed from the
-    /// configuration. If an error is reported, all hooks registered will be unregistered.
 
     /// Customizes how a message of a given level is logged
     fn log(&mut self, _lvl: LogLevel, _msg: String) -> Result<(), Error> {
@@ -122,6 +127,10 @@ macro_rules! collectd_plugin {
         // Let's us know if we've seen our config section before
         static mut CONFIG_SEEN: bool = false;
 
+        // This is the main entry point that collectd looks for. Our plugin manager will register
+        // callbacks for configuration related to our name. It also registers a callback for
+        // initialization for when configuratio is absent or a single plugin wants to hold global
+        // data
         #[no_mangle]
         pub extern "C" fn module_register() {
             use std::ffi::CString;
