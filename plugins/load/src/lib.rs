@@ -1,15 +1,20 @@
 #[macro_use]
 extern crate collectd_plugin;
-#[macro_use]
 extern crate failure;
+#[macro_use]
+extern crate serde_derive;
+extern crate serde;
 
-use collectd_plugin::{collectd_log, ConfigItem, ConfigValue, LogLevel, Plugin, PluginCapabilities,
+use collectd_plugin::{ConfigItem, Plugin, PluginCapabilities,
                       PluginManager, PluginRegistration, Value, ValueListBuilder};
 use failure::Error;
 
-#[derive(Fail, Debug)]
-pub enum ConfigError {
-    #[fail(display = "config key {} not recognized", _0)] UnrecognizedKey(String),
+#[derive(Deserialize, Debug, PartialEq)]
+#[serde(rename_all = "PascalCase")]
+struct MyConfig {
+    short: Option<f64>,
+    mid: Option<f64>,
+    long: Option<f64>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -25,38 +30,12 @@ impl PluginManager for MyLoadPlugin {
     }
 
     fn plugins(config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Error> {
-        let mut short = 15.0;
-        let mut mid = 10.0;
-        let mut long = 12.0;
-        if let Some(fields) = config {
-            for f in fields.iter() {
-                if f.values.len() > 1 {
-                    return Err(format_err!(
-                        "{} does not support more than one entry",
-                        f.key
-                    ));
-                }
-
-                let value = &f.values[0];
-                if let ConfigValue::Number(x) = *value {
-                    match f.key {
-                        "Short" => short = x,
-                        "Mid" => mid = x,
-                        "Long" => long = x,
-                        y => return Err(format_err!("{} is not recognized", y)),
-                    }
-                } else {
-                    return Err(format_err!("{} is not a number: {:?}", f.key, value));
-                };
-            }
-        }
-
+        let config: MyConfig = collectd_plugin::de::from_collectd(config.unwrap_or_else(|| Default::default()))?;
         let plugin = MyLoadPlugin {
-            short: short,
-            mid: mid,
-            long: long,
+            short: config.short.unwrap_or(15.0),
+            mid: config.mid.unwrap_or(10.0),
+            long: config.long.unwrap_or(12.0),
         };
-
         Ok(PluginRegistration::Single(Box::new(plugin)))
     }
 }

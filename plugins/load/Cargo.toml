@@ -6,10 +6,13 @@ publish = false
 
 [dependencies]
 failure = "0.1.1"
+serde_derive = "1"
+serde = "1"
 
 [dependencies.collectd-plugin]
 path = "../.."
 version = "0.2"
+features = ["serde"]
 
 [lib]
 crate-type = ["cdylib"]
