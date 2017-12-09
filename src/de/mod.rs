@@ -58,7 +58,7 @@ impl<'a> Deserializer<'a> {
         Ok(self.depth[self.depth.len() - 1])
     }
 
-    fn grab_val(&self) -> Result<&ConfigValue> {
+    fn grab_val(&self) -> Result<&ConfigValue<'a>> {
         match self.current()? {
             DeType::Struct(item) => {
                 if item.values.len() != 1 {
@@ -71,7 +71,7 @@ impl<'a> Deserializer<'a> {
         }
     }
 
-    fn grab_string(&self) -> Result<&str> {
+    fn grab_string(&self) -> Result<&'a str> {
         if let ConfigValue::String(x) = *self.grab_val()? {
             Ok(x)
         } else {
@@ -121,16 +121,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     fn deserialize_str<V>(self, visitor: V) -> Result<V::Value>
         where V: Visitor<'de>
     {
-        let a = self.depth[self.depth.len() - 1];
-        if let DeType::Struct(item) = a {
-            if let ConfigValue::String(x) = item.values[0] {
-                visitor.visit_borrowed_str(x)
-            } else {
-                Err(Err2(err_msg("AA")))
-            }
-        } else {
-            Err(Err2(err_msg("AA")))
-        }
+        self.grab_string().and_then(|x| visitor.visit_borrowed_str(x))
     }
 
     fn deserialize_i8<V>(self, visitor: V) -> Result<V::Value>
