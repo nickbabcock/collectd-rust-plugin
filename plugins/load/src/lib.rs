@@ -30,7 +30,7 @@ impl PluginManager for MyLoadPlugin {
     }
 
     fn plugins(config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Error> {
-        let config: MyConfig = collectd_plugin::de::from_collectd(config.unwrap_or_else(|| Default::default()))?;
+        let config: MyConfig = collectd_plugin::de::from_collectd(config.unwrap_or_else(Default::default))?;
         let plugin = MyLoadPlugin {
             short: config.short.unwrap_or(15.0),
             mid: config.mid.unwrap_or(10.0),
