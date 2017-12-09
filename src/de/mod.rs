@@ -417,6 +417,27 @@ mod tests {
     }
 
     #[test]
+    fn test_serde_simple_str() {
+        #[derive(Deserialize, PartialEq, Eq, Debug)]
+        struct MyStruct<'a> {
+            my_string: &'a str
+        };
+
+        let items = vec![
+            ConfigItem {
+                key: "my_string",
+                values: vec![
+                    ConfigValue::String("HEY")
+                ],
+                children: vec![],
+            }
+        ];
+
+        let actual = from_collectd(&items).unwrap();
+        assert_eq!(MyStruct { my_string: "HEY" }, actual);
+    }
+
+    #[test]
     fn test_serde_bool_vec() {
         #[derive(Deserialize, PartialEq, Eq, Debug)]
         struct MyStruct {
