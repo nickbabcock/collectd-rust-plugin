@@ -6,24 +6,15 @@ pub type Result<T> = ::std::result::Result<T, Error>;
 
 #[derive(Fail, Debug)]
 pub enum DeError {
-    #[fail(display = "No more values left, this should never happen")]
-    NoMoreValuesLeft,
-    #[fail(display = "Error from deserialization: {}", _0)]
-    SerdeError(String),
-    #[fail(display = "Expecting values to contain a single entry")]
-    ExpectSingleValue,
-    #[fail(display = "Expecting string")]
-    ExpectString,
-    #[fail(display = "Expecting string of length one, received `{}`", _0)]
-    ExpectChar(String),
-    #[fail(display = "Expecting boolean")]
-    ExpectBoolean,
-    #[fail(display = "Expecting number")]
-    ExpectNumber,
-    #[fail(display = "Expecting struct")]
-    ExpectStruct,
-    #[fail(display = "Could not deserialize as datatype not supported")]
-    DataTypeNotSupported,
+    #[fail(display = "No more values left, this should never happen")] NoMoreValuesLeft,
+    #[fail(display = "Error from deserialization: {}", _0)] SerdeError(String),
+    #[fail(display = "Expecting values to contain a single entry")] ExpectSingleValue,
+    #[fail(display = "Expecting string")] ExpectString,
+    #[fail(display = "Expecting string of length one, received `{}`", _0)] ExpectChar(String),
+    #[fail(display = "Expecting boolean")] ExpectBoolean,
+    #[fail(display = "Expecting number")] ExpectNumber,
+    #[fail(display = "Expecting struct")] ExpectStruct,
+    #[fail(display = "Could not deserialize as datatype not supported")] DataTypeNotSupported,
 }
 
 #[derive(Debug)]
@@ -43,7 +34,7 @@ impl ::std::error::Error for Error {
 
 impl Display for Error {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-		self.0.fmt(formatter)
+        self.0.fmt(formatter)
     }
 }
 
@@ -70,7 +61,7 @@ impl<'a> Deserializer<'a> {
 
     fn current(&self) -> Result<DeType<'a>> {
         if self.depth.is_empty() {
-            return Err(Error(DeError::NoMoreValuesLeft))
+            return Err(Error(DeError::NoMoreValuesLeft));
         }
 
         Ok(self.depth[self.depth.len() - 1])
@@ -80,7 +71,7 @@ impl<'a> Deserializer<'a> {
         match self.current()? {
             DeType::Struct(item) => {
                 if item.values.len() != 1 {
-                    return Err(Error(DeError::ExpectSingleValue))
+                    return Err(Error(DeError::ExpectSingleValue));
                 }
 
                 Ok(&item.values[0])
@@ -262,7 +253,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     {
         match self.current()? {
             DeType::Struct(item) => visitor.visit_seq(SeqSeparated::new(&mut self, &item.values)),
-            DeType::Seq(_item) => Err(Error(DeError::ExpectStruct),)
+            DeType::Seq(_item) => Err(Error(DeError::ExpectStruct)),
         }
     }
 

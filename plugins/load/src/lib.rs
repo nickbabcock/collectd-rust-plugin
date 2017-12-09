@@ -1,12 +1,12 @@
 #[macro_use]
 extern crate collectd_plugin;
 extern crate failure;
+extern crate serde;
 #[macro_use]
 extern crate serde_derive;
-extern crate serde;
 
-use collectd_plugin::{ConfigItem, Plugin, PluginCapabilities,
-                      PluginManager, PluginRegistration, Value, ValueListBuilder};
+use collectd_plugin::{ConfigItem, Plugin, PluginCapabilities, PluginManager, PluginRegistration,
+                      Value, ValueListBuilder};
 use failure::Error;
 
 #[derive(Deserialize, Debug, PartialEq)]
@@ -30,7 +30,8 @@ impl PluginManager for MyLoadPlugin {
     }
 
     fn plugins(config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Error> {
-        let config: MyConfig = collectd_plugin::de::from_collectd(config.unwrap_or_else(Default::default))?;
+        let config: MyConfig =
+            collectd_plugin::de::from_collectd(config.unwrap_or_else(Default::default))?;
         let plugin = MyLoadPlugin {
             short: config.short.unwrap_or(15.0),
             mid: config.mid.unwrap_or(10.0),
