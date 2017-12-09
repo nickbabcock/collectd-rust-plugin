@@ -29,6 +29,7 @@ impl Display for Err2 {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
 enum DeType<'a> {
     Struct(&'a ConfigItem<'a>),
     Seq(&'a ConfigValue<'a>),
@@ -49,16 +50,16 @@ impl<'a> Deserializer<'a> {
         }
     }
 
-    fn current(&self) -> Result<&DeType> {
+    fn current(&self) -> Result<DeType<'a>> {
         if self.depth.is_empty() {
             return Err(Err2(err_msg("No more values left, this should never happen")));
         }
 
-        Ok(&self.depth[self.depth.len() - 1])
+        Ok(self.depth[self.depth.len() - 1])
     }
 
     fn grab_val(&self) -> Result<&ConfigValue> {
-        match *(self.current()?) {
+        match self.current()? {
             DeType::Struct(item) => {
                 if item.values.len() != 1 {
                     return Err(Err2(err_msg("Expecting values to hold a single value")))
@@ -102,7 +103,7 @@ pub fn from_collectd<'a, T>(s: &'a [ConfigItem<'a>]) -> Result<T>
     T::deserialize(&mut deserializer)
 }
 
-impl<'de: 'a, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
+impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     type Error = Err2;
 
     fn deserialize_bool<V>(self, visitor: V) -> Result<V::Value>
@@ -115,6 +116,21 @@ impl<'de: 'a, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         where V: Visitor<'de>
     {
         self.grab_string().and_then(|x| visitor.visit_string(String::from(x)))
+    }
+
+    fn deserialize_str<V>(self, visitor: V) -> Result<V::Value>
+        where V: Visitor<'de>
+    {
+        let a = self.depth[self.depth.len() - 1];
+        if let DeType::Struct(item) = a {
+            if let ConfigValue::String(x) = item.values[0] {
+                visitor.visit_borrowed_str(x)
+            } else {
+                Err(Err2(err_msg("AA")))
+            }
+        } else {
+            Err(Err2(err_msg("AA")))
+        }
     }
 
     fn deserialize_i8<V>(self, visitor: V) -> Result<V::Value>
@@ -215,11 +231,7 @@ impl<'de: 'a, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     fn deserialize_seq<V>(mut self, visitor: V) -> Result<V::Value>
         where V: Visitor<'de>
     {
-        if self.depth.is_empty() {
-            return Err(Err2(err_msg("No more values left, this should never happen")));
-        }
-
-        match self.depth[self.depth.len() - 1] {
+        match self.current()? {
             DeType::Struct(item) => visitor.visit_seq(SeqSeparated::new(&mut self, &item.values)),
             DeType::Seq(_item) => Err(Err2(err_msg("Did not expect sequence"))),
         }
@@ -261,7 +273,7 @@ impl<'de: 'a, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     }
 
     forward_to_deserialize_any! {
-        bytes str
+        bytes
         byte_buf unit unit_struct newtype_struct tuple
         tuple_struct map enum
     }
