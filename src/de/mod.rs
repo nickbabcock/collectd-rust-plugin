@@ -239,16 +239,12 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         if self.root {
             self.root = false;
             visitor.visit_map(FieldSeparated::new(&mut self, self.input))
+        } else if let DeType::Struct(item) = self.depth[self.depth.len() - 1] {
+            visitor.visit_map(FieldSeparated::new(&mut self, &item.children[..]))
         } else {
-            let ind = self.depth.len() - 1;
-            let children = if let DeType::Struct(item) = self.depth[ind] {
-                Ok(&item.children[..])
-            } else {
-                Err(Err2(err_msg("Expecting struct")))
-            };
-
-            visitor.visit_map(FieldSeparated::new(&mut self, children?))
+            Err(Err2(err_msg("Expecting struct")))
         }
+
     }
 
     fn deserialize_ignored_any<V>(self, visitor: V) -> Result<V::Value>
