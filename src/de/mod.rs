@@ -3,8 +3,7 @@ use std;
 use std::fmt::{self, Display};
 
 use api::{ConfigItem, ConfigValue};
-use serde::de::{self, Deserialize, DeserializeSeed, Visitor, SeqAccess,
-                MapAccess};
+use serde::de::{self, Deserialize, DeserializeSeed, MapAccess, SeqAccess, Visitor};
 
 pub type Result<T> = std::result::Result<T, Err2>;
 
@@ -52,7 +51,9 @@ impl<'a> Deserializer<'a> {
 
     fn current(&self) -> Result<DeType<'a>> {
         if self.depth.is_empty() {
-            return Err(Err2(err_msg("No more values left, this should never happen")));
+            return Err(Err2(err_msg(
+                "No more values left, this should never happen",
+            )));
         }
 
         Ok(self.depth[self.depth.len() - 1])
@@ -62,11 +63,11 @@ impl<'a> Deserializer<'a> {
         match self.current()? {
             DeType::Struct(item) => {
                 if item.values.len() != 1 {
-                    return Err(Err2(err_msg("Expecting values to hold a single value")))
+                    return Err(Err2(err_msg("Expecting values to hold a single value")));
                 }
 
                 Ok(&item.values[0])
-            },
+            }
             DeType::Seq(item) => Ok(item),
         }
     }
@@ -97,7 +98,8 @@ impl<'a> Deserializer<'a> {
 }
 
 pub fn from_collectd<'a, T>(s: &'a [ConfigItem<'a>]) -> Result<T>
-    where T: Deserialize<'a>
+where
+    T: Deserialize<'a>,
 {
     let mut deserializer = Deserializer::from_collectd(s);
     T::deserialize(&mut deserializer)
@@ -107,91 +109,108 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     type Error = Err2;
 
     fn deserialize_bool<V>(self, visitor: V) -> Result<V::Value>
-        where V: Visitor<'de>
+    where
+        V: Visitor<'de>,
     {
         self.grab_bool().and_then(|x| visitor.visit_bool(x))
     }
 
     fn deserialize_string<V>(self, visitor: V) -> Result<V::Value>
-        where V: Visitor<'de>
+    where
+        V: Visitor<'de>,
     {
-        self.grab_string().and_then(|x| visitor.visit_string(String::from(x)))
+        self.grab_string()
+            .and_then(|x| visitor.visit_string(String::from(x)))
     }
 
     fn deserialize_str<V>(self, visitor: V) -> Result<V::Value>
-        where V: Visitor<'de>
+    where
+        V: Visitor<'de>,
     {
-        self.grab_string().and_then(|x| visitor.visit_borrowed_str(x))
+        self.grab_string()
+            .and_then(|x| visitor.visit_borrowed_str(x))
     }
 
     fn deserialize_i8<V>(self, visitor: V) -> Result<V::Value>
-        where V: Visitor<'de>
+    where
+        V: Visitor<'de>,
     {
         self.grab_number().and_then(|x| visitor.visit_i8(x as i8))
     }
 
     fn deserialize_i16<V>(self, visitor: V) -> Result<V::Value>
-        where V: Visitor<'de>
+    where
+        V: Visitor<'de>,
     {
         self.grab_number().and_then(|x| visitor.visit_i16(x as i16))
     }
 
     fn deserialize_i32<V>(self, visitor: V) -> Result<V::Value>
-        where V: Visitor<'de>
+    where
+        V: Visitor<'de>,
     {
         self.grab_number().and_then(|x| visitor.visit_i32(x as i32))
     }
 
     fn deserialize_i64<V>(self, visitor: V) -> Result<V::Value>
-        where V: Visitor<'de>
+    where
+        V: Visitor<'de>,
     {
         self.grab_number().and_then(|x| visitor.visit_i64(x as i64))
     }
 
     fn deserialize_u8<V>(self, visitor: V) -> Result<V::Value>
-        where V: Visitor<'de>
+    where
+        V: Visitor<'de>,
     {
         self.grab_number().and_then(|x| visitor.visit_u8(x as u8))
     }
 
     fn deserialize_u16<V>(self, visitor: V) -> Result<V::Value>
-        where V: Visitor<'de>
+    where
+        V: Visitor<'de>,
     {
         self.grab_number().and_then(|x| visitor.visit_u16(x as u16))
     }
 
     fn deserialize_u32<V>(self, visitor: V) -> Result<V::Value>
-        where V: Visitor<'de>
+    where
+        V: Visitor<'de>,
     {
         self.grab_number().and_then(|x| visitor.visit_u32(x as u32))
     }
 
     fn deserialize_u64<V>(self, visitor: V) -> Result<V::Value>
-        where V: Visitor<'de>
+    where
+        V: Visitor<'de>,
     {
         self.grab_number().and_then(|x| visitor.visit_u64(x as u64))
     }
 
     fn deserialize_f32<V>(self, visitor: V) -> Result<V::Value>
-        where V: Visitor<'de>
+    where
+        V: Visitor<'de>,
     {
         self.grab_number().and_then(|x| visitor.visit_f32(x as f32))
     }
 
     fn deserialize_f64<V>(self, visitor: V) -> Result<V::Value>
-        where V: Visitor<'de>
+    where
+        V: Visitor<'de>,
     {
         self.grab_number().and_then(|x| visitor.visit_f64(x))
     }
 
     fn deserialize_option<V>(self, visitor: V) -> Result<V::Value>
-        where V: Visitor<'de>
+    where
+        V: Visitor<'de>,
     {
         visitor.visit_some(self)
     }
 
     fn deserialize_char<V>(self, visitor: V) -> Result<V::Value>
-        where V: Visitor<'de>
+    where
+        V: Visitor<'de>,
     {
         self.grab_string().and_then(|x| {
             if x.len() != 1 {
@@ -203,7 +222,8 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     }
 
     fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value>
-        where V: Visitor<'de>
+    where
+        V: Visitor<'de>,
     {
         let v = &self.depth[self.depth.len() - 1];
         if let DeType::Struct(item) = *v {
@@ -220,7 +240,8 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     }
 
     fn deserialize_seq<V>(mut self, visitor: V) -> Result<V::Value>
-        where V: Visitor<'de>
+    where
+        V: Visitor<'de>,
     {
         match self.current()? {
             DeType::Struct(item) => visitor.visit_seq(SeqSeparated::new(&mut self, &item.values)),
@@ -232,9 +253,10 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         mut self,
         _name: &'static str,
         _fields: &'static [&'static str],
-        visitor: V
+        visitor: V,
     ) -> Result<V::Value>
-        where V: Visitor<'de>
+    where
+        V: Visitor<'de>,
     {
         if self.root {
             self.root = false;
@@ -244,17 +266,18 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         } else {
             Err(Err2(err_msg("Expecting struct")))
         }
-
     }
 
     fn deserialize_ignored_any<V>(self, visitor: V) -> Result<V::Value>
-        where V: Visitor<'de>
+    where
+        V: Visitor<'de>,
     {
         visitor.visit_none()
     }
 
     fn deserialize_any<V>(self, _visitor: V) -> Result<V::Value>
-        where V: Visitor<'de>
+    where
+        V: Visitor<'de>,
     {
         Err(Err2(err_msg("Collectd cannot map to your data type")))
     }
@@ -268,13 +291,17 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
 
 struct FieldSeparated<'a, 'de: 'a> {
     de: &'a mut Deserializer<'de>,
-	items: &'de [ConfigItem<'de>],
+    items: &'de [ConfigItem<'de>],
     first: bool,
 }
 
 impl<'a, 'de> FieldSeparated<'a, 'de> {
     fn new(de: &'a mut Deserializer<'de>, items: &'de [ConfigItem<'de>]) -> Self {
-        FieldSeparated { de: de, first: true, items: items }
+        FieldSeparated {
+            de: de,
+            first: true,
+            items: items,
+        }
     }
 }
 
@@ -282,12 +309,13 @@ impl<'de, 'a> MapAccess<'de> for FieldSeparated<'a, 'de> {
     type Error = Err2;
 
     fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>>
-        where K: DeserializeSeed<'de>
+    where
+        K: DeserializeSeed<'de>,
     {
         // Check if there are no more entries.
-		if self.items.is_empty() {
+        if self.items.is_empty() {
             self.de.depth.pop().unwrap();
-            return Ok(None)
+            return Ok(None);
         }
 
         if self.first {
@@ -303,7 +331,8 @@ impl<'de, 'a> MapAccess<'de> for FieldSeparated<'a, 'de> {
     }
 
     fn next_value_seed<V>(&mut self, seed: V) -> Result<V::Value>
-        where V: DeserializeSeed<'de>
+    where
+        V: DeserializeSeed<'de>,
     {
         seed.deserialize(&mut *self.de)
     }
@@ -311,13 +340,17 @@ impl<'de, 'a> MapAccess<'de> for FieldSeparated<'a, 'de> {
 
 struct SeqSeparated<'a, 'de: 'a> {
     de: &'a mut Deserializer<'de>,
-	values: &'de [ConfigValue<'de>],
+    values: &'de [ConfigValue<'de>],
     first: bool,
 }
 
 impl<'a, 'de> SeqSeparated<'a, 'de> {
     fn new(de: &'a mut Deserializer<'de>, v: &'de [ConfigValue<'de>]) -> Self {
-        SeqSeparated { de: de, values: v, first: true }
+        SeqSeparated {
+            de: de,
+            values: v,
+            first: true,
+        }
     }
 }
 
@@ -325,7 +358,8 @@ impl<'de, 'a> SeqAccess<'de> for SeqSeparated<'a, 'de> {
     type Error = Err2;
 
     fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>>
-        where T: DeserializeSeed<'de>
+    where
+        T: DeserializeSeed<'de>,
     {
         if self.values.is_empty() {
             self.de.depth.pop().unwrap();
@@ -353,17 +387,15 @@ mod tests {
     fn test_serde_simple_bool() {
         #[derive(Deserialize, PartialEq, Eq, Debug)]
         struct MyStruct {
-            my_bool: bool
+            my_bool: bool,
         };
 
         let items = vec![
             ConfigItem {
                 key: "my_bool",
-                values: vec![
-                    ConfigValue::Boolean(true)
-                ],
+                values: vec![ConfigValue::Boolean(true)],
                 children: vec![],
-            }
+            },
         ];
 
         let actual = from_collectd(&items).unwrap();
@@ -374,17 +406,15 @@ mod tests {
     fn test_serde_simple_number() {
         #[derive(Deserialize, PartialEq, Eq, Debug)]
         struct MyStruct {
-            my_int: i8
+            my_int: i8,
         };
 
         let items = vec![
             ConfigItem {
                 key: "my_int",
-                values: vec![
-                    ConfigValue::Number(1.0)
-                ],
+                values: vec![ConfigValue::Number(1.0)],
                 children: vec![],
-            }
+            },
         ];
 
         let actual = from_collectd(&items).unwrap();
@@ -395,38 +425,39 @@ mod tests {
     fn test_serde_simple_string() {
         #[derive(Deserialize, PartialEq, Eq, Debug)]
         struct MyStruct {
-            my_string: String
+            my_string: String,
         };
 
         let items = vec![
             ConfigItem {
                 key: "my_string",
-                values: vec![
-                    ConfigValue::String("HEY")
-                ],
+                values: vec![ConfigValue::String("HEY")],
                 children: vec![],
-            }
+            },
         ];
 
         let actual = from_collectd(&items).unwrap();
-        assert_eq!(MyStruct { my_string: String::from("HEY") }, actual);
+        assert_eq!(
+            MyStruct {
+                my_string: String::from("HEY"),
+            },
+            actual
+        );
     }
 
     #[test]
     fn test_serde_simple_str() {
         #[derive(Deserialize, PartialEq, Eq, Debug)]
         struct MyStruct<'a> {
-            my_string: &'a str
+            my_string: &'a str,
         };
 
         let items = vec![
             ConfigItem {
                 key: "my_string",
-                values: vec![
-                    ConfigValue::String("HEY")
-                ],
+                values: vec![ConfigValue::String("HEY")],
                 children: vec![],
-            }
+            },
         ];
 
         let actual = from_collectd(&items).unwrap();
@@ -437,22 +468,24 @@ mod tests {
     fn test_serde_bool_vec() {
         #[derive(Deserialize, PartialEq, Eq, Debug)]
         struct MyStruct {
-            my_bool: Vec<bool>
+            my_bool: Vec<bool>,
         };
 
         let items = vec![
             ConfigItem {
                 key: "my_bool",
-                values: vec![
-                    ConfigValue::Boolean(true),
-                    ConfigValue::Boolean(false),
-                ],
+                values: vec![ConfigValue::Boolean(true), ConfigValue::Boolean(false)],
                 children: vec![],
-            }
+            },
         ];
 
         let actual = from_collectd(&items).unwrap();
-        assert_eq!(MyStruct { my_bool: vec![true, false] }, actual);
+        assert_eq!(
+            MyStruct {
+                my_bool: vec![true, false],
+            },
+            actual
+        );
     }
 
     #[test]
@@ -466,15 +499,19 @@ mod tests {
         let items = vec![
             ConfigItem {
                 key: "my_bool",
-                values: vec![
-                    ConfigValue::Boolean(true),
-                ],
+                values: vec![ConfigValue::Boolean(true)],
                 children: vec![],
-            }
+            },
         ];
 
         let actual = from_collectd(&items).unwrap();
-        assert_eq!(MyStruct { my_bool: Some(true), my_string: None }, actual);
+        assert_eq!(
+            MyStruct {
+                my_bool: Some(true),
+                my_string: None,
+            },
+            actual
+        );
     }
 
     #[test]
@@ -487,11 +524,9 @@ mod tests {
         let items = vec![
             ConfigItem {
                 key: "my_char",
-                values: vec![
-                    ConfigValue::String("/"),
-                ],
+                values: vec![ConfigValue::String("/")],
                 children: vec![],
-            }
+            },
         ];
 
         let actual = from_collectd(&items).unwrap();
@@ -508,18 +543,14 @@ mod tests {
         let items = vec![
             ConfigItem {
                 key: "my_char",
-                values: vec![
-                    ConfigValue::String("/"),
-                ],
+                values: vec![ConfigValue::String("/")],
                 children: vec![],
             },
             ConfigItem {
                 key: "my_boat",
-                values: vec![
-                    ConfigValue::String("/"),
-                ],
+                values: vec![ConfigValue::String("/")],
                 children: vec![],
-            }
+            },
         ];
 
         let actual = from_collectd(&items).unwrap();
@@ -541,22 +572,23 @@ mod tests {
         let items = vec![
             ConfigItem {
                 key: "node",
-                values: vec![
-                    ConfigValue::String("example")
-                ],
+                values: vec![ConfigValue::String("example")],
                 children: vec![
                     ConfigItem {
                         key: "port",
-                        values: vec![
-                            ConfigValue::Number(2003.0)
-                        ],
+                        values: vec![ConfigValue::Number(2003.0)],
                         children: vec![],
                     },
                 ],
-            }
+            },
         ];
 
         let actual = from_collectd(&items).unwrap();
-        assert_eq!(MyStruct { example: Node { port: 2003} }, actual);
+        assert_eq!(
+            MyStruct {
+                example: Node { port: 2003 },
+            },
+            actual
+        );
     }
 }
