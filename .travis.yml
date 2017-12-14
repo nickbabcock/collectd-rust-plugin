@@ -1,4 +1,4 @@
 language: rust
 script:
-  - cargo build --verbose --all --features 'collectd-55'
-  - cargo test --verbose --all --features 'collectd-55'
+  - cargo build --verbose --all --features 'collectd-55 serde'
+  - cargo test --verbose --all --features 'collectd-55 serde'
