@@ -269,7 +269,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         if self.root {
             self.root = false;
             visitor.visit_map(FieldSeparated::new(&mut self, self.input))
-        } else if let DeType::Struct(item) = self.depth[self.depth.len() - 1] {
+        } else if let DeType::Struct(item) = self.current()? {
             visitor.visit_map(FieldSeparated::new(&mut self, &item.children[..]))
         } else {
             Err(Error(DeError::ExpectStruct))
@@ -326,7 +326,7 @@ impl<'de, 'a> MapAccess<'de> for FieldSeparated<'a, 'de> {
             return Ok(None);
         }
 
-        if self.first {
+        if self.first || self.de.depth.is_empty() {
             self.de.depth.push(DeType::Struct(&self.items[0]));
             self.first = false;
         } else {
