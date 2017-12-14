@@ -353,38 +353,82 @@ macro_rules! collectd_plugin {
             unsafe {
                 let plugin_ptr: *mut c_void = std::mem::transmute(Box::into_raw(pl));
 
-                // The user data that is passed to read, writes, logs, etc. It is not passed to
-                // config or init. Since user_data_t implements copy, we don't need to forget about
-                // it. See clippy suggestion (forget_copy)
-                let mut data = $crate::bindings::user_data_t {
-                    data: plugin_ptr,
-                    free_func: Some(collectd_plugin_free_user_data),
-                };
+                // Plugin registration differs only a tiny bit between collectd-57 and older
+                // versions. The one difference is that user_data_t went from mutable to not
+                // mutable. The code duplication is annoying, but it's better to have it
+                // encapsulated in a single crate instead of many others.
+                #[cfg(not(feature = "collectd-57"))]
+                {
+                    // The user data that is passed to read, writes, logs, etc. It is not passed to
+                    // config or init. Since user_data_t implements copy, we don't need to forget about
+                    // it. See clippy suggestion (forget_copy)
+                    let mut data = $crate::bindings::user_data_t {
+                        data: plugin_ptr,
+                        free_func: Some(collectd_plugin_free_user_data),
+                    };
 
-                if should_read {
-                    plugin_register_complex_read(
-                        ptr::null(),
-                        s.as_ptr(),
-                        Some(collectd_plugin_read),
-                        $crate::get_default_interval(),
-                        &mut data
-                    );
+                    if should_read {
+                        plugin_register_complex_read(
+                            ptr::null(),
+                            s.as_ptr(),
+                            Some(collectd_plugin_read),
+                            $crate::get_default_interval(),
+                            &mut data
+                        );
+                    }
+
+                    if should_write {
+                        plugin_register_write(
+                            s.as_ptr(),
+                            Some(collectd_plugin_write),
+                            &mut data
+                        );
+                    }
+
+                    if should_log {
+                        plugin_register_log(s.as_ptr(), Some(collectd_plugin_log), &mut data);
+                    }
+
+                    if should_flush {
+                        plugin_register_flush(s.as_ptr(), Some(collectd_plugin_flush), &mut data);
+                    }
                 }
 
-                if should_write {
-                    plugin_register_write(
-                        s.as_ptr(),
-                        Some(collectd_plugin_write),
-                        &mut data
-                    );
-                }
+                #[cfg(feature = "collectd-57")]
+                {
+                    // The user data that is passed to read, writes, logs, etc. It is not passed to
+                    // config or init. Since user_data_t implements copy, we don't need to forget about
+                    // it. See clippy suggestion (forget_copy)
+                    let data = $crate::bindings::user_data_t {
+                        data: plugin_ptr,
+                        free_func: Some(collectd_plugin_free_user_data),
+                    };
 
-                if should_log {
-                    plugin_register_log(s.as_ptr(), Some(collectd_plugin_log), &mut data);
-                }
+                    if should_read {
+                        plugin_register_complex_read(
+                            ptr::null(),
+                            s.as_ptr(),
+                            Some(collectd_plugin_read),
+                            $crate::get_default_interval(),
+                            &data
+                        );
+                    }
 
-                if should_flush {
-                    plugin_register_flush(s.as_ptr(), Some(collectd_plugin_flush), &mut data);
+                    if should_write {
+                        plugin_register_write(
+                            s.as_ptr(),
+                            Some(collectd_plugin_write),
+                            &data
+                        );
+                    }
+
+                    if should_log {
+                        plugin_register_log(s.as_ptr(), Some(collectd_plugin_log), &data);
+                    }
+
+                    if should_flush {
+                        plugin_register_flush(s.as_ptr(), Some(collectd_plugin_flush), &data);
+                    }
                 }
             }
         }
