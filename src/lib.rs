@@ -9,6 +9,7 @@ extern crate failure;
 extern crate serde;
 
 #[cfg(test)]
+#[cfg(feature = "serde")]
 #[macro_use]
 extern crate serde_derive;
 
