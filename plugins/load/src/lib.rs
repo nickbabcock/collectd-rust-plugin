@@ -30,7 +30,7 @@ struct LoadManager;
 
 impl PluginManager for LoadManager {
     fn name() -> &'static str {
-        "load-rust"
+        "loadrust"
     }
 
     fn plugins(config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Error> {

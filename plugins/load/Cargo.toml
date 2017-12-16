@@ -18,7 +18,7 @@ features = ["serde"]
 
 [lib]
 crate-type = ["cdylib"]
-name = "myplugin"
+name = "loadrust"
 
 [features]
 collectd-54 = ["collectd-plugin/collectd-54"]

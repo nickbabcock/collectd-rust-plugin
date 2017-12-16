@@ -11,19 +11,17 @@ cargo build --all --features "$VERSION bindgen"
 cargo test --all --features "$VERSION bindgen"
 cargo test-junit --name TestResults-bindgen --features "$VERSION bindgen"
 
-cp target/debug/libmyplugin.so /usr/lib/collectd/myplugin.so
+cp target/debug/libloadrust.so /usr/lib/collectd/loadrust.so
 
 cat <<EOF | tee /etc/collectd/collectd.conf
 Hostname "localhost"
-LoadPlugin myplugin
+LoadPlugin loadrust
 LoadPlugin csv
 <Plugin csv>
   DataDir "/var/lib/collectd/csv"
   StoreRates false
 </Plugin>
-<Plugin myplugin>
-  Short 2
-  Long 5.5
+<Plugin loadrust>
 </Plugin>
 EOF
 
@@ -31,5 +29,5 @@ service collectd start
 sleep 15
 service collectd status
 
-grep '2.000000,10.000000,5.500000' /var/lib/collectd/csv/localhost/myplugin/load*
+grep '2.000000,10.000000,5.500000' /var/lib/collectd/csv/localhost/loadrust/load*
 exit $?
