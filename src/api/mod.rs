@@ -302,10 +302,8 @@ fn to_array_res(s: &str) -> Result<[c_char; ARR_LENGTH], ArrayError> {
     }
 
     let mut arr = [0; ARR_LENGTH];
-    for (i, &c) in data.into_iter().enumerate() {
-        arr[i] = c as c_char;
-    }
-    Ok(arr)
+    arr[0..data.len()].copy_from_slice(&data);
+    Ok(unsafe { ::std::mem::transmute(arr) })
 }
 
 /// Turns a fixed size character array into string slice, if possible
