@@ -85,7 +85,7 @@ impl Plugin for RelativeLoadPlugin {
         let values: Vec<Value> = get_load()?.iter().map(|&x| Value::Gauge(x / self.num_cpus)).collect();
         ValueListBuilder::new(LoadManager::name(), "load")
             .values(values)
-            .type_instance("relative".to_string())
+            .type_instance("relative")
             .submit()
     }
 }
