@@ -1,6 +1,8 @@
 #[macro_use]
 extern crate collectd_plugin;
 extern crate failure;
+extern crate num_cpus;
+extern crate libc;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
@@ -9,39 +11,54 @@ use collectd_plugin::{ConfigItem, Plugin, PluginCapabilities, PluginManager, Plu
                       Value, ValueListBuilder};
 use failure::Error;
 
-#[derive(Deserialize, Debug, PartialEq)]
+#[derive(Deserialize, Debug, PartialEq, Default)]
 #[serde(rename_all = "PascalCase")]
-struct MyConfig {
-    short: Option<f64>,
-    mid: Option<f64>,
-    long: Option<f64>,
+#[serde(deny_unknown_fields)]
+struct LoadConfig {
+    report_relative: Option<bool>
 }
 
 #[derive(Debug, PartialEq)]
-struct MyLoadPlugin {
-    short: f64,
-    mid: f64,
-    long: f64,
+struct RelativeLoadPlugin {
+    num_cpus: f64,
 }
 
-impl PluginManager for MyLoadPlugin {
+#[derive(Debug, PartialEq)]
+struct AbsoluteLoadPlugin;
+
+struct LoadManager;
+
+impl PluginManager for LoadManager {
     fn name() -> &'static str {
-        "myplugin"
+        "load-rust"
     }
 
     fn plugins(config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Error> {
-        let config: MyConfig =
+        let config: LoadConfig =
             collectd_plugin::de::from_collectd(config.unwrap_or_else(Default::default))?;
-        let plugin = MyLoadPlugin {
-            short: config.short.unwrap_or(15.0),
-            mid: config.mid.unwrap_or(10.0),
-            long: config.long.unwrap_or(12.0),
-        };
-        Ok(PluginRegistration::Single(Box::new(plugin)))
+
+        if config.report_relative.unwrap_or(false) {
+            let cpus = num_cpus::get();
+            Ok(PluginRegistration::Single(Box::new(RelativeLoadPlugin { num_cpus: cpus as f64 })))
+        } else {
+            Ok(PluginRegistration::Single(Box::new(AbsoluteLoadPlugin)))
+        }
     }
 }
 
-impl Plugin for MyLoadPlugin {
+fn get_load() -> Result<[f64; 3], Error> {
+    let mut load: [f64; 3] = [0.0; 3];
+
+    unsafe {
+        if libc::getloadavg(load.as_mut_ptr(), 3) != 3 {
+            Err(failure::err_msg("load: getloadavg failed"))
+        } else {
+            Ok(load)
+        }
+    }
+}
+
+impl Plugin for AbsoluteLoadPlugin {
     fn capabilities(&self) -> PluginCapabilities {
         PluginCapabilities::READ
     }
@@ -50,17 +67,27 @@ impl Plugin for MyLoadPlugin {
         // Create a list of values to submit to collectd. We'll be sending in a vector representing the
         // "load" type. Short-term load is first followed by mid-term and long-term. The number of
         // values that you submit at a time depends on types.db in collectd configurations
-        let values: Vec<Value> = vec![
-            Value::Gauge(self.short),
-            Value::Gauge(self.mid),
-            Value::Gauge(self.long),
-        ];
+        let values: Vec<Value> = get_load()?.iter().map(|&x| Value::Gauge(x)).collect();
 
         // Submit our values to collectd. A plugin can submit any number of times.
-        ValueListBuilder::new(Self::name(), "load")
+        ValueListBuilder::new(LoadManager::name(), "load")
             .values(values)
             .submit()
     }
 }
 
-collectd_plugin!(MyLoadPlugin);
+impl Plugin for RelativeLoadPlugin {
+    fn capabilities(&self) -> PluginCapabilities {
+        PluginCapabilities::READ
+    }
+
+    fn read_values(&mut self) -> Result<(), Error> {
+        let values: Vec<Value> = get_load()?.iter().map(|&x| Value::Gauge(x / self.num_cpus)).collect();
+        ValueListBuilder::new(LoadManager::name(), "load")
+            .values(values)
+            .type_instance("relative".to_string())
+            .submit()
+    }
+}
+
+collectd_plugin!(LoadManager);
