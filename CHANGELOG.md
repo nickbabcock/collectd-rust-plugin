@@ -1,6 +1,7 @@
 ## Unreleased
 
 * (Breaking change): Switch `collectd_plugin!` away from lazy_static mutex
+* Preliminary Serde support for deserializing collectd configs
 * Add several example plugins to the repo
 * Add plugin hook for plugin initialization
 * Add plugin hook for plugin log
