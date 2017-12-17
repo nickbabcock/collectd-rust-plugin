@@ -1,4 +1,4 @@
-## Unreleased
+## 0.3.0 - 2017-12-17
 
 * (Breaking change): Switch `collectd_plugin!` away from lazy_static mutex
 * Preliminary Serde support for deserializing collectd configs
