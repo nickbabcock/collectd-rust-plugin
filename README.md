@@ -1,6 +1,8 @@
 # A Collectd Plugin Written in Rust
 
-Collectd gathers system and application metrics and stores the values in any manner. Since Collectd provides a plugin API, this repo demonstrates how to create a Collectd plugin written in Rust that uses [bindgen](https://github.com/rust-lang-nursery/rust-bindgen) to generate the ffi functions. If you want to write a collectd plugin start with this repo as it defines common functions and provides an ergonomic Rust structure on top of `value_list_t`.
+Collectd gathers system and application metrics and stores the values in any
+manner. Since Collectd provides a plugin API, this `collectd_plugin` overlays a
+ergonomic, yet extremely low cost abstractions to interface with Collectd.
 
 Rust 1.20 or later is needed to build.
 
@@ -12,7 +14,7 @@ This repo is tested on the following:
 
 ## Quickstart
 
-Below is a complete plugin that dummy reports [load](https://en.wikipedia.org/wiki/Load_(computing)) values to collectd, as it registers a `READ` hook.
+Below is a complete plugin that dummy reports [load](https://en.wikipedia.org/wiki/Load_(computing)) values to collectd, as it registers a `READ` hook. For an implementation has the same behavior as Collectd's own load plugin, see [plugins/load](https://github.com/nickbabcock/collectd-rust-plugin/tree/master/plugins/load)
 
 ```rust
 #[macro_use]
@@ -82,7 +84,7 @@ And my thoughts:
 - The exec plugin is costly as it creates a new process for every collection
 - Depending on the circumstances, writing to a unix socket could be good fit, but I enjoy the ease of deployment, and the collectd integration -- there's no need to re-invent logging scheme, configuration, and system init files.
 
-Rust's combination of ecosystem, package manager, C ffi, single file, and optimized library made it seem like a natural choice.
+Rust's combination of ecosystem, package manager, C ffi, single file dynamic library, and optimized code made it seem like a natural choice.
 
 ## To Build
 
@@ -99,16 +101,14 @@ To ensure a successful build, the following steps are needed:
 
 ## Plugin Configuration
 
-[Load example](https://github.com/nickbabcock/collectd-rust-plugin) plugin
-demonstrates how to expose configuration values to Collectd (in this case, it's
-[load](https://en.wikipedia.org/wiki/Load_(computing))) using
-contrived numbers that can be overridden using the standard Collectd config:
+The load plugin in
+[plugins/load](https://github.com/nickbabcock/collectd-rust-plugin/tree/master/plugins/load)
+demonstrates how to expose configuration values to Collectd.
 
 ```xml
 # In this example configuration we provide short and long term load and leave
 # Mid to the default value. Yes, this is very much contrived
-<Plugin myplugin>
-    Short 2
-    Long 5.5
+<Plugin loadrust>
+    ReportRelative true
 </Plugin>
 ```
