@@ -322,7 +322,9 @@ impl<'de, 'a> MapAccess<'de> for FieldSeparated<'a, 'de> {
     {
         // Check if there are no more entries.
         if self.items.is_empty() {
-            self.de.depth.pop().unwrap();
+            if !self.first {
+                self.de.depth.pop().unwrap();
+            }
             return Ok(None);
         }
 
@@ -370,7 +372,9 @@ impl<'de, 'a> SeqAccess<'de> for SeqSeparated<'a, 'de> {
         T: DeserializeSeed<'de>,
     {
         if self.values.is_empty() {
-            self.de.depth.pop().unwrap();
+            if !self.first {
+                self.de.depth.pop().unwrap();
+            }
             return Ok(None);
         }
 
@@ -408,6 +412,17 @@ mod tests {
 
         let actual = from_collectd(&items).unwrap();
         assert_eq!(MyStruct { my_bool: true }, actual);
+    }
+
+    #[test]
+    fn test_serde_empty_bool() {
+        #[derive(Deserialize, PartialEq, Eq, Debug)]
+        struct MyStruct {
+            my_bool: Option<bool>,
+        };
+
+        let actual = from_collectd(Default::default()).unwrap();
+        assert_eq!(MyStruct { my_bool: None }, actual);
     }
 
     #[test]
