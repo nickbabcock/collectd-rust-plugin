@@ -53,6 +53,7 @@ pub trait PluginManager {
     /// Name of the plugin.
     fn name() -> &'static str;
 
+    /// Defines the capabilities of the plugin manager.
     fn capabilities() -> PluginManagerCapabilities {
         PluginManagerCapabilities::default()
     }
