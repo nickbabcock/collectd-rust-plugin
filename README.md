@@ -4,6 +4,29 @@ Collectd gathers system and application metrics and stores the values in any
 manner. Since Collectd provides a plugin API, this `collectd_plugin` overlays a
 ergonomic, yet extremely low cost abstractions to interface with Collectd.
 
+## Usage
+
+Put this in your `Cargo.toml`:
+
+```toml
+[dependencies]
+collectd_plugin = "0.3"
+```
+
+Or, if you want [Serde](https://github.com/serde-rs/serde) support, include
+features like this:
+
+```toml
+[dependencies]
+collectd_plugin = { version = "0.3", features = ["serde"] }
+```
+
+Then put this in your crate root:
+
+```rust
+extern crate collectd_plugin;
+```
+
 Rust 1.20 or later is needed to build.
 
 This repo is tested on the following:
