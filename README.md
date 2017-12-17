@@ -58,7 +58,7 @@ impl Plugin for MyPlugin {
 
         // Submit our values to collectd. A plugin can submit any number of times.
         ValueListBuilder::new(Self::name(), "load")
-            .values(values)
+            .values(&values)
             .submit()
     }
 }

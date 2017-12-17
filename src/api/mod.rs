@@ -166,7 +166,7 @@ impl<'a> RecvValueList<'a> {
 
 #[derive(Debug, PartialEq, Clone)]
 struct ValueList<'a> {
-    values: Vec<Value>,
+    values: &'a [Value],
     plugin_instance: Option<&'a str>,
     plugin: &'a str,
     type_: &'a str,
@@ -185,7 +185,7 @@ impl<'a> ValueListBuilder<'a> {
     pub fn new<T: Into<&'a str>, U: Into<&'a str>>(plugin: T, type_: U) -> ValueListBuilder<'a> {
         ValueListBuilder {
             list: ValueList {
-                values: Vec::new(),
+                values: &[],
                 plugin_instance: None,
                 plugin: plugin.into(),
                 type_: type_.into(),
@@ -198,7 +198,7 @@ impl<'a> ValueListBuilder<'a> {
     }
 
     /// A set of observed values that belong to the same plugin and type instance
-    pub fn values(mut self, values: Vec<Value>) -> ValueListBuilder<'a> {
+    pub fn values(mut self, values: &'a [Value]) -> ValueListBuilder<'a> {
         self.list.values = values;
         self
     }
@@ -242,7 +242,7 @@ impl<'a> ValueListBuilder<'a> {
 
     /// Submits the observed values to collectd and returns errors if encountered
     pub fn submit(self) -> Result<(), Error> {
-        let mut v: Vec<value_t> = self.list.values.into_iter().map(|x| x.into()).collect();
+        let mut v: Vec<value_t> = self.list.values.into_iter().map(|&x| x.into()).collect();
         let plugin_instance = self.list
             .plugin_instance
             .map(|x| to_array_res(x).context("plugin_instance"))

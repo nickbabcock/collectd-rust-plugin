@@ -88,7 +88,7 @@ impl Plugin for AbsoluteLoadPlugin {
 
         // Submit our values to collectd. A plugin can submit any number of times.
         ValueListBuilder::new(LoadManager::name(), "load")
-            .values(values)
+            .values(&values)
             .submit()
     }
 }
@@ -103,7 +103,7 @@ impl Plugin for RelativeLoadPlugin {
         // of cpus and submits the values as the type of "relative"
         let values: Vec<Value> = get_load()?.iter().map(|&x| Value::Gauge(x / self.num_cpus)).collect();
         ValueListBuilder::new(LoadManager::name(), "load")
-            .values(values)
+            .values(&values)
             .type_instance("relative")
             .submit()
     }
