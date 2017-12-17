@@ -3,6 +3,7 @@
 * (Breaking change): Switch `collectd_plugin!` away from lazy_static mutex
 * Preliminary Serde support for deserializing collectd configs
 * Update `ValueListBuilder` to accept static string references instead of just owned strings to reduce unnecessary allocations
+* Update `ValueListBuilder` to take a slice of values to submit instead of a vector
 * Add several example plugins to the repo
 * Add plugin hook for plugin initialization
 * Add plugin hook for plugin log
