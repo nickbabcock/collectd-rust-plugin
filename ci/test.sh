@@ -29,5 +29,5 @@ service collectd start
 sleep 15
 service collectd status
 
-grep '2.000000,10.000000,5.500000' /var/lib/collectd/csv/localhost/loadrust/load*
+grep 'epoch,shortterm,midterm,longterm' /var/lib/collectd/csv/localhost/loadrust/load*
 exit $?
