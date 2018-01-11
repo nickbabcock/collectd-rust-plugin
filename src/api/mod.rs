@@ -37,6 +37,7 @@ enum ValueType {
     Absolute = DS_TYPE_ABSOLUTE,
 }
 
+/// The value that a plugin reports can be any one of the following types
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Value {
     /// A COUNTER value is for continuous incrementing counters like the ifInOctets counter in a router.

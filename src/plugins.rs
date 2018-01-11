@@ -49,6 +49,8 @@ impl PluginCapabilities {
     }
 }
 
+/// Defines the entry point for a collectd plugin. Based on collectd's configuration, a
+/// `PluginManager` will register any number of plugins (or return an error)
 pub trait PluginManager {
     /// Name of the plugin.
     fn name() -> &'static str;
@@ -58,6 +60,9 @@ pub trait PluginManager {
         PluginManagerCapabilities::default()
     }
 
+    /// Returns one or many instances of a plugin that is configured from collectd's configuration
+    /// file. If parameter is `None`, a configuration section for the plugin was not found, so
+    /// default values should be used.
     fn plugins(_config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Error>;
 
     /// Initialize any socket, files, or expensive resources that may have been parsed from the
@@ -68,6 +73,8 @@ pub trait PluginManager {
     }
 }
 
+/// An individual plugin that is capable of reporting values to collectd, receiving values from
+/// other plugins, or logging messages
 pub trait Plugin {
     /// A plugin's capabilities. By default a plugin does nothing, but can advertise that it can
     /// configure itself and / or report values.
@@ -121,6 +128,7 @@ pub trait Plugin {
     }
 }
 
+/// Sets up all the ffi entry points that collectd expects when given a `PluginManager`.
 #[macro_export]
 macro_rules! collectd_plugin {
     ($type: ty) => {
