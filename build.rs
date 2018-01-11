@@ -14,14 +14,13 @@ fn bindings(loc: PathBuf) {
         .header("wrapper.h")
         .clang_arg("-DHAVE_CONFIG_H")
         .rust_target(bindgen::RustTarget::Stable_1_19)
-        .blacklist_type("FP_NAN")
-        .blacklist_type("FP_INFINITE")
-        .blacklist_type("FP_ZERO")
-        .blacklist_type("FP_SUBNORMAL")
-        .blacklist_type("FP_NORMAL")
-        .blacklist_type("max_align_t")
-        .blacklist_type("hostname_g")
-        .blacklist_type("module_register");
+        .whitelist_type("cdtime_t")
+        .whitelist_type("data_set_t")
+        .whitelist_function("plugin_.*")
+        .whitelist_var("OCONFIG_TYPE_.*")
+        .whitelist_var("LOG_.*")
+        .whitelist_var("DS_TYPE_.*")
+        .whitelist_var("DATA_MAX_NAME_LEN");
 
     #[cfg(feature = "collectd-57")]
     let bindings_builder = bindings_builder.clang_arg("-DCOLLECTD_57");
