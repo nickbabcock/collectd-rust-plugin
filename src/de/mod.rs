@@ -1,43 +1,13 @@
-use std::fmt::{self, Display};
+mod errors;
+pub use self::errors::*;
+
 use serde::de::{self, Deserialize, DeserializeSeed, MapAccess, SeqAccess, Visitor};
 use api::{ConfigItem, ConfigValue};
 use std::collections::HashMap;
+use self::errors::Error;
 
 pub type Result<T> = ::std::result::Result<T, Error>;
 
-#[derive(Fail, Debug)]
-pub enum DeError {
-    #[fail(display = "No more values left, this should never happen")] NoMoreValuesLeft,
-    #[fail(display = "Error from deserialization: {}", _0)] SerdeError(String),
-    #[fail(display = "Expecting values to contain a single entry")] ExpectSingleValue,
-    #[fail(display = "Expecting string")] ExpectString,
-    #[fail(display = "Expecting string of length one, received `{}`", _0)] ExpectChar(String),
-    #[fail(display = "Expecting boolean")] ExpectBoolean,
-    #[fail(display = "Expecting number")] ExpectNumber,
-    #[fail(display = "Expecting struct")] ExpectStruct,
-    #[fail(display = "Could not deserialize as datatype not supported")] DataTypeNotSupported,
-}
-
-#[derive(Debug)]
-pub struct Error(DeError);
-
-impl de::Error for Error {
-    fn custom<T: Display>(msg: T) -> Self {
-        Error(DeError::SerdeError(msg.to_string()))
-    }
-}
-
-impl ::std::error::Error for Error {
-    fn description(&self) -> &str {
-        "an with deserialization error"
-    }
-}
-
-impl Display for Error {
-    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        self.0.fmt(formatter)
-    }
-}
 
 #[derive(Debug, Clone)]
 enum DeType<'a> {
