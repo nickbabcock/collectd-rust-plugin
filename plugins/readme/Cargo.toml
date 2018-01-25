@@ -15,6 +15,7 @@ version = "0.3"
 crate-type = ["cdylib"]
 name = "readmeplugin"
 
+
 [features]
 collectd-54 = ["collectd-plugin/collectd-54"]
 collectd-55 = ["collectd-plugin/collectd-55"]

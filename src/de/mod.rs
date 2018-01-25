@@ -1,6 +1,7 @@
 use std::fmt::{self, Display};
 use serde::de::{self, Deserialize, DeserializeSeed, MapAccess, SeqAccess, Visitor};
 use api::{ConfigItem, ConfigValue};
+use std::collections::HashMap;
 
 pub type Result<T> = ::std::result::Result<T, Error>;
 
@@ -38,50 +39,48 @@ impl Display for Error {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 enum DeType<'a> {
-    Struct(&'a ConfigItem<'a>),
-    Seq(&'a ConfigValue<'a>),
+    Item(&'a str, Vec<DeConfig<'a>>),
+    Struct(Vec<(&'a str, Vec<DeConfig<'a>>)>, usize),
+    Seq(Vec<DeConfig<'a>>, usize),
 }
 
 pub struct Deserializer<'a> {
-    input: &'a [ConfigItem<'a>],
     depth: Vec<DeType<'a>>,
-    root: bool,
 }
 
 impl<'a> Deserializer<'a> {
-    pub fn from_collectd(input: &'a [ConfigItem]) -> Self {
+    fn from_collectd(input: Vec<(&'a str, Vec<DeConfig<'a>>)>) -> Self {
         Deserializer {
-            input: input,
-            depth: vec![],
-            root: true,
+            depth: vec![DeType::Struct(input, 0)],
         }
     }
 
-    fn current(&self) -> Result<DeType<'a>> {
+    fn current(&self) -> Result<&DeType<'a>> {
         if self.depth.is_empty() {
             return Err(Error(DeError::NoMoreValuesLeft));
         }
 
-        Ok(self.depth[self.depth.len() - 1])
+        Ok(&self.depth[self.depth.len() - 1])
     }
 
-    fn grab_val(&self) -> Result<&ConfigValue<'a>> {
-        match self.current()? {
-            DeType::Struct(item) => {
-                if item.values.len() != 1 {
+    fn grab_val(&self) -> Result<&DeConfig<'a>> {
+        match *self.current()? {
+            DeType::Item(_, ref values) => {
+                if values.len() != 1 {
                     return Err(Error(DeError::ExpectSingleValue));
                 }
 
-                Ok(&item.values[0])
+                Ok(&values[0])
             }
-            DeType::Seq(item) => Ok(item),
+            DeType::Seq(ref items, ind) => Ok(&items[ind]),
+            _ => Err(Error(DeError::ExpectSingleValue)),
         }
     }
 
     fn grab_string(&self) -> Result<&'a str> {
-        if let ConfigValue::String(x) = *self.grab_val()? {
+        if let DeConfig::String(x) = *self.grab_val()? {
             Ok(x)
         } else {
             Err(Error(DeError::ExpectString))
@@ -89,7 +88,7 @@ impl<'a> Deserializer<'a> {
     }
 
     fn grab_bool(&self) -> Result<bool> {
-        if let ConfigValue::Boolean(x) = *self.grab_val()? {
+        if let DeConfig::Boolean(x) = *self.grab_val()? {
             Ok(x)
         } else {
             Err(Error(DeError::ExpectBoolean))
@@ -97,11 +96,94 @@ impl<'a> Deserializer<'a> {
     }
 
     fn grab_number(&self) -> Result<f64> {
-        if let ConfigValue::Number(x) = *self.grab_val()? {
+        if let DeConfig::Number(x) = *self.grab_val()? {
             Ok(x)
         } else {
             Err(Error(DeError::ExpectNumber))
         }
+    }
+
+    fn pop(&mut self) {
+        self.depth.pop().unwrap();
+    }
+
+    fn push(&mut self, pos: usize) {
+        let cur = if pos == 0 { 1 } else { 2 };
+        let end = self.depth.len() - cur;
+
+        let mut t = None;
+        if let DeType::Struct(ref values, _ind) = self.depth[end] {
+            t = Some(values[pos].clone());
+        }
+
+        if let Some((key, vs)) = t {
+            if pos == 0 {
+                self.depth.push(DeType::Item(key, vs));
+            } else {
+                let end = self.depth.len() - 1;
+                self.depth[end] = DeType::Item(key, vs);
+            }
+        }
+    }
+
+    fn push_seq(&mut self, pos: usize) {
+        let cur = if pos == 0 { 1 } else { 2 };
+        let end = self.depth.len() - cur;
+
+        let mut t = None;
+        if let DeType::Item(_key, ref values) = self.depth[end] {
+            t = Some(values.clone());
+        }
+
+        if let Some(vs) = t {
+            if pos == 0 {
+                self.depth.push(DeType::Seq(vs, pos));
+            } else {
+                let end = self.depth.len() - 1;
+                self.depth[end] = DeType::Seq(vs, pos);
+            }
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+enum DeConfig<'a> {
+    Number(f64),
+    Boolean(bool),
+    String(&'a str),
+    Object(Vec<(&'a str, Vec<DeConfig<'a>>)>),
+}
+
+fn de_config_item_hash<'a>(s: &'a [ConfigItem<'a>]) -> Vec<(&'a str, Vec<DeConfig<'a>>)> {
+    let mut props: HashMap<&'a str, Vec<DeConfig<'a>>> = HashMap::new();
+    for item in s {
+        if !item.values.is_empty() {
+            props
+                .entry(item.key)
+                .or_insert_with(Vec::new)
+                .extend(item.values.iter().map(value_to_config));
+        }
+
+        if !item.children.is_empty() {
+            props
+                .entry(item.key)
+                .or_insert_with(Vec::new)
+                .push(de_config_item(&item.children[..]));
+        }
+    }
+
+    props.into_iter().collect()
+}
+
+fn de_config_item<'a>(s: &'a [ConfigItem<'a>]) -> DeConfig<'a> {
+    DeConfig::Object(de_config_item_hash(s))
+}
+
+fn value_to_config<'a>(v: &'a ConfigValue) -> DeConfig<'a> {
+    match *v {
+        ConfigValue::Number(x) => DeConfig::Number(x),
+        ConfigValue::Boolean(x) => DeConfig::Boolean(x),
+        ConfigValue::String(x) => DeConfig::String(x),
     }
 }
 
@@ -109,7 +191,8 @@ pub fn from_collectd<'a, T>(s: &'a [ConfigItem<'a>]) -> Result<T>
 where
     T: Deserialize<'a>,
 {
-    let mut deserializer = Deserializer::from_collectd(s);
+    let props = de_config_item_hash(s);
+    let mut deserializer = Deserializer::from_collectd(props);
     T::deserialize(&mut deserializer)
 }
 
@@ -234,16 +317,9 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         V: Visitor<'de>,
     {
         let v = &self.depth[self.depth.len() - 1];
-        if let DeType::Struct(item) = *v {
-            if item.children.is_empty() || item.values.is_empty() {
-                visitor.visit_borrowed_str(item.key)
-            } else if let ConfigValue::String(x) = item.values[0] {
-                visitor.visit_borrowed_str(x)
-            } else {
-                Err(Error(DeError::ExpectString))
-            }
-        } else {
-            Err(Error(DeError::ExpectStruct))
+        match *v {
+            DeType::Item(key, _) => visitor.visit_borrowed_str(key),
+            _ => Err(Error(DeError::ExpectStruct)),
         }
     }
 
@@ -251,10 +327,13 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        match self.current()? {
-            DeType::Struct(item) => visitor.visit_seq(SeqSeparated::new(&mut self, &item.values)),
-            DeType::Seq(_item) => Err(Error(DeError::ExpectStruct)),
-        }
+        let len = if let DeType::Item(_key, ref v) = *self.current()? {
+            v.len()
+        } else {
+            return Err(Error(DeError::ExpectStruct));
+        };
+
+        visitor.visit_seq(SeqSeparated::new(&mut self, len))
     }
 
     fn deserialize_struct<V>(
@@ -266,14 +345,27 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        if self.root {
-            self.root = false;
-            visitor.visit_map(FieldSeparated::new(&mut self, self.input))
-        } else if let DeType::Struct(item) = self.current()? {
-            visitor.visit_map(FieldSeparated::new(&mut self, &item.children[..]))
-        } else {
-            Err(Error(DeError::ExpectStruct))
+        let mut to_pop = false;
+        let t = match self.current()?.clone() {
+            DeType::Struct(ref values, _ind) => Some(values.len()),
+            DeType::Seq(ref values, ind) => {
+                if let DeConfig::Object(ref obj) = values[ind] {
+                    let s = DeType::Struct(obj.clone(), 0);
+                    self.depth.push(s);
+                    to_pop = true;
+                    Some(obj.len())
+                } else {
+                    panic!("TODO");
+                }
+            }
+            _ => None,
+        };
+
+        let res = visitor.visit_map(FieldSeparated::new(&mut self, t.unwrap_or(0)))?;
+        if to_pop {
+            self.pop();
         }
+        Ok(res)
     }
 
     fn deserialize_ignored_any<V>(self, visitor: V) -> Result<V::Value>
@@ -299,16 +391,16 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
 
 struct FieldSeparated<'a, 'de: 'a> {
     de: &'a mut Deserializer<'de>,
-    items: &'de [ConfigItem<'de>],
-    first: bool,
+    item_count: usize,
+    item_pos: usize,
 }
 
 impl<'a, 'de> FieldSeparated<'a, 'de> {
-    fn new(de: &'a mut Deserializer<'de>, items: &'de [ConfigItem<'de>]) -> Self {
+    fn new(de: &'a mut Deserializer<'de>, item_count: usize) -> Self {
         FieldSeparated {
             de: de,
-            first: true,
-            items: items,
+            item_pos: 0,
+            item_count: item_count,
         }
     }
 }
@@ -321,22 +413,15 @@ impl<'de, 'a> MapAccess<'de> for FieldSeparated<'a, 'de> {
         K: DeserializeSeed<'de>,
     {
         // Check if there are no more entries.
-        if self.items.is_empty() {
-            if !self.first {
-                self.de.depth.pop().unwrap();
+        if self.item_pos == self.item_count {
+            if self.item_count != 0 {
+                self.de.pop();
             }
             return Ok(None);
         }
 
-        if self.first || self.de.depth.is_empty() {
-            self.de.depth.push(DeType::Struct(&self.items[0]));
-            self.first = false;
-        } else {
-            let ind = self.de.depth.len() - 1;
-            self.de.depth[ind] = DeType::Struct(&self.items[0]);
-        }
-
-        self.items = &self.items[1..];
+        self.de.push(self.item_pos);
+        self.item_pos += 1;
         seed.deserialize(&mut *self.de).map(Some)
     }
 
@@ -350,16 +435,16 @@ impl<'de, 'a> MapAccess<'de> for FieldSeparated<'a, 'de> {
 
 struct SeqSeparated<'a, 'de: 'a> {
     de: &'a mut Deserializer<'de>,
-    values: &'de [ConfigValue<'de>],
-    first: bool,
+    item_count: usize,
+    item_pos: usize,
 }
 
 impl<'a, 'de> SeqSeparated<'a, 'de> {
-    fn new(de: &'a mut Deserializer<'de>, v: &'de [ConfigValue<'de>]) -> Self {
+    fn new(de: &'a mut Deserializer<'de>, item_count: usize) -> Self {
         SeqSeparated {
             de: de,
-            values: v,
-            first: true,
+            item_count: item_count,
+            item_pos: 0,
         }
     }
 }
@@ -371,22 +456,15 @@ impl<'de, 'a> SeqAccess<'de> for SeqSeparated<'a, 'de> {
     where
         T: DeserializeSeed<'de>,
     {
-        if self.values.is_empty() {
-            if !self.first {
-                self.de.depth.pop().unwrap();
+        if self.item_pos == self.item_count {
+            if self.item_count != 0 {
+                self.de.pop();
             }
             return Ok(None);
         }
 
-        if self.first {
-            self.de.depth.push(DeType::Seq(&self.values[0]));
-            self.first = false;
-        } else {
-            let ind = self.de.depth.len() - 1;
-            self.de.depth[ind] = DeType::Seq(&self.values[0]);
-        }
-
-        self.values = &self.values[1..];
+        self.de.push_seq(self.item_pos);
+        self.item_pos += 1;
         seed.deserialize(&mut *self.de).map(Some)
     }
 }
@@ -488,6 +566,37 @@ mod tests {
     }
 
     #[test]
+    fn test_serde_multiple() {
+        #[derive(Deserialize, PartialEq, Eq, Debug)]
+        struct MyStruct {
+            my_bool: bool,
+            my_string: String,
+        };
+
+        let items = vec![
+            ConfigItem {
+                key: "my_bool",
+                values: vec![ConfigValue::Boolean(true)],
+                children: vec![],
+            },
+            ConfigItem {
+                key: "my_string",
+                values: vec![ConfigValue::String("/")],
+                children: vec![],
+            },
+        ];
+
+        let actual = from_collectd(&items).unwrap();
+        assert_eq!(
+            MyStruct {
+                my_bool: true,
+                my_string: String::from("/"),
+            },
+            actual
+        );
+    }
+
+    #[test]
     fn test_serde_bool_vec() {
         #[derive(Deserialize, PartialEq, Eq, Debug)]
         struct MyStruct {
@@ -506,6 +615,71 @@ mod tests {
         assert_eq!(
             MyStruct {
                 my_bool: vec![true, false],
+            },
+            actual
+        );
+    }
+
+    #[test]
+    fn test_serde_bool_vec_sep() {
+        #[derive(Deserialize, PartialEq, Eq, Debug)]
+        struct MyStruct {
+            my_bool: Vec<bool>,
+        };
+
+        let items = vec![
+            ConfigItem {
+                key: "my_bool",
+                values: vec![ConfigValue::Boolean(true)],
+                children: vec![],
+            },
+            ConfigItem {
+                key: "my_bool",
+                values: vec![ConfigValue::Boolean(false)],
+                children: vec![],
+            },
+        ];
+
+        let actual = from_collectd(&items).unwrap();
+        assert_eq!(
+            MyStruct {
+                my_bool: vec![true, false],
+            },
+            actual
+        );
+    }
+
+    #[test]
+    fn test_serde_multiple_vec() {
+        #[derive(Deserialize, PartialEq, Debug)]
+        struct MyStruct {
+            my_bool: Vec<bool>,
+            my_num: Vec<f64>,
+        };
+
+        let items = vec![
+            ConfigItem {
+                key: "my_bool",
+                values: vec![ConfigValue::Boolean(true)],
+                children: vec![],
+            },
+            ConfigItem {
+                key: "my_bool",
+                values: vec![ConfigValue::Boolean(false)],
+                children: vec![],
+            },
+            ConfigItem {
+                key: "my_num",
+                values: vec![ConfigValue::Number(10.0), ConfigValue::Number(12.0)],
+                children: vec![],
+            },
+        ];
+
+        let actual = from_collectd(&items).unwrap();
+        assert_eq!(
+            MyStruct {
+                my_bool: vec![true, false],
+                my_num: vec![10.0, 12.0],
             },
             actual
         );
@@ -581,25 +755,36 @@ mod tests {
     }
 
     #[test]
-    fn test_serde_graphite() {
+    fn test_serde_nested() {
         #[derive(Deserialize, PartialEq, Eq, Debug)]
-        struct Node {
+        struct MyPort {
             port: i32,
         };
 
         #[derive(Deserialize, PartialEq, Eq, Debug)]
         struct MyStruct {
-            example: Node,
+            ports: Vec<MyPort>,
         };
 
         let items = vec![
             ConfigItem {
-                key: "node",
-                values: vec![ConfigValue::String("example")],
+                key: "ports",
+                values: vec![],
                 children: vec![
                     ConfigItem {
                         key: "port",
                         values: vec![ConfigValue::Number(2003.0)],
+                        children: vec![],
+                    },
+                ],
+            },
+            ConfigItem {
+                key: "ports",
+                values: vec![],
+                children: vec![
+                    ConfigItem {
+                        key: "port",
+                        values: vec![ConfigValue::Number(2004.0)],
                         children: vec![],
                     },
                 ],
@@ -609,7 +794,73 @@ mod tests {
         let actual = from_collectd(&items).unwrap();
         assert_eq!(
             MyStruct {
-                example: Node { port: 2003 },
+                ports: vec![MyPort { port: 2003 }, MyPort { port: 2004 }],
+            },
+            actual
+        );
+    }
+
+    #[test]
+    fn test_serde_nested_multiple() {
+        #[derive(Deserialize, PartialEq, Eq, Debug)]
+        struct MyAddress {
+            port: i32,
+            host: String,
+        };
+
+        #[derive(Deserialize, PartialEq, Eq, Debug)]
+        struct MyStruct {
+            address: Vec<MyAddress>,
+        };
+
+        let items = vec![
+            ConfigItem {
+                key: "address",
+                values: vec![],
+                children: vec![
+                    ConfigItem {
+                        key: "port",
+                        values: vec![ConfigValue::Number(2003.0)],
+                        children: vec![],
+                    },
+                    ConfigItem {
+                        key: "host",
+                        values: vec![ConfigValue::String("localhost")],
+                        children: vec![],
+                    },
+                ],
+            },
+            ConfigItem {
+                key: "address",
+                values: vec![],
+                children: vec![
+                    ConfigItem {
+                        key: "host",
+                        values: vec![ConfigValue::String("127.0.0.1")],
+                        children: vec![],
+                    },
+                    ConfigItem {
+                        key: "port",
+                        values: vec![ConfigValue::Number(2004.0)],
+                        children: vec![],
+                    },
+                ],
+            },
+        ];
+
+        let actual = from_collectd(&items).unwrap();
+        assert_eq!(
+            MyStruct {
+                address: vec![
+                    MyAddress {
+                        host: String::from("localhost"),
+                        port: 2003,
+                    },
+                    MyAddress {
+                        host: String::from("127.0.0.1"),
+                        port: 2004,
+                    },
+                ],
             },
             actual
         );
