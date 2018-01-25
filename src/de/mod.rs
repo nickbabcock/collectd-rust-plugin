@@ -6,8 +6,9 @@ use api::{ConfigItem, ConfigValue};
 use std::collections::HashMap;
 use self::errors::Error;
 
-pub type Result<T> = ::std::result::Result<T, Error>;
-
+/// Serde documentation shadows the std's Result type which can be really confusing for Rust
+/// newcomers, so we compromise by creating an alias but prefixing with "De" to make it standout.
+pub type DeResult<T> = Result<T, Error>;
 
 #[derive(Debug, Clone)]
 enum DeType<'a> {
@@ -27,7 +28,7 @@ impl<'a> Deserializer<'a> {
         }
     }
 
-    fn current(&self) -> Result<&DeType<'a>> {
+    fn current(&self) -> DeResult<&DeType<'a>> {
         if self.depth.is_empty() {
             return Err(Error(DeError::NoMoreValuesLeft));
         }
@@ -35,7 +36,7 @@ impl<'a> Deserializer<'a> {
         Ok(&self.depth[self.depth.len() - 1])
     }
 
-    fn grab_val(&self) -> Result<&DeConfig<'a>> {
+    fn grab_val(&self) -> DeResult<&DeConfig<'a>> {
         match *self.current()? {
             DeType::Item(_, ref values) => {
                 if values.len() != 1 {
@@ -49,7 +50,7 @@ impl<'a> Deserializer<'a> {
         }
     }
 
-    fn grab_string(&self) -> Result<&'a str> {
+    fn grab_string(&self) -> DeResult<&'a str> {
         if let DeConfig::String(x) = *self.grab_val()? {
             Ok(x)
         } else {
@@ -57,7 +58,7 @@ impl<'a> Deserializer<'a> {
         }
     }
 
-    fn grab_bool(&self) -> Result<bool> {
+    fn grab_bool(&self) -> DeResult<bool> {
         if let DeConfig::Boolean(x) = *self.grab_val()? {
             Ok(x)
         } else {
@@ -65,7 +66,7 @@ impl<'a> Deserializer<'a> {
         }
     }
 
-    fn grab_number(&self) -> Result<f64> {
+    fn grab_number(&self) -> DeResult<f64> {
         if let DeConfig::Number(x) = *self.grab_val()? {
             Ok(x)
         } else {
@@ -157,7 +158,7 @@ fn value_to_config<'a>(v: &'a ConfigValue) -> DeConfig<'a> {
     }
 }
 
-pub fn from_collectd<'a, T>(s: &'a [ConfigItem<'a>]) -> Result<T>
+pub fn from_collectd<'a, T>(s: &'a [ConfigItem<'a>]) -> DeResult<T>
 where
     T: Deserialize<'a>,
 {
@@ -169,14 +170,14 @@ where
 impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     type Error = Error;
 
-    fn deserialize_bool<V>(self, visitor: V) -> Result<V::Value>
+    fn deserialize_bool<V>(self, visitor: V) -> DeResult<V::Value>
     where
         V: Visitor<'de>,
     {
         self.grab_bool().and_then(|x| visitor.visit_bool(x))
     }
 
-    fn deserialize_string<V>(self, visitor: V) -> Result<V::Value>
+    fn deserialize_string<V>(self, visitor: V) -> DeResult<V::Value>
     where
         V: Visitor<'de>,
     {
@@ -184,7 +185,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
             .and_then(|x| visitor.visit_string(String::from(x)))
     }
 
-    fn deserialize_str<V>(self, visitor: V) -> Result<V::Value>
+    fn deserialize_str<V>(self, visitor: V) -> DeResult<V::Value>
     where
         V: Visitor<'de>,
     {
@@ -192,84 +193,84 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
             .and_then(|x| visitor.visit_borrowed_str(x))
     }
 
-    fn deserialize_i8<V>(self, visitor: V) -> Result<V::Value>
+    fn deserialize_i8<V>(self, visitor: V) -> DeResult<V::Value>
     where
         V: Visitor<'de>,
     {
         self.grab_number().and_then(|x| visitor.visit_i8(x as i8))
     }
 
-    fn deserialize_i16<V>(self, visitor: V) -> Result<V::Value>
+    fn deserialize_i16<V>(self, visitor: V) -> DeResult<V::Value>
     where
         V: Visitor<'de>,
     {
         self.grab_number().and_then(|x| visitor.visit_i16(x as i16))
     }
 
-    fn deserialize_i32<V>(self, visitor: V) -> Result<V::Value>
+    fn deserialize_i32<V>(self, visitor: V) -> DeResult<V::Value>
     where
         V: Visitor<'de>,
     {
         self.grab_number().and_then(|x| visitor.visit_i32(x as i32))
     }
 
-    fn deserialize_i64<V>(self, visitor: V) -> Result<V::Value>
+    fn deserialize_i64<V>(self, visitor: V) -> DeResult<V::Value>
     where
         V: Visitor<'de>,
     {
         self.grab_number().and_then(|x| visitor.visit_i64(x as i64))
     }
 
-    fn deserialize_u8<V>(self, visitor: V) -> Result<V::Value>
+    fn deserialize_u8<V>(self, visitor: V) -> DeResult<V::Value>
     where
         V: Visitor<'de>,
     {
         self.grab_number().and_then(|x| visitor.visit_u8(x as u8))
     }
 
-    fn deserialize_u16<V>(self, visitor: V) -> Result<V::Value>
+    fn deserialize_u16<V>(self, visitor: V) -> DeResult<V::Value>
     where
         V: Visitor<'de>,
     {
         self.grab_number().and_then(|x| visitor.visit_u16(x as u16))
     }
 
-    fn deserialize_u32<V>(self, visitor: V) -> Result<V::Value>
+    fn deserialize_u32<V>(self, visitor: V) -> DeResult<V::Value>
     where
         V: Visitor<'de>,
     {
         self.grab_number().and_then(|x| visitor.visit_u32(x as u32))
     }
 
-    fn deserialize_u64<V>(self, visitor: V) -> Result<V::Value>
+    fn deserialize_u64<V>(self, visitor: V) -> DeResult<V::Value>
     where
         V: Visitor<'de>,
     {
         self.grab_number().and_then(|x| visitor.visit_u64(x as u64))
     }
 
-    fn deserialize_f32<V>(self, visitor: V) -> Result<V::Value>
+    fn deserialize_f32<V>(self, visitor: V) -> DeResult<V::Value>
     where
         V: Visitor<'de>,
     {
         self.grab_number().and_then(|x| visitor.visit_f32(x as f32))
     }
 
-    fn deserialize_f64<V>(self, visitor: V) -> Result<V::Value>
+    fn deserialize_f64<V>(self, visitor: V) -> DeResult<V::Value>
     where
         V: Visitor<'de>,
     {
         self.grab_number().and_then(|x| visitor.visit_f64(x))
     }
 
-    fn deserialize_option<V>(self, visitor: V) -> Result<V::Value>
+    fn deserialize_option<V>(self, visitor: V) -> DeResult<V::Value>
     where
         V: Visitor<'de>,
     {
         visitor.visit_some(self)
     }
 
-    fn deserialize_char<V>(self, visitor: V) -> Result<V::Value>
+    fn deserialize_char<V>(self, visitor: V) -> DeResult<V::Value>
     where
         V: Visitor<'de>,
     {
@@ -282,7 +283,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         })
     }
 
-    fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value>
+    fn deserialize_identifier<V>(self, visitor: V) -> DeResult<V::Value>
     where
         V: Visitor<'de>,
     {
@@ -293,7 +294,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         }
     }
 
-    fn deserialize_seq<V>(mut self, visitor: V) -> Result<V::Value>
+    fn deserialize_seq<V>(mut self, visitor: V) -> DeResult<V::Value>
     where
         V: Visitor<'de>,
     {
@@ -311,7 +312,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         _name: &'static str,
         _fields: &'static [&'static str],
         visitor: V,
-    ) -> Result<V::Value>
+    ) -> DeResult<V::Value>
     where
         V: Visitor<'de>,
     {
@@ -338,14 +339,14 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         Ok(res)
     }
 
-    fn deserialize_ignored_any<V>(self, visitor: V) -> Result<V::Value>
+    fn deserialize_ignored_any<V>(self, visitor: V) -> DeResult<V::Value>
     where
         V: Visitor<'de>,
     {
         visitor.visit_none()
     }
 
-    fn deserialize_any<V>(self, _visitor: V) -> Result<V::Value>
+    fn deserialize_any<V>(self, _visitor: V) -> DeResult<V::Value>
     where
         V: Visitor<'de>,
     {
@@ -378,7 +379,7 @@ impl<'a, 'de> FieldSeparated<'a, 'de> {
 impl<'de, 'a> MapAccess<'de> for FieldSeparated<'a, 'de> {
     type Error = Error;
 
-    fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>>
+    fn next_key_seed<K>(&mut self, seed: K) -> DeResult<Option<K::Value>>
     where
         K: DeserializeSeed<'de>,
     {
@@ -395,7 +396,7 @@ impl<'de, 'a> MapAccess<'de> for FieldSeparated<'a, 'de> {
         seed.deserialize(&mut *self.de).map(Some)
     }
 
-    fn next_value_seed<V>(&mut self, seed: V) -> Result<V::Value>
+    fn next_value_seed<V>(&mut self, seed: V) -> DeResult<V::Value>
     where
         V: DeserializeSeed<'de>,
     {
@@ -422,7 +423,7 @@ impl<'a, 'de> SeqSeparated<'a, 'de> {
 impl<'de, 'a> SeqAccess<'de> for SeqSeparated<'a, 'de> {
     type Error = Error;
 
-    fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>>
+    fn next_element_seed<T>(&mut self, seed: T) -> DeResult<Option<T::Value>>
     where
         T: DeserializeSeed<'de>,
     {
