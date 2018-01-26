@@ -86,6 +86,7 @@ impl<'a> Deserializer<'a> {
     }
 
     fn push(&mut self, pos: usize) {
+        // Find the parent -- it's either the tail element of depth or penultimate.
         let cur = if pos == 0 { 1 } else { 2 };
         let end = self.depth.len() - cur;
 
@@ -105,6 +106,7 @@ impl<'a> Deserializer<'a> {
     }
 
     fn push_seq(&mut self, pos: usize) {
+        // Find the parent -- it's either the tail element of depth or penultimate.
         let cur = if pos == 0 { 1 } else { 2 };
         let end = self.depth.len() - cur;
 
