@@ -1,19 +1,26 @@
 mod errors;
+mod deconfig;
 pub use self::errors::*;
 
 use serde::de::{self, Deserialize, DeserializeSeed, MapAccess, SeqAccess, Visitor};
-use api::{ConfigItem, ConfigValue};
-use std::collections::HashMap;
+use api::ConfigItem;
 use self::errors::Error;
+use self::deconfig::*;
 
 /// Serde documentation shadows the std's Result type which can be really confusing for Rust
 /// newcomers, so we compromise by creating an alias but prefixing with "De" to make it standout.
 pub type DeResult<T> = Result<T, Error>;
 
+/// Keeps track of the current state of deserialization.
 #[derive(Debug, Clone)]
 enum DeType<'a> {
+    /// The values that had the associated key
     Item(&'a str, Vec<DeConfig<'a>>),
+
+    /// Vector of key, values tuples and the index that we are at in deserializing them
     Struct(Vec<(&'a str, Vec<DeConfig<'a>>)>, usize),
+
+    /// The index of the current object we're deserializing and associated vector of objects
     Seq(Vec<DeConfig<'a>>, usize),
 }
 
@@ -75,7 +82,7 @@ impl<'a> Deserializer<'a> {
     }
 
     fn pop(&mut self) {
-        self.depth.pop().unwrap();
+        self.depth.pop();
     }
 
     fn push(&mut self, pos: usize) {
@@ -117,52 +124,11 @@ impl<'a> Deserializer<'a> {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
-enum DeConfig<'a> {
-    Number(f64),
-    Boolean(bool),
-    String(&'a str),
-    Object(Vec<(&'a str, Vec<DeConfig<'a>>)>),
-}
-
-fn de_config_item_hash<'a>(s: &'a [ConfigItem<'a>]) -> Vec<(&'a str, Vec<DeConfig<'a>>)> {
-    let mut props: HashMap<&'a str, Vec<DeConfig<'a>>> = HashMap::new();
-    for item in s {
-        if !item.values.is_empty() {
-            props
-                .entry(item.key)
-                .or_insert_with(Vec::new)
-                .extend(item.values.iter().map(value_to_config));
-        }
-
-        if !item.children.is_empty() {
-            props
-                .entry(item.key)
-                .or_insert_with(Vec::new)
-                .push(de_config_item(&item.children[..]));
-        }
-    }
-
-    props.into_iter().collect()
-}
-
-fn de_config_item<'a>(s: &'a [ConfigItem<'a>]) -> DeConfig<'a> {
-    DeConfig::Object(de_config_item_hash(s))
-}
-
-fn value_to_config<'a>(v: &'a ConfigValue) -> DeConfig<'a> {
-    match *v {
-        ConfigValue::Number(x) => DeConfig::Number(x),
-        ConfigValue::Boolean(x) => DeConfig::Boolean(x),
-        ConfigValue::String(x) => DeConfig::String(x),
-    }
-}
-
 pub fn from_collectd<'a, T>(s: &'a [ConfigItem<'a>]) -> DeResult<T>
 where
     T: Deserialize<'a>,
 {
-    let props = de_config_item_hash(s);
+    let props = from_config(s);
     let mut deserializer = Deserializer::from_collectd(props);
     T::deserialize(&mut deserializer)
 }
@@ -316,17 +282,21 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
+        // A small hack to remember if we dive into a sequence's children. Since we're going down
+        // two levels, we need to remember to pop back up when were down the children.
         let mut to_pop = false;
+
         let t = match self.current()?.clone() {
             DeType::Struct(ref values, _ind) => Some(values.len()),
             DeType::Seq(ref values, ind) => {
                 if let DeConfig::Object(ref obj) = values[ind] {
+                    // Push the children onto the stack
                     let s = DeType::Struct(obj.clone(), 0);
                     self.depth.push(s);
                     to_pop = true;
                     Some(obj.len())
                 } else {
-                    panic!("TODO");
+                    return Err(Error(DeError::ExpectObject));
                 }
             }
             _ => None,

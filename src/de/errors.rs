@@ -11,9 +11,13 @@ pub enum DeError {
     #[fail(display = "Expecting boolean")] ExpectBoolean,
     #[fail(display = "Expecting number")] ExpectNumber,
     #[fail(display = "Expecting struct")] ExpectStruct,
+    #[fail(display = "Needs an object to deserialize a struct")] ExpectObject,
     #[fail(display = "Could not deserialize as datatype not supported")] DataTypeNotSupported,
 }
 
+// Since the failure crate can't automatically implement serde::de::Error (see issue
+// <https://github.com/withoutboats/failure/issues/108>) we define a thin wrapper around our actual
+// error type.
 #[derive(Debug)]
 pub struct Error(pub DeError);
 
