@@ -1,3 +1,9 @@
+## 0.4.0 - 2018-01-26
+
+* Reduce pre-computed bindings with whitelisted types
+* Improve serde deserialization of multi-keys
+* Change deserialization return type from an alias of `Result` to `DeResult`
+
 ## 0.3.0 - 2017-12-17
 
 * (Breaking change): Switch `collectd_plugin!` away from lazy_static mutex
