@@ -415,6 +415,7 @@ impl<'de, 'a> SeqAccess<'de> for SeqSeparated<'a, 'de> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::super::ConfigValue;
 
     #[test]
     fn test_serde_simple_bool() {
