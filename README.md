@@ -1,19 +1,27 @@
 # A Collectd Plugin Written in Rust
 
-Collectd gathers system and application metrics and stores the values in any
-manner. Since Collectd provides a plugin API, this `collectd_plugin` overlays a
-ergonomic, yet extremely low cost abstractions to interface with Collectd.
+Collectd is a ubiquitous system statistics collection daemon.
+`collectd_plugin` leverages Collectd's ability to dynamically load plugins and
+creates an ergonomic, yet extremely low cost abstraction API to interface with
+Collectd.
+
+Features:
+
+- Submit values to Collectd (which are then sent to all write plugins like graphite or rrd)
+- Easy plugin configuration via [Serde](https://github.com/serde-rs/serde) support
+- Write values that have been submitted by other plugins
+- Receive all log events and their messages
 
 ## Usage
 
-Put this in your `Cargo.toml`:
+Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-collectd_plugin = "0.3"
+collectd_plugin = "0.4"
 ```
 
-Or, if you want [Serde](https://github.com/serde-rs/serde) support, include
+If you want [Serde](https://github.com/serde-rs/serde) support (recommended), include:
 features like this:
 
 ```toml
@@ -92,7 +100,7 @@ collectd_plugin!(MyPlugin);
 
 ## Motivation
 
-There are four main ways to extend collectd:
+There are five main ways to extend collectd:
 
 - Write plugin against the C api: `<collectd/core/daemon/plugin.h>`
 - Write plugin for [collectd-python](https://collectd.org/documentation/manpages/collectd-python.5.shtml)
