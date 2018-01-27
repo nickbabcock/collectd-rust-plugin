@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 /// This looks just like `ConfigValue` except it add in the `Object` association. While collectd
 /// differentiate between values and children, for simplicity, we don't. It's kinda like JSON this
-/// way. 
+/// way.
 #[derive(Debug, PartialEq, Clone)]
 pub enum DeConfig<'a> {
     Number(f64),

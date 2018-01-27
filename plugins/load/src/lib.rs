@@ -1,8 +1,8 @@
 #[macro_use]
 extern crate collectd_plugin;
 extern crate failure;
-extern crate num_cpus;
 extern crate libc;
+extern crate num_cpus;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
@@ -17,7 +17,7 @@ use failure::Error;
 #[serde(rename_all = "PascalCase")]
 #[serde(deny_unknown_fields)]
 struct LoadConfig {
-    report_relative: Option<bool>
+    report_relative: Option<bool>,
 }
 
 /// Records load averages divided by the number of cpus
@@ -53,7 +53,9 @@ impl PluginManager for LoadManager {
             // of the number of CPUs dynamically changing, so we'll grab the value on start up and
             // keep it cached.
             let cpus = num_cpus::get();
-            Ok(PluginRegistration::Single(Box::new(RelativeLoadPlugin { num_cpus: cpus as f64 })))
+            Ok(PluginRegistration::Single(Box::new(RelativeLoadPlugin {
+                num_cpus: cpus as f64,
+            })))
         } else {
             Ok(PluginRegistration::Single(Box::new(AbsoluteLoadPlugin)))
         }
@@ -101,7 +103,10 @@ impl Plugin for RelativeLoadPlugin {
     fn read_values(&mut self) -> Result<(), Error> {
         // Essentially the same as `AbsoluteLoadPlugin`, but divides each load value by the number
         // of cpus and submits the values as the type of "relative"
-        let values: Vec<Value> = get_load()?.iter().map(|&x| Value::Gauge(x / self.num_cpus)).collect();
+        let values: Vec<Value> = get_load()?
+            .iter()
+            .map(|&x| Value::Gauge(x / self.num_cpus))
+            .collect();
         ValueListBuilder::new(LoadManager::name(), "load")
             .values(&values)
             .type_instance("relative")
