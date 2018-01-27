@@ -1,3 +1,11 @@
+## 0.4.1 - Unreleased
+
+* (Breaking change) rename `RecvValueList` to `ValueList`
+* Export `ValueReport` as part of API
+* Avoid allocations for logging plugins
+* Force `Plugin` implementations to implement `Sync`
+* Add a example `write_graphite` plugin
+
 ## 0.4.0 - 2018-01-26
 
 * Reduce pre-computed bindings with whitelisted types
