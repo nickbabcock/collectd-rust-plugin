@@ -1,4 +1,4 @@
-## 0.4.1 - Unreleased
+## 0.4.1 - 2018-01-27
 
 * (Breaking change) rename `RecvValueList` to `ValueList`
 * Export `ValueReport` as part of API
