@@ -82,8 +82,9 @@ pub trait Plugin {
         PluginCapabilities::default()
     }
 
-    /// Customizes how a message of a given level is logged
-    fn log(&mut self, _lvl: LogLevel, _msg: String) -> Result<(), Error> {
+    /// Customizes how a message of a given level is logged. If the message isn't valid UTF-8, an
+    /// allocation is done to replace all invalid characters with the UTF-8 replacement character
+    fn log(&mut self, _lvl: LogLevel, _msg: &str) -> Result<(), Error> {
         Err(Error::from(NotImplemented))
     }
 
@@ -189,14 +190,13 @@ macro_rules! collectd_plugin {
             use std::ffi::CStr;
             let ptr: *mut Box<$crate::Plugin> = std::mem::transmute((*dt).data);
             let mut plugin = Box::from_raw(ptr);
-            if let Ok(msg) = CStr::from_ptr(message).to_owned().into_string() {
-                let lvl: $crate::LogLevel = std::mem::transmute(severity as u32);
-                if let Err(ref e) = plugin.log(lvl, msg) {
-                    $crate::collectd_log(
-                        $crate::LogLevel::Error,
-                        &format!("logging error: {}", e)
-                    );
-                }
+            let msg = CStr::from_ptr(message).to_string_lossy();
+            let lvl: $crate::LogLevel = std::mem::transmute(severity as u32);
+            if let Err(ref e) = plugin.log(lvl, std::ops::Deref::deref(&msg)) {
+                $crate::collectd_log(
+                    $crate::LogLevel::Error,
+                    &format!("logging error: {}", e)
+                );
             }
             std::mem::forget(plugin);
         }
