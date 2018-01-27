@@ -18,15 +18,16 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-collectd_plugin = "0.4"
+collectd-plugin = "0.4"
 ```
 
 If you want [Serde](https://github.com/serde-rs/serde) support (recommended), include:
 features like this:
 
 ```toml
-[dependencies]
-collectd_plugin = { version = "0.3", features = ["serde"] }
+[dependencies.collectd-plugin]
+version = "0.4"
+features = ["serde"]
 ```
 
 Then put this in your crate root:
