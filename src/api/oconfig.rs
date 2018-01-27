@@ -17,13 +17,7 @@ pub enum ConfigValue<'a> {
     String(&'a str),
 }
 
-/// Parsed key, values, children object from the Collectd config. The following is a possible
-/// config
-///
-/// ```
-/// Name "a" "b" "c"
-/// Name "d" "e"
-/// ```
+/// Parsed key, values, children objects from the Collectd config.
 #[derive(Debug, PartialEq, Clone)]
 pub struct ConfigItem<'a> {
     /// Key of the field, does not have to be unique
