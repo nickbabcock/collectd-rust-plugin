@@ -24,6 +24,7 @@ struct GraphiteConfig {
 }
 
 struct GraphitePlugin<W: Write + Send> {
+    // We need a mutex as writers aren't thread safe
     writer: Mutex<W>,
     prefix: Option<String>,
 }
@@ -56,20 +57,14 @@ impl PluginManager for GraphiteManager {
     }
 }
 
+/// If necessary removes any characters from a string that have special meaning in graphite.
 fn graphitize(s: &str) -> Cow<str> {
-    let needs_modifying = s.chars()
-        .any(|x| x == '.' || x.is_whitespace() || x.is_control());
+    let needs_modifying = s.chars().any(|x| x == '.' || x.is_whitespace() || x.is_control());
     if !needs_modifying {
         Cow::Borrowed(s)
     } else {
         let new_s: String = s.chars()
-            .map(|x| {
-                if x == '.' || x.is_whitespace() || x.is_control() {
-                    '-'
-                } else {
-                    x
-                }
-            })
+            .map(|x| if x == '.' || x.is_whitespace() || x.is_control() { '-' } else { x })
             .collect();
         Cow::Owned(new_s)
     }
@@ -82,6 +77,10 @@ impl<W: Write + Send> GraphitePlugin<W> {
         line.push(' ');
         line.push_str(dt);
         line.push('\n');
+
+        // Finally, we get our exclusive lock on the tcp writer and send our data down the pipe. If
+        // there is a failure, the proper response would be to try and allocate a new connection or
+        // backoff. Instead we log the error.
         let mut w = self.writer.lock().unwrap();
         if let Err(ref e) = w.write(line.as_bytes()) {
             collectd_log(LogLevel::Error, e.to_string().as_str());
@@ -95,6 +94,9 @@ impl<W: Write + Send> Plugin for GraphitePlugin<W> {
     }
 
     fn write_values<'a>(&mut self, list: RecvValueList<'a>) -> Result<(), Error> {
+        // We use a heap allocated string to construct data to send to graphite. Collectd doesn't
+        // use the heap (preferring fixed size arrays). We could get the same behavior using the
+        // ArrayString type from the arrayvec crate.
         let mut line = String::new();
         if let Some(ref prefix) = self.prefix {
             line.push_str(prefix.as_str());
@@ -118,6 +120,9 @@ impl<W: Write + Send> Plugin for GraphitePlugin<W> {
         }
 
         let dt = list.time.timestamp().to_string();
+
+        // If there is only one value in the list we don't have to clone our premade string,
+        // instead we can write it directly
         if list.values.len() == 1 {
             self.write_value(line, list.values[0].value, dt.as_str());
         } else {
