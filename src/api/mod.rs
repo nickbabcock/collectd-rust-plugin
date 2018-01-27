@@ -90,23 +90,51 @@ impl Into<value_t> for Value {
     }
 }
 
+/// Name and value of a reported metric
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct ValueReport<'a> {
+    /// Name of the metric. If values has a length of 1, this is often just "value"
     pub name: &'a str,
+
+    /// The value reported
     pub value: Value,
+
+    /// Minimum value seen in an interval
     pub min: f64,
+
+    /// Maximum value seen in an interval
     pub max: f64,
 }
 
+/// Contains values and metadata that collectd has collected from plugins
 #[derive(Debug, PartialEq, Clone)]
 pub struct ValueList<'a> {
     pub values: Vec<ValueReport<'a>>,
-    pub plugin_instance: Option<&'a str>,
+
+    /// The plugin that submitted this value. This would be your `PluginManager` when submitting
+    /// values
     pub plugin: &'a str,
+
+    /// Distinguishes entities that yield metrics. Each core would be a different instance of the
+    /// same plugin, as each core reports "idle", "user", "system" metrics.
+    pub plugin_instance: Option<&'a str>,
+
+    /// This is the string found in types.db, determines how many values are expected and how they
+    /// should be interpreted
     pub type_: &'a str,
+
+    /// The type instance is used to separate values of identical type which nonetheless belong to
+    /// one another. For instance, even though "free", "used", and "total" all have types of
+    /// "Memory" they are different type instances.
     pub type_instance: Option<&'a str>,
+
+    /// The hostname where the values were collectd
     pub host: &'a str,
+
+    /// The timestamp at which the value was collected
     pub time: DateTime<Utc>,
+
+    /// The interval in which new values are to be expected
     pub interval: Duration,
 }
 
@@ -178,12 +206,15 @@ struct SubmitValueList<'a> {
     interval: Option<Duration>,
 }
 
+/// Creates a value list to report values to collectd.
 #[derive(Debug, PartialEq, Clone)]
 pub struct ValueListBuilder<'a> {
     list: SubmitValueList<'a>,
 }
 
 impl<'a> ValueListBuilder<'a> {
+    /// Primes a value list for submission. `plugin` will most likely be the name from the
+    /// `PluginManager` and `type_` is the datatype found in types.db
     pub fn new<T: Into<&'a str>, U: Into<&'a str>>(plugin: T, type_: U) -> ValueListBuilder<'a> {
         ValueListBuilder {
             list: SubmitValueList {
