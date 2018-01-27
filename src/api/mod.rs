@@ -349,7 +349,8 @@ pub fn empty_to_none(s: &str) -> Option<&str> {
 }
 
 /// Sends message and log level to collectd. Collectd configuration determines if a level is logged
-/// and where it is delivered.
+/// and where it is delivered. Messages that are too long are truncated (1024 was the max length as
+/// of collectd-5.7).
 ///
 /// # Panics
 ///
@@ -357,6 +358,8 @@ pub fn empty_to_none(s: &str) -> Option<&str> {
 pub fn collectd_log(lvl: LogLevel, message: &str) {
     let cs = CString::new(message).expect("Collectd log to not contain nulls");
     unsafe {
+        // Collectd will allocate another string behind the scenes before passing to plugins that
+        // registered a log hook, so passing it a string slice is fine.
         plugin_log(lvl as i32, cs.as_ptr());
     }
 }
