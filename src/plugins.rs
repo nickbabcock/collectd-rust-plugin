@@ -74,8 +74,10 @@ pub trait PluginManager {
 }
 
 /// An individual plugin that is capable of reporting values to collectd, receiving values from
-/// other plugins, or logging messages
-pub trait Plugin {
+/// other plugins, or logging messages. A plugin must implement `Sync` as collectd could be sending
+/// values to be written or logged concurrently. The Rust compiler will now ensure that everything
+/// not thread safe is wrapped in a Mutex (or another compatible datastructure)
+pub trait Plugin: Sync {
     /// A plugin's capabilities. By default a plugin does nothing, but can advertise that it can
     /// configure itself and / or report values.
     fn capabilities(&self) -> PluginCapabilities {
@@ -93,33 +95,18 @@ pub trait Plugin {
     /// that expect to report values need to have at least have a capability of `READ`. An error in
     /// reporting values will cause collectd to backoff exponentially until a delay of a day is
     /// reached.
-    ///
-    /// ## Warning
-    ///
-    /// It is up to you to make sure that this function is thread safe, so make sure anything that
-    /// is being worked with implements `Sync`
     fn read_values(&mut self) -> Result<(), Error> {
         Err(Error::from(NotImplemented))
     }
 
     /// Collectd is giving you reported values, do with them as you please. If writing values is
     /// expensive, prefer to buffer them in some way and register a `flush` callback to write.
-    ///
-    /// ## Warning
-    ///
-    /// It is up to you to make sure that this function is thread safe, so make sure anything that
-    /// is being worked with implements `Sync`
     fn write_values<'a>(&mut self, _list: RecvValueList<'a>) -> Result<(), Error> {
         Err(Error::from(NotImplemented))
     }
 
     /// Flush values to be written that are older than given duration. If an identifier is given,
     /// then only those buffered values should be flushed.
-    ///
-    /// ## Warning
-    ///
-    /// It is up to you to make sure that this function is thread safe, so make sure anything that
-    /// is being worked with implements `Sync`
     fn flush(
         &mut self,
         _timeout: Option<Duration>,
