@@ -14,10 +14,33 @@ use std::io::Write;
 use std::borrow::Cow;
 use std::ops::Deref;
 
+/// Here is what our collectd config can look like:
+///
+/// ```
+/// LoadPlugin write_graphite_rust
+/// <Plugin write_graphite_rust>
+///     <Node>
+///         Name "localhost.1"
+///         Address "127.0.0.1:20003"
+///     </Node>
+///     <Node>
+///         Name "localhost.2"
+///         Address "127.0.0.1:20004"
+///         Prefix "iamprefix"
+///     </Node>
+/// </Plugin>
+/// ```
+#[derive(Deserialize, Debug, PartialEq, Default)]
+#[serde(deny_unknown_fields)]
+struct GraphiteConfig {
+    #[serde(rename = "Node")]
+    nodes: Vec<GraphiteNode>,
+}
+
 #[derive(Deserialize, Debug, PartialEq, Default)]
 #[serde(rename_all = "PascalCase")]
 #[serde(deny_unknown_fields)]
-struct GraphiteConfig {
+struct GraphiteNode {
     name: String,
     address: String,
     prefix: Option<String>,
@@ -38,10 +61,10 @@ impl PluginManager for GraphiteManager {
 
     fn plugins(config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Error> {
         // Deserialize the collectd configuration into our configuration struct
-        let config: Vec<GraphiteConfig> =
+        let config: GraphiteConfig =
             collectd_plugin::de::from_collectd(config.unwrap_or_else(Default::default))?;
 
-        let config: Result<Vec<(String, Box<Plugin>)>, Error> = config
+        let config: Result<Vec<(String, Box<Plugin>)>, Error> = config.nodes
             .into_iter()
             .map(|x| {
                 let plugin = GraphitePlugin {
