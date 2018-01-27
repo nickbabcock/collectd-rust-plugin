@@ -4,17 +4,35 @@ use failure::{Error, ResultExt};
 use std::ffi::CStr;
 use std::slice;
 
+/// A parsed value from the Collectd config
 #[derive(Debug, PartialEq, Clone)]
 pub enum ConfigValue<'a> {
+    /// Numeric value
     Number(f64),
+
+    /// True / false, on / off
     Boolean(bool),
+
+    /// Contents enclosed in quote
     String(&'a str),
 }
 
+/// Parsed key, values, children object from the Collectd config. The following is a possible
+/// config
+///
+/// ```
+/// Name "a" "b" "c"
+/// Name "d" "e"
+/// ```
 #[derive(Debug, PartialEq, Clone)]
 pub struct ConfigItem<'a> {
+    /// Key of the field, does not have to be unique
     pub key: &'a str,
+
+    /// Values on the same line as the key
     pub values: Vec<ConfigValue<'a>>,
+
+    /// Sub elements
     pub children: Vec<ConfigItem<'a>>,
 }
 

@@ -17,6 +17,7 @@ pub use self::oconfig::{ConfigItem, ConfigValue};
 mod cdtime;
 mod oconfig;
 
+/// The available levels that collectd exposes to log messages.
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[repr(u32)]
 pub enum LogLevel {
