@@ -1,0 +1,26 @@
+[package]
+authors = ["Nick Babcock <nbabcock19@hotmail.com>"]
+name = "write_graphite"
+version = "0.4.0"
+publish = false
+
+[dependencies]
+failure = "0.1.1"
+serde_derive = "1"
+serde = "1"
+
+[dependencies.collectd-plugin]
+path = "../.."
+version = "0.4"
+features = ["serde"]
+
+[lib]
+crate-type = ["cdylib"]
+name = "write_graphite_rust"
+
+[features]
+collectd-54 = ["collectd-plugin/collectd-54"]
+collectd-55 = ["collectd-plugin/collectd-55"]
+collectd-57 = ["collectd-plugin/collectd-57"]
+bindgen = ["collectd-plugin/bindgen"]
+default = []
