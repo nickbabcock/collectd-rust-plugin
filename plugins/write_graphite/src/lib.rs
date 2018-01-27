@@ -6,7 +6,7 @@ extern crate serde;
 extern crate serde_derive;
 
 use collectd_plugin::{collectd_log, ConfigItem, LogLevel, Plugin, PluginCapabilities,
-                      PluginManager, PluginRegistration, RecvValueList, Value};
+                      PluginManager, PluginRegistration, ValueList, Value};
 use failure::Error;
 use std::sync::Mutex;
 use std::net::TcpStream;
@@ -116,7 +116,7 @@ impl<W: Write + Send> Plugin for GraphitePlugin<W> {
         PluginCapabilities::WRITE
     }
 
-    fn write_values<'a>(&mut self, list: RecvValueList<'a>) -> Result<(), Error> {
+    fn write_values<'a>(&mut self, list: ValueList<'a>) -> Result<(), Error> {
         // We use a heap allocated string to construct data to send to graphite. Collectd doesn't
         // use the heap (preferring fixed size arrays). We could get the same behavior using the
         // ArrayString type from the arrayvec crate.

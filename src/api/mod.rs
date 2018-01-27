@@ -98,7 +98,7 @@ pub struct ValueReport<'a> {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct RecvValueList<'a> {
+pub struct ValueList<'a> {
     pub values: Vec<ValueReport<'a>>,
     pub plugin_instance: Option<&'a str>,
     pub plugin: &'a str,
@@ -109,11 +109,11 @@ pub struct RecvValueList<'a> {
     pub interval: Duration,
 }
 
-impl<'a> RecvValueList<'a> {
+impl<'a> ValueList<'a> {
     pub fn from<'b>(
         set: &'b data_set_t,
         list: &'b value_list_t,
-    ) -> Result<RecvValueList<'b>, Error> {
+    ) -> Result<ValueList<'b>, Error> {
         let p = from_array(&list.plugin).context("Plugin could not be parsed")?;
         let ds_len = length(set.ds_num);
         let list_len = length(list.values_len);
@@ -146,7 +146,7 @@ impl<'a> RecvValueList<'a> {
         assert!(list.time > 0);
         assert!(list.interval > 0);
 
-        Ok(RecvValueList {
+        Ok(ValueList {
             values: values?,
             plugin_instance: empty_to_none(from_array(&list.plugin_instance).with_context(|_e| {
                 format!("For plugin: {}, plugin instance could not be decoded", p)
@@ -166,7 +166,7 @@ impl<'a> RecvValueList<'a> {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-struct ValueList<'a> {
+struct SubmitValueList<'a> {
     values: &'a [Value],
     plugin_instance: Option<&'a str>,
     plugin: &'a str,
@@ -179,13 +179,13 @@ struct ValueList<'a> {
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct ValueListBuilder<'a> {
-    list: ValueList<'a>,
+    list: SubmitValueList<'a>,
 }
 
 impl<'a> ValueListBuilder<'a> {
     pub fn new<T: Into<&'a str>, U: Into<&'a str>>(plugin: T, type_: U) -> ValueListBuilder<'a> {
         ValueListBuilder {
-            list: ValueList {
+            list: SubmitValueList {
                 values: &[],
                 plugin_instance: None,
                 plugin: plugin.into(),
@@ -454,10 +454,10 @@ mod tests {
             meta: ptr::null_mut(),
         };
 
-        let actual = RecvValueList::from(&conv, &list_t).unwrap();
+        let actual = ValueList::from(&conv, &list_t).unwrap();
         assert_eq!(
             actual,
-            RecvValueList {
+            ValueList {
                 values: vec![
                     ValueReport {
                         name: "hi",

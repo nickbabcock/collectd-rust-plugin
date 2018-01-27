@@ -23,7 +23,7 @@ mod errors;
 mod plugins;
 
 pub use api::{collectd_log, empty_to_none, from_array, get_default_interval, CdTime, ConfigItem,
-              ConfigValue, LogLevel, RecvValueList, Value, ValueListBuilder, ValueReport};
+              ConfigValue, LogLevel, ValueList, Value, ValueListBuilder, ValueReport};
 pub use errors::{ArrayError, SubmitError};
 pub use plugins::{Plugin, PluginCapabilities, PluginManager, PluginManagerCapabilities,
                   PluginRegistration};

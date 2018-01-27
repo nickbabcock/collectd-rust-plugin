@@ -1,6 +1,6 @@
 use failure::Error;
 use errors::NotImplemented;
-use api::{ConfigItem, LogLevel, RecvValueList};
+use api::{ConfigItem, LogLevel, ValueList};
 use chrono::Duration;
 
 bitflags! {
@@ -101,7 +101,7 @@ pub trait Plugin: Sync {
 
     /// Collectd is giving you reported values, do with them as you please. If writing values is
     /// expensive, prefer to buffer them in some way and register a `flush` callback to write.
-    fn write_values<'a>(&mut self, _list: RecvValueList<'a>) -> Result<(), Error> {
+    fn write_values<'a>(&mut self, _list: ValueList<'a>) -> Result<(), Error> {
         Err(Error::from(NotImplemented))
     }
 
@@ -195,7 +195,7 @@ macro_rules! collectd_plugin {
         ) -> std::os::raw::c_int {
             let ptr: *mut Box<$crate::Plugin> = std::mem::transmute((*dt).data);
             let mut plugin = Box::from_raw(ptr);
-            let list = $crate::RecvValueList::from(&*ds, &*vl);
+            let list = $crate::ValueList::from(&*ds, &*vl);
             if let Err(ref e) = list {
                 $crate::collectd_log(
                     $crate::LogLevel::Error,
