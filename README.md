@@ -7,10 +7,11 @@ Collectd.
 
 Features:
 
-- Submit values to Collectd (which are then sent to all write plugins like graphite or rrd)
-- Easy plugin configuration via [Serde](https://github.com/serde-rs/serde) support
-- Write values that have been submitted by other plugins
-- Receive all log events and their messages
+- No unnecessary allocations when submitting / receiving values, logging
+- Register multiple plugin instances
+- Automatic deserialization of plugin configs via [Serde](https://github.com/serde-rs/serde) (optional) feature
+- Deployment: compile against collectd version and scp to server
+- Referenced Rust libraries are statically linked
 
 ## Usage
 
@@ -42,7 +43,7 @@ This repo is tested on the following:
 
 - Collectd 5.4 (Ubuntu 14.04)
 - Collectd 5.5 (Ubuntu 16.04)
-- Collectd 5.7 (Ubuntu 17.04)
+- Collectd 5.7 (and above) (Ubuntu 17.04)
 
 ## Quickstart
 
@@ -120,14 +121,24 @@ Rust's combination of ecosystem, package manager, C ffi, single file dynamic lib
 
 ## To Build
 
-To ensure a successful build, the following steps are needed:
+To ensure a successful build, adapt the below to your project's Cargo file.
 
-- When building, you must supply the collectd version you'll be deploying:
-    - `cargo build --features collectd-54`
-    - `cargo build --features collectd-55`
-    - `cargo build --features collectd-57`
-- Your project crate type must be `cdylib`
-- If you want to use `bindgen` to generate the ffi functions, use the `bindgen` feature (still alongside the desired collectd version). Make sure you have an appropriate version of clang installed and `collectd-dev`
+```toml
+[lib]
+crate-type = ["cdylib"]
+name = "<your plugin name>"
+
+
+[features]
+collectd-54 = ["collectd-plugin/collectd-54"]
+collectd-55 = ["collectd-plugin/collectd-55"]
+collectd-57 = ["collectd-plugin/collectd-57"]
+bindgen = ["collectd-plugin/bindgen"]
+default = []
+```
+
+- Choosing a collectd version is required.
+- The bindgen feature is optional (it will re-compute the Rust bindings from C code, which shouldn't be necessary). Make sure you have an appropriate version of clang installed and `collectd-dev`
 - Collectd expects plugins to not be prefixed with `lib`, so `cp target/debug/libmyplugin.so /usr/lib/collectd/myplugin.so`
 - Add `LoadPlugin myplugin` to collectd.conf
 
