@@ -162,3 +162,15 @@ impl<W: Write + Send> Plugin for GraphitePlugin<W> {
 }
 
 collectd_plugin!(GraphiteManager);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn test_graphitize() {
+        assert_eq!(graphitize("hello").deref(), "hello");
+        assert_eq!(graphitize("hello.maty").deref(), "hello-maty");
+        assert_eq!(graphitize("foo@bar.com").deref(), "foo@bar-com");
+        assert_eq!(graphitize("  test \n ").deref(), "--test---");
+    }
+}
