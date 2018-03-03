@@ -6,7 +6,7 @@ publish = false
 
 [dependencies]
 failure = "0.1.1"
-itertools = "0.7.3"
+itertools = "0.7"
 
 [dependencies.collectd-plugin]
 path = "../.."
