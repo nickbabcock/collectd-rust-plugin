@@ -1,6 +1,6 @@
 def runs = ['14.04':'collectd-54',
             '16.04':'collectd-55',
-            '17.04':'collectd-57']
+            '17.10':'collectd-57']
 
 def steps = runs.collectEntries {
     ["ubuntu $it.key": job(it.key, it.value)]
