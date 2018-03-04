@@ -16,6 +16,7 @@ bindgen = { version = "0.32.1", optional = true }
 chrono = "0.4.0"
 failure = "0.1.1"
 bitflags = "1.0"
+memchr = "2"
 serde = { version = "1", optional = true }
 
 [dev-dependencies]

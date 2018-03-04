@@ -1,22 +1,14 @@
-use std::ffi::NulError;
-
 /// Errors that occur when converting Rust's text data to a format collectd expects
 #[derive(Fail, Debug)]
 pub enum ArrayError {
     /// Rust allows strings to contain a null character, but collectd does not.
-    #[fail(display = "Null encountered in string")]
-    NullPresent(#[cause] NulError),
+    #[fail(display = "Null encountered (pos: _0) in string: _1")]
+    NullPresent(usize, String),
 
     /// Is returned when a user tries to submit a field that contains text that is too long for
     /// collectd
     #[fail(display = "Length of {} is too long", _0)]
     TooLong(usize),
-}
-
-impl From<NulError> for ArrayError {
-    fn from(err: NulError) -> ArrayError {
-        ArrayError::NullPresent(err)
-    }
 }
 
 /// Errors that occur when submitting values to collectd

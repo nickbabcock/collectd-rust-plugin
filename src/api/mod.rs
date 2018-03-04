@@ -11,6 +11,8 @@ use failure::{Error, ResultExt};
 use errors::{ArrayError, SubmitError};
 use std::fmt;
 use std::str::Utf8Error;
+use memchr::memchr;
+
 pub use self::cdtime::{nanos_to_collectd, CdTime};
 pub use self::oconfig::{ConfigItem, ConfigValue};
 
@@ -325,14 +327,18 @@ impl<'a> ValueListBuilder<'a> {
 /// slice into array compatible with collectd's text fields. Be aware that `ARR_LENGTH` is 64
 /// before collectd 5.7
 fn to_array_res(s: &str) -> Result<[c_char; ARR_LENGTH], ArrayError> {
-    let value = CString::new(s)?;
-    let data = value.as_bytes_with_nul();
-    if data.len() > ARR_LENGTH {
+    // By checking if the length is greater than or *equal* to, we guarantee a trailing null
+    if s.len() >= ARR_LENGTH {
         return Err(ArrayError::TooLong(s.len()));
     }
 
+    let bytes = s.as_bytes();
+    if let Some(ind) = memchr(0, bytes) {
+        return Err(ArrayError::NullPresent(ind, s.to_string()));
+    }
+
     let mut arr = [0; ARR_LENGTH];
-    arr[0..data.len()].copy_from_slice(data);
+    arr[0..bytes.len()].copy_from_slice(bytes);
     Ok(unsafe { ::std::mem::transmute(arr) })
 }
 
