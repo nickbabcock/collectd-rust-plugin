@@ -139,10 +139,7 @@ pub struct ValueList<'a> {
 }
 
 impl<'a> ValueList<'a> {
-    pub fn from<'b>(
-        set: &'b data_set_t,
-        list: &'b value_list_t,
-    ) -> Result<ValueList<'b>, Error> {
+    pub fn from<'b>(set: &'b data_set_t, list: &'b value_list_t) -> Result<ValueList<'b>, Error> {
         let p = from_array(&list.plugin).context("Plugin could not be parsed")?;
         let ds_len = length(set.ds_num);
         let list_len = length(list.values_len);
