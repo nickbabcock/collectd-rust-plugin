@@ -11,7 +11,7 @@ use failure::{Error, ResultExt};
 use errors::{ArrayError, SubmitError};
 use std::fmt;
 use std::str::Utf8Error;
-pub use self::cdtime::CdTime;
+pub use self::cdtime::{nanos_to_collectd, CdTime};
 pub use self::oconfig::{ConfigItem, ConfigValue};
 
 mod cdtime;

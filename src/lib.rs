@@ -125,8 +125,9 @@ mod errors;
 #[macro_use]
 mod plugins;
 
-pub use api::{collectd_log, empty_to_none, from_array, get_default_interval, CdTime, ConfigItem,
-              ConfigValue, LogLevel, ValueList, Value, ValueListBuilder, ValueReport};
+pub use api::{collectd_log, empty_to_none, from_array, get_default_interval, nanos_to_collectd,
+              CdTime, ConfigItem, ConfigValue, LogLevel, Value, ValueList, ValueListBuilder,
+              ValueReport};
 pub use errors::{ArrayError, SubmitError};
 pub use plugins::{Plugin, PluginCapabilities, PluginManager, PluginManagerCapabilities,
                   PluginRegistration};
