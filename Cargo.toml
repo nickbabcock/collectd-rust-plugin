@@ -20,6 +20,7 @@ serde = { version = "1", optional = true }
 
 [dev-dependencies]
 serde_derive = "1.0"
+criterion = "0.2"
 
 [features]
 collectd-54 = []
@@ -29,3 +30,7 @@ default = []
 
 [workspace]
 members = ['plugins/load', 'plugins/readme', 'plugins/write_log', 'plugins/write_graphite']
+
+[[bench]]
+name = "collectd_bench"
+harness = false
