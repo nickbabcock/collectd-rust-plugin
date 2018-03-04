@@ -448,7 +448,7 @@ mod tests {
         let result = ValueListBuilder::new("my-plugin", "load")
             .values(&values)
             .submit();
-		assert_eq!(result.unwrap(), ());
+        assert_eq!(result.unwrap(), ());
     }
 
     #[test]

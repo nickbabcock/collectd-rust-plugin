@@ -17,7 +17,6 @@ extern "C" {
     pub static mut hostname_g: [::std::os::raw::c_char; ARR_LENGTH];
 }
 
-
 #[cfg(any(test, feature = "stub"))]
 #[allow(unused_variables)]
 pub mod overrides {
