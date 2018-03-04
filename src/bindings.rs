@@ -22,12 +22,12 @@ extern "C" {
 pub mod overrides {
     use super::*;
 
-    #[export_name = "\x01plugin_dispatch_values"]
+    #[no_mangle]
     pub extern "C" fn plugin_dispatch_values(vl: *const value_list_t) -> ::std::os::raw::c_int {
         0
     }
 
-    #[export_name = "\x01hostname_g"]
+    #[no_mangle]
     pub static mut hostname_g: [::std::os::raw::c_char; ARR_LENGTH] = [0; ARR_LENGTH];
 }
 
