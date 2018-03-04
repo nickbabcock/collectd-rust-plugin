@@ -26,6 +26,7 @@ criterion = "0.2"
 collectd-54 = []
 collectd-55 = []
 collectd-57 = []
+stub = []
 default = []
 
 [workspace]

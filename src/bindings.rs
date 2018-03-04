@@ -17,4 +17,19 @@ extern "C" {
     pub static mut hostname_g: [::std::os::raw::c_char; ARR_LENGTH];
 }
 
+
+#[cfg(any(test, feature = "stub"))]
+#[allow(unused_variables)]
+pub mod overrides {
+    use super::*;
+
+    #[export_name = "\x01plugin_dispatch_values"]
+    pub extern "C" fn plugin_dispatch_values(vl: *const value_list_t) -> ::std::os::raw::c_int {
+        0
+    }
+
+    #[export_name = "\x01hostname_g"]
+    pub static mut hostname_g: [::std::os::raw::c_char; ARR_LENGTH] = [0; ARR_LENGTH];
+}
+
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
