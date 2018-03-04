@@ -1,6 +1,7 @@
 ## 0.4.2 - Unreleased
 
 * Errors now have all their causes concatenated (semicolon delimited) when logged instead of just the head cause
+* Overhead of submitting values via `ValueListBuilder` reduced in half to ~100ns
 
 ## 0.4.1 - 2018-01-27
 
