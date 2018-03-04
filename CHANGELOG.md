@@ -1,3 +1,7 @@
+## 0.4.2 - Unreleased
+
+* Errors now have all their causes concatenated (semicolon delimited) when logged instead of just the head cause
+
 ## 0.4.1 - 2018-01-27
 
 * (Breaking change) rename `RecvValueList` to `ValueList`
