@@ -2,8 +2,9 @@ extern crate collectd_plugin;
 #[macro_use]
 extern crate criterion;
 
-use collectd_plugin::bindings::{data_set_t, data_source_t, value_list_t, value_t, ARR_LENGTH};
-use collectd_plugin::{nanos_to_collectd, ValueList};
+use collectd_plugin::bindings::{data_set_t, data_source_t, value_list_t, value_t, ARR_LENGTH,
+                                DS_TYPE_GAUGE};
+use collectd_plugin::{nanos_to_collectd, Value, ValueList, ValueListBuilder};
 use std::os::raw::c_char;
 use criterion::Criterion;
 use std::ptr;
@@ -52,5 +53,16 @@ fn convert_to_value_list(c: &mut Criterion) {
     });
 }
 
-criterion_group!(benches, convert_to_value_list);
+fn submit_value(c: &mut Criterion) {
+    c.bench_function("submit_value", |b| {
+        let values = vec![Value::Gauge(15.0), Value::Gauge(10.0), Value::Gauge(12.0)];
+        b.iter(|| {
+            ValueListBuilder::new("my-plugin", "load")
+                .values(&values)
+                .submit()
+        })
+    });
+}
+
+criterion_group!(benches, convert_to_value_list, submit_value);
 criterion_main!(benches);
