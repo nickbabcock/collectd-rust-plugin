@@ -147,14 +147,34 @@ macro_rules! collectd_plugin {
 
         }
 
+        // Logs an error with a description and all the causes
+        fn collectd_log_err(desc: &str, err: &Error) {
+            // We join all the causes into a single string. Some thoughts
+            //  - This is not the most efficient way (that would belong to itertool crate), but
+            //    collecting into a vector then joining is not terribly more expensive.
+            //  - When an error occurs, one should expect there is some performance price to pay
+            //    for additional, and much needed, context
+            //  - Adding a new dependency to this library for a single function to save one line
+            //    seems to be a heavy handed solution
+            //  - While nearly all languages will display each cause on a separate line for a
+            //    stacktrace, I'm not aware of any collectd plugin doing the same. So to keep
+            //    convention, all causes are logged on the same line, semicolon delimited.
+            let joined = err.causes()
+                .map(|x| format!("{}", x))
+                .collect::<Vec<String>>()
+                .join("; ");
+
+            $crate::collectd_log(
+                $crate::LogLevel::Error,
+                &format!("{} error: {}", desc, joined)
+            );
+        }
+
         unsafe extern "C" fn collectd_plugin_read(dt: *mut $crate::bindings::user_data_t) -> std::os::raw::c_int {
             let ptr: *mut Box<$crate::Plugin>  = std::mem::transmute((*dt).data);
             let mut plugin = Box::from_raw(ptr);
             let result = if let Err(ref e) = plugin.read_values() {
-                $crate::collectd_log(
-                    $crate::LogLevel::Error,
-                    &format!("read error: {}", e)
-                );
+                collectd_log_err("read", e);
                 -1
             } else {
                 0
@@ -180,10 +200,7 @@ macro_rules! collectd_plugin {
             let msg = CStr::from_ptr(message).to_string_lossy();
             let lvl: $crate::LogLevel = std::mem::transmute(severity as u32);
             if let Err(ref e) = plugin.log(lvl, std::ops::Deref::deref(&msg)) {
-                $crate::collectd_log(
-                    $crate::LogLevel::Error,
-                    &format!("logging error: {}", e)
-                );
+                collectd_log_err("logging", e);
             }
             std::mem::forget(plugin);
         }
@@ -197,20 +214,14 @@ macro_rules! collectd_plugin {
             let mut plugin = Box::from_raw(ptr);
             let list = $crate::ValueList::from(&*ds, &*vl);
             if let Err(ref e) = list {
-                $crate::collectd_log(
-                    $crate::LogLevel::Error,
-                    &format!("Unable to decode collectd data: {}", e)
-                );
+                collectd_log_err("unable to decode collectd data", e);
                 std::mem::forget(plugin);
                 return -1;
             }
 
             let result =
                 if let Err(ref e) = plugin.write_values(list.unwrap()) {
-                    $crate::collectd_log(
-                        $crate::LogLevel::Error,
-                        &format!("writing error: {}", e)
-                    );
+                    collectd_log_err("writing", e);
                     -1
                 } else {
                     0
@@ -230,10 +241,7 @@ macro_rules! collectd_plugin {
             if capabilities.intersects($crate::PluginManagerCapabilities::INIT) {
                 if let Err(ref e) = <$type as PluginManager>::initialize() {
                     result = -1;
-                    $crate::collectd_log(
-                        $crate::LogLevel::Error,
-                        &format!("init error: {}", e)
-                    );
+                    collectd_log_err("init", e);
                 }
             }
 
@@ -254,10 +262,7 @@ macro_rules! collectd_plugin {
             let result =
                 if let Ok(ident) = CStr::from_ptr(identifier).to_str() {
                     if let Err(ref e) = plugin.flush(dur, $crate::empty_to_none(ident)) {
-                        $crate::collectd_log(
-                            $crate::LogLevel::Error,
-                            &format!("flush error: {}", e)
-                        );
+                        collectd_log_err("flush", e);
                         -1
                     } else {
                         0
@@ -278,7 +283,7 @@ macro_rules! collectd_plugin {
             if CONFIG_SEEN {
                 $crate::collectd_log(
                     $crate::LogLevel::Error,
-                    &format!("Already seen a config section for {}", <$type as PluginManager>::name())
+                    &format!("already seen a config section for {}", <$type as PluginManager>::name())
                 );
                 return -1;
             }
@@ -287,10 +292,7 @@ macro_rules! collectd_plugin {
             match $crate::ConfigItem::from(&*config) {
                 Ok(config) => collectd_register_all_plugins(Some(&config.children)),
                 Err(ref e) => {
-                    $crate::collectd_log(
-                        $crate::LogLevel::Error,
-                        &format!("Can't convert from collectd config: {}", e)
-                    );
+                    collectd_log_err("collectd config conversion", e);
                     -1
                 }
             }
@@ -322,10 +324,7 @@ macro_rules! collectd_plugin {
                     0
                 },
                 Err(ref e) => {
-                    $crate::collectd_log(
-                        $crate::LogLevel::Error,
-                        &format!("config error: {}", e)
-                    );
+                    collectd_log_err("collectd config", e);
                     -1
                 }
             }
