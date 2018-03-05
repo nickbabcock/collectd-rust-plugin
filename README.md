@@ -157,3 +157,18 @@ demonstrates how to expose configuration values to Collectd.
     ReportRelative true
 </Plugin>
 ```
+
+## Benchmarking Overhead
+
+To measure the overhead of adapting Collectd's datatypes when writing and reporting values:
+
+```bash
+cargo bench --features 'stub collectd-57'
+```
+
+If you'd like to use the timings on my machine:
+
+- 100ns to create and submit a `ValueListBuilder`
+- 150ns to create a `ValueList` for plugins that write values
+
+Unless you are reporting or writing millions of metrics every interval (in which case you'll most likely hit an earlier snap), you'll be fine.
