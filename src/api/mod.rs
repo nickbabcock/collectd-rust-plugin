@@ -163,7 +163,7 @@ impl<'a> ValueList<'a> {
                 })?;
 
                 Ok(ValueReport {
-                    name: name,
+                    name,
                     value: v,
                     min: source.min,
                     max: source.max,
@@ -302,11 +302,11 @@ impl<'a> ValueListBuilder<'a> {
         let list = value_list_t {
             values: v.as_mut_ptr(),
             values_len: len,
-            plugin_instance: plugin_instance,
+            plugin_instance,
             plugin: to_array_res(self.list.plugin)?,
             type_: to_array_res(self.list.type_)?,
-            type_instance: type_instance,
-            host: host,
+            type_instance,
+            host,
             time: self.list.time.map(CdTime::from).unwrap_or(CdTime(0)).into(),
             interval: self.list
                 .interval

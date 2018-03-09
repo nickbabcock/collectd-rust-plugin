@@ -21,7 +21,7 @@ fn convert_to_value_list(c: &mut Criterion) {
         name[1] = b'i' as c_char;
 
         let val = data_source_t {
-            name: name,
+            name,
             type_: DS_TYPE_GAUGE as i32,
             min: 10.0,
             max: 11.0,

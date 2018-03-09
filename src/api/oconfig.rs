@@ -74,7 +74,7 @@ impl<'a> ConfigItem<'a> {
                 .collect();
 
         Ok(ConfigItem {
-            key: key,
+            key,
             values: values?,
             children: children?,
         })
