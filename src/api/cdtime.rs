@@ -20,8 +20,8 @@ pub struct CdTime(pub u64);
 
 impl<Tz: TimeZone> From<DateTime<Tz>> for CdTime {
     fn from(dt: DateTime<Tz>) -> Self {
-        let nanos = (dt.timestamp() as u64) + u64::from(dt.timestamp_subsec_nanos());
-        CdTime(nanos_to_collectd(nanos))
+        let nanos = ((dt.timestamp() as u64) * 1_000_000_000) + u64::from(dt.timestamp_subsec_nanos());
+        CdTime(nanos)
     }
 }
 
@@ -103,5 +103,12 @@ mod tests {
         let v: cdtime_t = nanos_to_collectd(1_000_000_000);
         let dt: DateTime<Utc> = CdTime::from(v).into();
         assert_eq!(Utc.ymd(1970, 1, 1).and_hms(0, 0, 1), dt);
+    }
+
+    #[test]
+    fn test_datetime_to_collectd() {
+        let dt = Utc.ymd(1970, 1, 1).and_hms(0, 0, 1);
+        let cd = CdTime::from(dt);
+        assert_eq!(cd.0, 1_000_000_000);
     }
 }
