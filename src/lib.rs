@@ -17,7 +17,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! collectd-plugin = "0.4.2"
+//! collectd-plugin = "0.4.3"
 //! ```
 //!
 //! If you want [Serde](https://github.com/serde-rs/serde) support (recommended), include:
@@ -25,7 +25,7 @@
 //!
 //! ```toml
 //! [dependencies.collectd-plugin]
-//! version = "0.4.2"
+//! version = "0.4.3"
 //! features = ["serde"]
 //! ```
 //!

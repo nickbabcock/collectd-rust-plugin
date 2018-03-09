@@ -1,7 +1,7 @@
 [package]
 authors = ["Nick Babcock <nbabcock19@hotmail.com>"]
 name = "write_graphite"
-version = "0.4.2"
+version = "0.4.3"
 publish = false
 
 [dependencies]
@@ -11,7 +11,7 @@ serde = "1"
 
 [dependencies.collectd-plugin]
 path = "../.."
-version = "0.4.2"
+version = "0.4.3"
 features = ["serde"]
 
 [lib]
