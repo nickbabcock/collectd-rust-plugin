@@ -104,9 +104,9 @@
 #[macro_use]
 extern crate bitflags;
 extern crate chrono;
-extern crate memchr;
 #[macro_use]
 extern crate failure;
+extern crate memchr;
 
 #[cfg(feature = "serde")]
 #[macro_use]

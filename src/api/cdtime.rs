@@ -20,8 +20,9 @@ pub struct CdTime(pub u64);
 
 impl<Tz: TimeZone> From<DateTime<Tz>> for CdTime {
     fn from(dt: DateTime<Tz>) -> Self {
-        let nanos = ((dt.timestamp() as u64) * 1_000_000_000) + u64::from(dt.timestamp_subsec_nanos());
-        CdTime(nanos)
+        let sec_nanos = ((dt.timestamp() as u64) * 1_000_000_000);
+        let nanos = u64::from(dt.timestamp_subsec_nanos());
+        CdTime(sec_nanos + nanos)
     }
 }
 
