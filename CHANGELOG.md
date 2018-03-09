@@ -1,3 +1,9 @@
+## 0.4.3 - 2018-03-09
+
+* Fix conversion from datetime to cdtime. This will fix those who set the time
+  in a `ValueListBuilder` and receive a "uc_update: Value too old: name ="
+  error in the logs
+
 ## 0.4.2 - 2018-03-08
 
 * Errors now have all their causes concatenated (semicolon delimited) when logged instead of just the head cause
