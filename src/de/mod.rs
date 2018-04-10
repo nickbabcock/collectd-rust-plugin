@@ -343,9 +343,9 @@ struct FieldSeparated<'a, 'de: 'a> {
 impl<'a, 'de> FieldSeparated<'a, 'de> {
     fn new(de: &'a mut Deserializer<'de>, item_count: usize) -> Self {
         FieldSeparated {
-            de: de,
+            de,
             item_pos: 0,
-            item_count: item_count,
+            item_count,
         }
     }
 }
@@ -387,8 +387,8 @@ struct SeqSeparated<'a, 'de: 'a> {
 impl<'a, 'de> SeqSeparated<'a, 'de> {
     fn new(de: &'a mut Deserializer<'de>, item_count: usize) -> Self {
         SeqSeparated {
-            de: de,
-            item_count: item_count,
+            de,
+            item_count,
             item_pos: 0,
         }
     }

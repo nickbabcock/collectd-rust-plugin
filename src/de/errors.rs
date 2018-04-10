@@ -3,16 +3,26 @@ use std::fmt::{self, Display};
 
 #[derive(Fail, Debug)]
 pub enum DeError {
-    #[fail(display = "No more values left, this should never happen")] NoMoreValuesLeft,
-    #[fail(display = "Error from deserialization: {}", _0)] SerdeError(String),
-    #[fail(display = "Expecting values to contain a single entry")] ExpectSingleValue,
-    #[fail(display = "Expecting string")] ExpectString,
-    #[fail(display = "Expecting string of length one, received `{}`", _0)] ExpectChar(String),
-    #[fail(display = "Expecting boolean")] ExpectBoolean,
-    #[fail(display = "Expecting number")] ExpectNumber,
-    #[fail(display = "Expecting struct")] ExpectStruct,
-    #[fail(display = "Needs an object to deserialize a struct")] ExpectObject,
-    #[fail(display = "Could not deserialize as datatype not supported")] DataTypeNotSupported,
+    #[fail(display = "No more values left, this should never happen")]
+    NoMoreValuesLeft,
+    #[fail(display = "Error from deserialization: {}", _0)]
+    SerdeError(String),
+    #[fail(display = "Expecting values to contain a single entry")]
+    ExpectSingleValue,
+    #[fail(display = "Expecting string")]
+    ExpectString,
+    #[fail(display = "Expecting string of length one, received `{}`", _0)]
+    ExpectChar(String),
+    #[fail(display = "Expecting boolean")]
+    ExpectBoolean,
+    #[fail(display = "Expecting number")]
+    ExpectNumber,
+    #[fail(display = "Expecting struct")]
+    ExpectStruct,
+    #[fail(display = "Needs an object to deserialize a struct")]
+    ExpectObject,
+    #[fail(display = "Could not deserialize as datatype not supported")]
+    DataTypeNotSupported,
 }
 
 // Since the failure crate can't automatically implement serde::de::Error (see issue

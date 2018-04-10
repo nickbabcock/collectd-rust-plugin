@@ -12,7 +12,8 @@ impl<'de> Visitor<'de> for LogLevelVisitor {
     }
 
     fn visit_str<E>(self, s: &str) -> Result<LogLevel, E>
-        where E: de::Error
+    where
+        E: de::Error,
     {
         let upper = s.to_ascii_uppercase();
         match upper.as_str() {
@@ -21,14 +22,15 @@ impl<'de> Visitor<'de> for LogLevelVisitor {
             "ERR" | "ERROR" => Ok(LogLevel::Error),
             "WARN" | "WARNING" => Ok(LogLevel::Warning),
             "NOTICE" => Ok(LogLevel::Notice),
-            x => Err(E::custom(format!("Did not expect log level of: {}", x)))
+            x => Err(E::custom(format!("Did not expect log level of: {}", x))),
         }
     }
 }
 
 impl<'de> Deserialize<'de> for LogLevel {
     fn deserialize<D>(deserializer: D) -> Result<LogLevel, D::Error>
-        where D: Deserializer<'de>
+    where
+        D: Deserializer<'de>,
     {
         deserializer.deserialize_str(LogLevelVisitor)
     }
