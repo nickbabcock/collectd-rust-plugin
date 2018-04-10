@@ -399,19 +399,34 @@ pub fn collectd_log(lvl: LogLevel, message: &str) {
     }
 }
 
-/// A simple wrapper around the collectd's plugin_log, which in turn wraps `vsnprintf`. Since this
-/// is a low level wrapper, prefer `collectd_log` mechanism. The only times you would prefer
-/// `collectd_log_raw`:
+/// A simple wrapper around the collectd's plugin_log, which in turn wraps `vsnprintf`.
+///
+/// ```ignore
+/// collectd_log_raw!(LogLevel::Info, b"test %d\0", 10);
+/// ```
+///
+/// Since this is a low level wrapper, prefer `collectd_log` mechanism. The only times you would
+/// prefer `collectd_log_raw`:
 ///
 /// - Collectd was not compiled with `COLLECTD_DEBUG` (chances are, your collectd is compiled with
 /// debugging enabled) and you are logging a debug message.
 /// - The performance price of string formatting in rust instead of C is too large (this shouldn't
 /// be the case)
 ///
+/// Undefined behavior can result from any of the following:
+///
+/// - If the format string is not null terminated
+/// - If any string arguments are not null terminated. Use `CString::as_ptr()` to ensure null
+/// termination
+/// - Malformed format string or mismatched arguments
+///
 /// This expects an already null terminated byte string. In the future once the byte equivalent of
 /// `concat!` is rfc accepted and implemented, this won't be a requirement. I also wish that we
 /// could statically assert that the format string contained a null byte for the last character,
 /// but alas, I think we've hit brick wall with the current Rust compiler.
+///
+/// For ergonomic reasons, the format string is converted to the appropriate C ffi type from a byte
+/// string, but no other string arguments are afforded this luxury (so make sure you convert them).
 #[macro_export]
 macro_rules! collectd_log_raw {
     ($lvl:expr, $fmt:expr) => ({
