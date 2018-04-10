@@ -1,3 +1,8 @@
+## 0.4.4 - 2018-04-10
+
+* Add serde deserialization for `LogLevel`
+* Add `collectd_log_raw!` macro for lower level log formatting using `printf` formatting
+
 ## 0.4.3 - 2018-03-09
 
 * Fix conversion from datetime to cdtime. This will fix those who set the time
