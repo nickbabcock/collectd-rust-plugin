@@ -1,5 +1,7 @@
 mod errors;
 mod deconfig;
+mod level;
+pub use self::level::*;
 pub use self::errors::*;
 
 use serde::de::{self, Deserialize, DeserializeSeed, MapAccess, SeqAccess, Visitor};
@@ -416,6 +418,7 @@ impl<'de, 'a> SeqAccess<'de> for SeqSeparated<'a, 'de> {
 mod tests {
     use super::*;
     use super::super::ConfigValue;
+    use api::LogLevel;
 
     #[test]
     fn test_serde_simple_bool() {
@@ -650,6 +653,72 @@ mod tests {
             MyStruct {
                 my_bool: Some(true),
                 my_string: None,
+            },
+            actual
+        );
+    }
+
+    #[test]
+    fn test_serde_log_level() {
+        #[derive(Deserialize, PartialEq, Eq, Debug)]
+        struct MyStruct {
+            warn: LogLevel,
+            warning: LogLevel,
+            err: LogLevel,
+            error: LogLevel,
+            debug: LogLevel,
+            info: LogLevel,
+            notice: LogLevel,
+        };
+
+        let items = vec![
+            ConfigItem {
+                key: "warn",
+                values: vec![ConfigValue::String("warn")],
+                children: vec![],
+            },
+            ConfigItem {
+                key: "warning",
+                values: vec![ConfigValue::String("Warning")],
+                children: vec![],
+            },
+            ConfigItem {
+                key: "err",
+                values: vec![ConfigValue::String("ErR")],
+                children: vec![],
+            },
+            ConfigItem {
+                key: "error",
+                values: vec![ConfigValue::String("Error")],
+                children: vec![],
+            },
+            ConfigItem {
+                key: "debug",
+                values: vec![ConfigValue::String("debug")],
+                children: vec![],
+            },
+            ConfigItem {
+                key: "info",
+                values: vec![ConfigValue::String("INFO")],
+                children: vec![],
+            },
+            ConfigItem {
+                key: "notice",
+                values: vec![ConfigValue::String("notice")],
+                children: vec![],
+            },
+        ];
+
+        let actual = from_collectd(&items).unwrap();
+        assert_eq!(
+            MyStruct {
+                warn: LogLevel::Warning,
+                warning: LogLevel::Warning,
+                err: LogLevel::Error,
+                error: LogLevel::Error,
+                debug: LogLevel::Debug,
+                info: LogLevel::Info,
+                notice: LogLevel::Notice,
             },
             actual
         );
