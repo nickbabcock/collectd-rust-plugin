@@ -45,7 +45,9 @@ impl Plugin for TestWritePlugin {
             list.interval.num_seconds(),
             values,
         );
+
         collectd_log(LogLevel::Info, &line);
+        collectd_log_raw!(LogLevel::Info, b"I'm a raw log with arguments: %d\0", 10);
         Ok(())
     }
 }

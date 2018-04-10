@@ -121,6 +121,7 @@ extern crate serde_derive;
 pub mod de;
 
 pub mod bindings;
+#[macro_use]
 mod api;
 mod errors;
 #[macro_use]
@@ -148,6 +149,7 @@ mod tests {
         }
 
         fn plugins(_config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Error> {
+            collectd_log_raw!(LogLevel::Info, b"test %d\0", 10);
             Ok(PluginRegistration::Multiple(vec![]))
         }
     }

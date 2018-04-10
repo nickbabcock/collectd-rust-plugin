@@ -399,6 +399,37 @@ pub fn collectd_log(lvl: LogLevel, message: &str) {
     }
 }
 
+/// A simple wrapper around the collectd's plugin_log, which in turn wraps `vsnprintf`. Since this
+/// is a low level wrapper, prefer `collectd_log` mechanism. The only times you would prefer
+/// `collectd_log_raw`:
+///
+/// - Collectd was not compiled with `COLLECTD_DEBUG` (chances are, your collectd is compiled with
+/// debugging enabled) and you are logging a debug message.
+/// - The performance price of string formatting in rust instead of C is too large (this shouldn't
+/// be the case)
+///
+/// This expects an already null terminated byte string. In the future once the byte equivalent of
+/// `concat!` is rfc accepted and implemented, this won't be a requirement. I also wish that we
+/// could statically assert that the format string contained a null byte for the last character,
+/// but alas, I think we've hit brick wall with the current Rust compiler.
+#[macro_export]
+macro_rules! collectd_log_raw {
+    ($lvl:expr, $fmt:expr) => ({
+        let level: $crate::LogLevel = $lvl;
+        let level = level as i32;
+        unsafe {
+            $crate::bindings::plugin_log(level, ($fmt).as_ptr() as *const i8);
+        }
+    });
+    ($lvl:expr, $fmt:expr, $($arg:expr),*) => ({
+        let level: $crate::LogLevel = $lvl;
+        let level = level as i32;
+        unsafe {
+            $crate::bindings::plugin_log(level, ($fmt).as_ptr() as *const i8, $($arg)*);
+        }
+    });
+}
+
 #[cfg(feature = "collectd-57")]
 pub fn length(len: usize) -> usize {
     len
