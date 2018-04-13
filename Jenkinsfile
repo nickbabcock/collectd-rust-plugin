@@ -6,6 +6,12 @@ def steps = runs.collectEntries {
     ["ubuntu $it.key": job(it.key, it.value)]
 }
 
+properties([
+    pipelineTriggers([
+        cron('@weekly')
+    ])
+])
+
 parallel steps
 
 def job(os, collectd) {
