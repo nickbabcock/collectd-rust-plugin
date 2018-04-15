@@ -352,7 +352,7 @@ macro_rules! collectd_plugin {
                 // versions. The one difference is that user_data_t went from mutable to not
                 // mutable. The code duplication is annoying, but it's better to have it
                 // encapsulated in a single crate instead of many others.
-                #[cfg(not(feature = "collectd-57"))]
+                #[cfg(not(collectd57))]
                 {
                     // The user data that is passed to read, writes, logs, etc. It is not passed to
                     // config or init. Since user_data_t implements copy, we don't need to forget about
@@ -389,7 +389,7 @@ macro_rules! collectd_plugin {
                     }
                 }
 
-                #[cfg(feature = "collectd-57")]
+                #[cfg(collectd57)]
                 {
                     // The user data that is passed to read, writes, logs, etc. It is not passed to
                     // config or init. Since user_data_t implements copy, we don't need to forget about

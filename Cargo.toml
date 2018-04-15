@@ -10,6 +10,7 @@ categories = ["external-ffi-bindings"]
 license = "MIT"
 
 [build-dependencies]
+regex = "0.2"
 bindgen = { version = "0.32.1", optional = true }
 
 [dependencies]
@@ -24,9 +25,6 @@ serde_derive = "1.0"
 criterion = "0.2"
 
 [features]
-collectd-54 = []
-collectd-55 = []
-collectd-57 = []
 stub = []
 default = []
 

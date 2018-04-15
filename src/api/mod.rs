@@ -293,10 +293,10 @@ impl<'a> ValueListBuilder<'a> {
             .map(|x| to_array_res(x).context("host"))
             .unwrap_or_else(|| unsafe { Ok(hostname_g) })?;
 
-        #[cfg(feature = "collectd-57")]
+        #[cfg(collectd57)]
         let len = v.len();
 
-        #[cfg(not(feature = "collectd-57"))]
+        #[cfg(not(collectd57))]
         let len = v.len() as i32;
 
         let list = value_list_t {
@@ -445,22 +445,22 @@ macro_rules! collectd_log_raw {
     });
 }
 
-#[cfg(feature = "collectd-57")]
+#[cfg(collectd57)]
 pub fn length(len: usize) -> usize {
     len
 }
 
-#[cfg(not(feature = "collectd-57"))]
+#[cfg(not(collectd57))]
 pub fn length(len: i32) -> usize {
     len as usize
 }
 
-#[cfg(feature = "collectd-57")]
+#[cfg(collectd57)]
 pub fn get_default_interval() -> u64 {
     0
 }
 
-#[cfg(not(feature = "collectd-57"))]
+#[cfg(not(collectd57))]
 pub fn get_default_interval<T>() -> *const T {
     use std::ptr;
     ptr::null()

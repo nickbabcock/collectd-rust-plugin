@@ -17,8 +17,5 @@ crate-type = ["cdylib"]
 name = "testwriteplugin"
 
 [features]
-collectd-54 = ["collectd-plugin/collectd-54"]
-collectd-55 = ["collectd-plugin/collectd-55"]
-collectd-57 = ["collectd-plugin/collectd-57"]
 bindgen = ["collectd-plugin/bindgen"]
 default = []
