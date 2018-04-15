@@ -1,3 +1,17 @@
+## 0.5.0 - 2018-04-16
+
+* **Breaking Change**: Replace collectd cargo features with env variable. The `COLLECTD_VERSION` environment variable takes precedence, but if missing, `collectd_plugin` will attempt to autodetect the version by executing `collectd -h`. By going this route, we can ensure several invariants at build time:
+
+- That the package builds. Previously, the `default` feature set would fail compilation with not intuitive error message. Now one has to supply the version or rely on autodetection.
+- That one can't combine features, like specifying `collectd-54` and `collectd-57` at the same time. They are now mutually exclusive.
+- I can now execute `cargo package` without running with `--no-verify` as `cargo package` doesn't allow feature selection (somewhat understandably).
+
+Valid `COLLECTD_VERSION` variables:
+
+- `5.4`
+- `5.5`
+- `5.7`
+
 ## 0.4.4 - 2018-04-10
 
 * Add serde deserialization for `LogLevel`
