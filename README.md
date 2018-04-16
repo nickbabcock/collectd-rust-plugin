@@ -49,7 +49,7 @@ This repo is tested on the following:
 
 [See what to add to your project's Cargo file](#to-build)
 
-Below is a complete plugin that dummy reports [load](https://en.wikipedia.org/wiki/Load_(computing)) values to collectd, as it registers a `READ` hook. For an implementation that reimplements Collectd's own load plugin, see [plugins/load](https://github.com/nickbabcock/collectd-rust-plugin/tree/master/plugins/load)
+Below is a complete plugin that dummy reports [load](https://en.wikipedia.org/wiki/Load_(computing)) values to collectd, as it registers a `READ` hook. For an implementation that reimplements Collectd's own load plugin, see [examples/load](https://github.com/nickbabcock/collectd-rust-plugin/tree/master/examples/load.rs)
 
 ```rust
 #[macro_use]
@@ -132,14 +132,11 @@ name = "<your plugin name>"
 
 
 [features]
-collectd-54 = ["collectd-plugin/collectd-54"]
-collectd-55 = ["collectd-plugin/collectd-55"]
-collectd-57 = ["collectd-plugin/collectd-57"]
 bindgen = ["collectd-plugin/bindgen"]
 default = []
 ```
 
-- Choosing a collectd version is required.
+- A collectd version is required. You can specify environment variable `COLLECTD_VERSION` as `5.4`, `5.5`, or `5.7`, or rely on `collectd-rust-plugin` auto detecting the version by executing `collectd -h`.
 - The bindgen feature is optional (it will re-compute the Rust bindings from C code, which shouldn't be necessary). Make sure you have an appropriate version of clang installed and `collectd-dev`
 - Collectd expects plugins to not be prefixed with `lib`, so `cp target/debug/libmyplugin.so /usr/lib/collectd/myplugin.so`
 - Add `LoadPlugin myplugin` to collectd.conf
@@ -147,7 +144,7 @@ default = []
 ## Plugin Configuration
 
 The load plugin in
-[plugins/load](https://github.com/nickbabcock/collectd-rust-plugin/tree/master/plugins/load)
+[examples/load](https://github.com/nickbabcock/collectd-rust-plugin/tree/master/examples/load.rs)
 demonstrates how to expose configuration values to Collectd.
 
 ```xml
@@ -163,7 +160,7 @@ demonstrates how to expose configuration values to Collectd.
 To measure the overhead of adapting Collectd's datatypes when writing and reporting values:
 
 ```bash
-cargo bench --features 'stub collectd-57'
+cargo bench --features stub
 ```
 
 If you'd like to use the timings on my machine:
