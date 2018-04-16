@@ -5,6 +5,7 @@
 - That the package builds. Previously, the `default` feature set would fail compilation with not intuitive error message. Now one has to supply the version or rely on autodetection.
 - That one can't combine features, like specifying `collectd-54` and `collectd-57` at the same time. They are now mutually exclusive.
 - I can now execute `cargo package` without running with `--no-verify` as `cargo package` doesn't allow feature selection (somewhat understandably).
+- Create a compliant `examples/` directory for examples!
 
 Valid `COLLECTD_VERSION` variables:
 
