@@ -13,4 +13,5 @@ build: false
 # we can only build the core module. Collectd doesn't work on windows so this
 # isn't something we really should care about
 test_script:
-  - cargo build --features "collectd-55 serde"
+  - set COLLECTD_VERSION=5.5
+  - cargo build --features serde
