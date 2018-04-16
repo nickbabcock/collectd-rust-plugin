@@ -1,3 +1,5 @@
+#![cfg(feature = "serde")]
+
 #[macro_use]
 extern crate collectd_plugin;
 extern crate failure;
