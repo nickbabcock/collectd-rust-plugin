@@ -1,4 +1,11 @@
 language: rust
+env:
+  - COLLECTD_VERSION=5.4 FEATURES=""
+  - COLLECTD_VERSION=5.5 FEATURES=""
+  - COLLECTD_VERSION=5.7 FEATURES=""
+  - COLLECTD_VERSION=5.4 FEATURES="serde"
+  - COLLECTD_VERSION=5.5 FEATURES="serde"
+  - COLLECTD_VERSION=5.7 FEATURES="serde"
 script:
-  - cargo build --verbose --all --features 'collectd-55 serde'
-  - cargo test --verbose --all --features 'collectd-55 serde'
+  - cargo build --features "$FEATURES"
+  - cargo test --features "$FEATURES"
