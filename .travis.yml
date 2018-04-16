@@ -1,4 +1,9 @@
 language: rust
+rust:
+  - stable
+  - beta
+  - nightly
+
 env:
   - COLLECTD_VERSION=5.4 FEATURES=""
   - COLLECTD_VERSION=5.5 FEATURES=""
