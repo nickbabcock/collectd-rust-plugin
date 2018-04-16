@@ -17,35 +17,38 @@ fn main() {
 
     let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
     let collectd_version = env::var_os("COLLECTD_VERSION")
-        .map(|x| x.into_string().expect("COLLECTD_VERSION to be a valid string"))
+        .map(|x| {
+            x.into_string()
+                .expect("COLLECTD_VERSION to be a valid string")
+        })
         .unwrap_or_else(|| {
-                Command::new("collectd")
-                    .args(&["-h"])
-                    .output()
-                    .map(|x| String::from_utf8(x.stdout).expect("Collectd output to be utf8"))
-                    .map(|x|
-                        re.captures(&x)
-                            .expect("Version info to be present in collectd")
-                            .get(1)
-                            .map(|x| String::from(x.as_str()))
-                            .unwrap()
-                    )
-                    .expect("Collectd -h to execute successfully")
-            });
+            Command::new("collectd")
+                .args(&["-h"])
+                .output()
+                .map(|x| String::from_utf8(x.stdout).expect("Collectd output to be utf8"))
+                .map(|x| {
+                    re.captures(&x)
+                        .expect("Version info to be present in collectd")
+                        .get(1)
+                        .map(|x| String::from(x.as_str()))
+                        .unwrap()
+                })
+                .expect("Collectd -h to execute successfully")
+        });
 
     let version = match collectd_version.as_str() {
         "5.8" | "5.7" => {
             println!("cargo:rustc-cfg=collectd57");
             CollectdVersion::Collectd57
-        },
+        }
         "5.6" | "5.5" => {
             println!("cargo:rustc-cfg=collectd55");
             CollectdVersion::Collectd55
-        },
+        }
         "5.4" => {
             println!("cargo:rustc-cfg=collectd54");
             CollectdVersion::Collectd54
-        },
+        }
         x => panic!("Unrecognized collectd version: {}", x),
     };
 
