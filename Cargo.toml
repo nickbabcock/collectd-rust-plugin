@@ -36,7 +36,8 @@ name = "readme"
 crate-type = ["cdylib"]
 
 [[example]]
-name = "load"
+name = "loadrust"
+path = "examples/load.rs"
 crate-type = ["cdylib"]
 
 [[example]]

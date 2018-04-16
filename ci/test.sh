@@ -11,7 +11,7 @@ cargo build --all --features "serde bindgen"
 cargo test --all --features "serde bindgen"
 cargo test-junit --name TestResults-bindgen --features "serde bindgen"
 
-cp target/debug/libloadrust.so /usr/lib/collectd/loadrust.so
+cp target/debug/examples/libloadrust.so /usr/lib/collectd/loadrust.so
 
 cat <<EOF | tee /etc/collectd/collectd.conf
 Hostname "localhost"
