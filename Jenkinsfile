@@ -1,6 +1,6 @@
-def runs = ['14.04':'collectd-54',
-            '16.04':'collectd-55',
-            '17.10':'collectd-57']
+def runs = ['14.04':'5.4',
+            '16.04':'5.5',
+            '17.10':'5.7']
 
 def steps = runs.collectEntries {
     ["ubuntu $it.key": job(it.key, it.value)]
@@ -18,7 +18,7 @@ def job(os, collectd) {
     return {
         docker.image("ubuntu:${os}").inside {
             checkout scm
-            sh "VERSION=${collectd} ci/full.sh"
+            sh "COLLECTD_VERSION=${collectd} ci/full.sh"
             junit 'TestResults-*'
         }
     }

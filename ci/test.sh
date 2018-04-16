@@ -3,13 +3,13 @@
 set -euo pipefail
 
 source $HOME/.cargo/env
-cargo build --all --features $VERSION
-cargo test --all --features $VERSION
-cargo test-junit --name TestResults --features $VERSION
+cargo build --all --features 'serde'
+cargo test --all --features 'serde'
+cargo test-junit --name TestResults --features 'serde'
 
-cargo build --all --features "$VERSION bindgen"
-cargo test --all --features "$VERSION bindgen"
-cargo test-junit --name TestResults-bindgen --features "$VERSION bindgen"
+cargo build --all --features "serde bindgen"
+cargo test --all --features "serde bindgen"
+cargo test-junit --name TestResults-bindgen --features "serde bindgen"
 
 cp target/debug/libloadrust.so /usr/lib/collectd/loadrust.so
 

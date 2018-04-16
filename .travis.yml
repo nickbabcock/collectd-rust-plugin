@@ -12,5 +12,5 @@ env:
   - COLLECTD_VERSION=5.5 FEATURES="serde"
   - COLLECTD_VERSION=5.7 FEATURES="serde"
 script:
-  - cargo build --features "$FEATURES"
-  - cargo test --features "$FEATURES"
+  - cargo build --all --features "$FEATURES"
+  - cargo test --all --features "$FEATURES"
