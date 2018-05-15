@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/nickbabcock/collectd-rust-plugin.svg?branch=master)](https://travis-ci.org/nickbabcock/collectd-rust-plugin) [![](https://docs.rs/collectd-plugin/badge.svg)](https://docs.rs/crate/collectd-plugin)
+
 # A Collectd Plugin Written in Rust
 
 Collectd is a ubiquitous system statistics collection daemon.
