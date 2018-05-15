@@ -9,6 +9,10 @@ keywords = ["collectd", "plugin"]
 categories = ["external-ffi-bindings"]
 license = "MIT"
 
+[package.metadata.docs.rs]
+rustc-args = ["--cfg",  "collectd57"]
+rustdoc-args = ["--cfg",  "collectd57"]
+
 [build-dependencies]
 regex = "0.2"
 bindgen = { version = "0.32.1", optional = true }
