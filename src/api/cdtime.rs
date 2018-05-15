@@ -3,7 +3,7 @@
 //! Collectd stores time information in a custom type: `cdtime_t`. Below is a snippet from
 //! collectd's docs about why this custom format was chosen.
 //!
-//! The time is stored at a 2^-30 second resolution, i.e. the most significant 34 bit are used to
+//! The time is stored at a 2<sup>-30</sup> second resolution, i.e. the most significant 34 bit are used to
 //! store the time in seconds, the least significant bits store the sub-second part in something
 //! very close to nanoseconds. *The* big advantage of storing time in this manner is that comparing
 //! times and calculating differences is as simple as it is with `time_t`, i.e. a simple integer
@@ -61,7 +61,7 @@ impl Into<cdtime_t> for CdTime {
     }
 }
 
-/// Convert epoch nanoseconds into collectd's 2^-30 second resolution
+/// Convert epoch nanoseconds into collectd's 2<sup>-30</sup> second resolution
 pub fn nanos_to_collectd(nanos: u64) -> cdtime_t {
     ((nanos / 1_000_000_000) << 30)
         | ((((nanos % 1_000_000_000) << 30) + 500_000_000) / 1_000_000_000)
