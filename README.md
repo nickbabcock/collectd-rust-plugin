@@ -24,8 +24,7 @@ Add to your `Cargo.toml`:
 collectd-plugin = "0.5.1"
 ```
 
-If you want [Serde](https://github.com/serde-rs/serde) support (recommended), include:
-features like this:
+If you want [Serde](https://github.com/serde-rs/serde) support (recommended), include the serde feature:
 
 ```toml
 [dependencies.collectd-plugin]
