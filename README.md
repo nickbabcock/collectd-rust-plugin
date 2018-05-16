@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/nickbabcock/collectd-rust-plugin.svg?branch=master)](https://travis-ci.org/nickbabcock/collectd-rust-plugin) [![](https://docs.rs/collectd-plugin/badge.svg)](https://docs.rs/crate/collectd-plugin) [![Rust](https://img.shields.io/badge/rust-1.23%2B-blue.svg?maxAge=3600)](https://github.com/nickbabcock/collectd-rust-plugin)
+[![Build Status](https://travis-ci.org/nickbabcock/collectd-rust-plugin.svg?branch=master)](https://travis-ci.org/nickbabcock/collectd-rust-plugin) [![](https://docs.rs/collectd-plugin/badge.svg)](https://docs.rs/collectd-plugin) [![Rust](https://img.shields.io/badge/rust-1.23%2B-blue.svg?maxAge=3600)](https://github.com/nickbabcock/collectd-rust-plugin)
 
 # A Collectd Plugin Written in Rust
 
