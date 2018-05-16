@@ -12,30 +12,8 @@ enum CollectdVersion {
 }
 
 fn main() {
-    let re = Regex::new(r"collectd (\d+\.\d+)\.\d+").expect("Valid collectd regex");
-    println!("cargo:rerun-if-env-changed=COLLECTD_VERSION");
-
+    let collectd_version = detect_collectd_version();
     let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
-    let collectd_version = env::var_os("COLLECTD_VERSION")
-        .map(|x| {
-            x.into_string()
-                .expect("COLLECTD_VERSION to be a valid string")
-        })
-        .unwrap_or_else(|| {
-            Command::new("collectd")
-                .args(&["-h"])
-                .output()
-                .map(|x| String::from_utf8(x.stdout).expect("Collectd output to be utf8"))
-                .map(|x| {
-                    re.captures(&x)
-                        .expect("Version info to be present in collectd")
-                        .get(1)
-                        .map(|x| String::from(x.as_str()))
-                        .unwrap()
-                })
-                .expect("Collectd -h to execute successfully")
-        });
-
     let version = match collectd_version.as_str() {
         "5.8" | "5.7" => {
             println!("cargo:rustc-cfg=collectd57");
@@ -53,6 +31,37 @@ fn main() {
     };
 
     bindings(out_path.join("bindings.rs"), version);
+}
+
+#[cfg(collectd_docs_rs)]
+fn detect_collectd_version() -> String {
+    String::from("5.5")
+}
+
+#[cfg(not(collectd_docs_rs))]
+fn detect_collectd_version() -> String {
+    let re = Regex::new(r"collectd (\d+\.\d+)\.\d+").expect("Valid collectd regex");
+    println!("cargo:rerun-if-env-changed=COLLECTD_VERSION");
+
+    env::var_os("COLLECTD_VERSION")
+        .map(|x| {
+            x.into_string()
+                .expect("COLLECTD_VERSION to be a valid string")
+        })
+        .unwrap_or_else(|| {
+            Command::new("collectd")
+                .args(&["-h"])
+                .output()
+                .map(|x| String::from_utf8(x.stdout).expect("Collectd output to be utf8"))
+                .map(|x| {
+                    re.captures(&x)
+                        .expect("Version info to be present in collectd")
+                        .get(1)
+                        .map(|x| String::from(x.as_str()))
+                        .unwrap()
+                })
+                .expect("Collectd -h to execute successfully")
+        })
 }
 
 #[cfg(feature = "bindgen")]

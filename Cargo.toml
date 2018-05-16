@@ -10,8 +10,8 @@ categories = ["external-ffi-bindings"]
 license = "MIT"
 
 [package.metadata.docs.rs]
-rustc-args = ["--cfg",  "collectd57"]
-rustdoc-args = ["--cfg",  "collectd57"]
+rustc-args = ["--cfg",  "collectd_docs_rs"]
+rustdoc-args = ["--cfg",  "collectd_docs_rs"]
 
 [badges]
 travis-ci = { repository = "nickbabcock/collectd-rust-plugin" }
