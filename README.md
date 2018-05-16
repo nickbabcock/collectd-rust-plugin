@@ -21,14 +21,14 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-collectd-plugin = "0.5.1"
+collectd-plugin = "0.5.2"
 ```
 
 If you want [Serde](https://github.com/serde-rs/serde) support (recommended), include the serde feature:
 
 ```toml
 [dependencies.collectd-plugin]
-version = "0.5.1"
+version = "0.5.2"
 features = ["serde"]
 ```
 
