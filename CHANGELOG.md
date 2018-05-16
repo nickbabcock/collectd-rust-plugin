@@ -1,3 +1,7 @@
+## 0.5.1 - 2018-05-15
+
+* Update documentation. Since 0.5.0, the `COLLECTD_VERSION` environment variable needs to be supplied, or cargo heuristically determines the installed collectd package. In the case where neither condition applies, the build will fail. When docs.rs generates the documentation, it failed both conditions, so the docs didn't build. The fix was to tweak `Cargo.toml` to provide the needed arguments in docs.rs metadata.
+
 ## 0.5.0 - 2018-04-16
 
 **Breaking Change**: Replace collectd cargo features with env variable. The `COLLECTD_VERSION` environment variable takes precedence, but if missing, `collectd_plugin` will attempt to autodetect the version by executing `collectd -h`. By going this route, we can ensure several invariants at build time:
