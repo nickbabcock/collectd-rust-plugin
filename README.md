@@ -129,7 +129,6 @@ To ensure a successful build, adapt the below to your project's Cargo file.
 crate-type = ["cdylib"]
 name = "<your plugin name>"
 
-
 [features]
 bindgen = ["collectd-plugin/bindgen"]
 default = []
