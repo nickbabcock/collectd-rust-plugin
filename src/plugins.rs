@@ -171,7 +171,7 @@ macro_rules! collectd_plugin {
         }
 
         unsafe extern "C" fn collectd_plugin_read(dt: *mut $crate::bindings::user_data_t) -> std::os::raw::c_int {
-            let ptr: *mut Box<$crate::Plugin>  = std::mem::transmute((*dt).data);
+            let ptr = (*dt).data as *mut Box<$crate::Plugin>;
             let mut plugin = Box::from_raw(ptr);
             let result = if let Err(ref e) = plugin.read_values() {
                 collectd_log_err("read", e);
@@ -185,7 +185,7 @@ macro_rules! collectd_plugin {
         }
 
         unsafe extern "C" fn collectd_plugin_free_user_data(raw: *mut ::std::os::raw::c_void) {
-            let ptr: *mut Box<$crate::Plugin> = std::mem::transmute(raw);
+            let ptr = raw as *mut Box<$crate::Plugin>;
             Box::from_raw(ptr);
         }
 
@@ -195,7 +195,7 @@ macro_rules! collectd_plugin {
             dt: *mut $crate::bindings::user_data_t
         ) {
             use std::ffi::CStr;
-            let ptr: *mut Box<$crate::Plugin> = std::mem::transmute((*dt).data);
+            let ptr = (*dt).data as *mut Box<$crate::Plugin>;
             let mut plugin = Box::from_raw(ptr);
             let msg = CStr::from_ptr(message).to_string_lossy();
             let lvl: $crate::LogLevel = std::mem::transmute(severity as u32);
@@ -210,7 +210,7 @@ macro_rules! collectd_plugin {
            vl: *const $crate::bindings::value_list_t,
            dt: *mut $crate::bindings::user_data_t
         ) -> std::os::raw::c_int {
-            let ptr: *mut Box<$crate::Plugin> = std::mem::transmute((*dt).data);
+            let ptr = (*dt).data as *mut Box<$crate::Plugin>;
             let mut plugin = Box::from_raw(ptr);
             let list = $crate::ValueList::from(&*ds, &*vl);
             if let Err(ref e) = list {
@@ -255,7 +255,7 @@ macro_rules! collectd_plugin {
         ) -> std::os::raw::c_int {
             use std::ffi::CStr;
 
-            let ptr: *mut Box<$crate::Plugin> = std::mem::transmute((*dt).data);
+            let ptr = (*dt).data as *mut Box<$crate::Plugin>;
             let mut plugin = Box::from_raw(ptr);
 
             let dur = if timeout == 0 { None } else { Some($crate::CdTime::from(timeout).into()) };
@@ -346,7 +346,7 @@ macro_rules! collectd_plugin {
 
             let s = CString::new(name).expect("Plugin name to not contain nulls");
             unsafe {
-                let plugin_ptr: *mut c_void = std::mem::transmute(Box::into_raw(pl));
+                let plugin_ptr = Box::into_raw(pl) as *mut c_void;
 
                 // Plugin registration differs only a tiny bit between collectd-57 and older
                 // versions. The one difference is that user_data_t went from mutable to not
