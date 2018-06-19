@@ -17,7 +17,7 @@ rustdoc-args = ["--cfg",  "collectd_docs_rs"]
 travis-ci = { repository = "nickbabcock/collectd-rust-plugin" }
 
 [build-dependencies]
-regex = "0.2"
+regex = "1"
 bindgen = { version = "0.32.1", optional = true }
 
 [dependencies]
