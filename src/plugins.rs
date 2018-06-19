@@ -32,19 +32,19 @@ pub enum PluginRegistration {
 }
 
 impl PluginCapabilities {
-    pub fn has_read(&self) -> bool {
+    pub fn has_read(self) -> bool {
         self.intersects(PluginCapabilities::READ)
     }
 
-    pub fn has_log(&self) -> bool {
+    pub fn has_log(self) -> bool {
         self.intersects(PluginCapabilities::LOG)
     }
 
-    pub fn has_write(&self) -> bool {
+    pub fn has_write(self) -> bool {
         self.intersects(PluginCapabilities::WRITE)
     }
 
-    pub fn has_flush(&self) -> bool {
+    pub fn has_flush(self) -> bool {
         self.intersects(PluginCapabilities::FLUSH)
     }
 }
