@@ -32,6 +32,20 @@ pub enum LogLevel {
     Debug = LOG_DEBUG,
 }
 
+impl LogLevel {
+    /// Attempts to convert a u32 representing a collectd logging level into a Rust enum
+    pub fn try_from(s: u32) -> Option<LogLevel> {
+        match s {
+            LOG_ERR => Some(LogLevel::Error),
+            LOG_WARNING => Some(LogLevel::Warning),
+            LOG_NOTICE => Some(LogLevel::Notice),
+            LOG_INFO => Some(LogLevel::Info),
+            LOG_DEBUG => Some(LogLevel::Debug),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[repr(u32)]
 #[allow(dead_code)]
