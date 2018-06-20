@@ -9,8 +9,10 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 
-use collectd_plugin::{ConfigItem, Plugin, PluginCapabilities, PluginManager, PluginRegistration,
-                      Value, ValueListBuilder};
+use collectd_plugin::{
+    ConfigItem, Plugin, PluginCapabilities, PluginManager, PluginRegistration, Value,
+    ValueListBuilder,
+};
 use failure::Error;
 
 /// Our plugin will look for a ReportRelative True / False in the collectd config. Unknown

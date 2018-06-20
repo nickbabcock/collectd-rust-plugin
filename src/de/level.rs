@@ -1,6 +1,6 @@
+use api::LogLevel;
 use serde::de::{self, Deserialize, Deserializer, Visitor};
 use std::fmt;
-use api::LogLevel;
 
 struct LogLevelVisitor;
 

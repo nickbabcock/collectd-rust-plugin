@@ -1,5 +1,7 @@
-use bindings::{oconfig_item_t, oconfig_value_t, oconfig_value_s__bindgen_ty_1,
-               OCONFIG_TYPE_BOOLEAN, OCONFIG_TYPE_NUMBER, OCONFIG_TYPE_STRING};
+use bindings::{
+    oconfig_item_t, oconfig_value_s__bindgen_ty_1, oconfig_value_t, OCONFIG_TYPE_BOOLEAN,
+    OCONFIG_TYPE_NUMBER, OCONFIG_TYPE_STRING,
+};
 use failure::{Error, ResultExt};
 use std::ffi::CStr;
 use std::slice;
@@ -36,9 +38,11 @@ impl<'a> ConfigValue<'a> {
             oconfig_value_s__bindgen_ty_1 { string }
                 if value.type_ == OCONFIG_TYPE_STRING as i32 =>
             {
-                Ok(ConfigValue::String(CStr::from_ptr(string)
-                    .to_str()
-                    .context("failed to decode config value string")?))
+                Ok(ConfigValue::String(
+                    CStr::from_ptr(string)
+                        .to_str()
+                        .context("failed to decode config value string")?,
+                ))
             }
             oconfig_value_s__bindgen_ty_1 { number }
                 if value.type_ == OCONFIG_TYPE_NUMBER as i32 =>

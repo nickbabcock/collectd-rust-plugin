@@ -3,8 +3,10 @@ extern crate collectd_plugin;
 extern crate failure;
 extern crate itertools;
 
-use collectd_plugin::{collectd_log, ConfigItem, LogLevel, Plugin, PluginCapabilities,
-                      PluginManager, PluginRegistration, ValueList};
+use collectd_plugin::{
+    collectd_log, ConfigItem, LogLevel, Plugin, PluginCapabilities, PluginManager,
+    PluginRegistration, ValueList,
+};
 use failure::Error;
 use itertools::Itertools;
 
@@ -29,7 +31,8 @@ impl Plugin for TestWritePlugin {
     }
 
     fn write_values<'a>(&mut self, list: ValueList<'a>) -> Result<(), Error> {
-        let values = list.values
+        let values = list
+            .values
             .iter()
             .map(|v| format!("{} - {}", v.name, v.value))
             .join(", ");

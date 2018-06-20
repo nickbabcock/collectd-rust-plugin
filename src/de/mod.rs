@@ -1,13 +1,13 @@
-mod errors;
 mod deconfig;
+mod errors;
 mod level;
-pub use self::level::*;
 pub use self::errors::*;
+pub use self::level::*;
 
-use serde::de::{self, Deserialize, DeserializeSeed, MapAccess, SeqAccess, Visitor};
-use api::ConfigItem;
-use self::errors::Error;
 use self::deconfig::*;
+use self::errors::Error;
+use api::ConfigItem;
+use serde::de::{self, Deserialize, DeserializeSeed, MapAccess, SeqAccess, Visitor};
 
 /// Serde documentation shadows the std's Result type which can be really confusing for Rust
 /// newcomers, so we compromise by creating an alias but prefixing with "De" to make it standout.
@@ -416,8 +416,8 @@ impl<'de, 'a> SeqAccess<'de> for SeqSeparated<'a, 'de> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::ConfigValue;
+    use super::*;
     use api::LogLevel;
 
     #[test]
@@ -427,13 +427,11 @@ mod tests {
             my_bool: bool,
         };
 
-        let items = vec![
-            ConfigItem {
-                key: "my_bool",
-                values: vec![ConfigValue::Boolean(true)],
-                children: vec![],
-            },
-        ];
+        let items = vec![ConfigItem {
+            key: "my_bool",
+            values: vec![ConfigValue::Boolean(true)],
+            children: vec![],
+        }];
 
         let actual = from_collectd(&items).unwrap();
         assert_eq!(MyStruct { my_bool: true }, actual);
@@ -457,13 +455,11 @@ mod tests {
             my_int: i8,
         };
 
-        let items = vec![
-            ConfigItem {
-                key: "my_int",
-                values: vec![ConfigValue::Number(1.0)],
-                children: vec![],
-            },
-        ];
+        let items = vec![ConfigItem {
+            key: "my_int",
+            values: vec![ConfigValue::Number(1.0)],
+            children: vec![],
+        }];
 
         let actual = from_collectd(&items).unwrap();
         assert_eq!(MyStruct { my_int: 1 }, actual);
@@ -476,13 +472,11 @@ mod tests {
             my_string: String,
         };
 
-        let items = vec![
-            ConfigItem {
-                key: "my_string",
-                values: vec![ConfigValue::String("HEY")],
-                children: vec![],
-            },
-        ];
+        let items = vec![ConfigItem {
+            key: "my_string",
+            values: vec![ConfigValue::String("HEY")],
+            children: vec![],
+        }];
 
         let actual = from_collectd(&items).unwrap();
         assert_eq!(
@@ -500,13 +494,11 @@ mod tests {
             my_string: &'a str,
         };
 
-        let items = vec![
-            ConfigItem {
-                key: "my_string",
-                values: vec![ConfigValue::String("HEY")],
-                children: vec![],
-            },
-        ];
+        let items = vec![ConfigItem {
+            key: "my_string",
+            values: vec![ConfigValue::String("HEY")],
+            children: vec![],
+        }];
 
         let actual = from_collectd(&items).unwrap();
         assert_eq!(MyStruct { my_string: "HEY" }, actual);
@@ -550,13 +542,11 @@ mod tests {
             my_bool: Vec<bool>,
         };
 
-        let items = vec![
-            ConfigItem {
-                key: "my_bool",
-                values: vec![ConfigValue::Boolean(true), ConfigValue::Boolean(false)],
-                children: vec![],
-            },
-        ];
+        let items = vec![ConfigItem {
+            key: "my_bool",
+            values: vec![ConfigValue::Boolean(true), ConfigValue::Boolean(false)],
+            children: vec![],
+        }];
 
         let actual = from_collectd(&items).unwrap();
         assert_eq!(
@@ -640,13 +630,11 @@ mod tests {
             my_string: Option<String>,
         };
 
-        let items = vec![
-            ConfigItem {
-                key: "my_bool",
-                values: vec![ConfigValue::Boolean(true)],
-                children: vec![],
-            },
-        ];
+        let items = vec![ConfigItem {
+            key: "my_bool",
+            values: vec![ConfigValue::Boolean(true)],
+            children: vec![],
+        }];
 
         let actual = from_collectd(&items).unwrap();
         assert_eq!(
@@ -731,13 +719,11 @@ mod tests {
             my_char: char,
         };
 
-        let items = vec![
-            ConfigItem {
-                key: "my_char",
-                values: vec![ConfigValue::String("/")],
-                children: vec![],
-            },
-        ];
+        let items = vec![ConfigItem {
+            key: "my_char",
+            values: vec![ConfigValue::String("/")],
+            children: vec![],
+        }];
 
         let actual = from_collectd(&items).unwrap();
         assert_eq!(MyStruct { my_char: '/' }, actual);
@@ -783,24 +769,20 @@ mod tests {
             ConfigItem {
                 key: "ports",
                 values: vec![],
-                children: vec![
-                    ConfigItem {
-                        key: "port",
-                        values: vec![ConfigValue::Number(2003.0)],
-                        children: vec![],
-                    },
-                ],
+                children: vec![ConfigItem {
+                    key: "port",
+                    values: vec![ConfigValue::Number(2003.0)],
+                    children: vec![],
+                }],
             },
             ConfigItem {
                 key: "ports",
                 values: vec![],
-                children: vec![
-                    ConfigItem {
-                        key: "port",
-                        values: vec![ConfigValue::Number(2004.0)],
-                        children: vec![],
-                    },
-                ],
+                children: vec![ConfigItem {
+                    key: "port",
+                    values: vec![ConfigValue::Number(2004.0)],
+                    children: vec![],
+                }],
             },
         ];
 

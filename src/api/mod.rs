@@ -1,17 +1,19 @@
-use bindings::{data_set_t, hostname_g, plugin_dispatch_values, plugin_log, value_list_t, value_t,
-               ARR_LENGTH, DS_TYPE_ABSOLUTE, DS_TYPE_COUNTER, DS_TYPE_DERIVE, DS_TYPE_GAUGE,
-               LOG_DEBUG, LOG_ERR, LOG_INFO, LOG_NOTICE, LOG_WARNING};
+use bindings::{
+    data_set_t, hostname_g, plugin_dispatch_values, plugin_log, value_list_t, value_t, ARR_LENGTH,
+    DS_TYPE_ABSOLUTE, DS_TYPE_COUNTER, DS_TYPE_DERIVE, DS_TYPE_GAUGE, LOG_DEBUG, LOG_ERR, LOG_INFO,
+    LOG_NOTICE, LOG_WARNING,
+};
+use chrono::prelude::*;
+use chrono::Duration;
+use errors::{ArrayError, SubmitError};
+use failure::{Error, ResultExt};
+use memchr::memchr;
+use std::ffi::{CStr, CString};
+use std::fmt;
 use std::os::raw::c_char;
 use std::ptr;
 use std::slice;
-use chrono::prelude::*;
-use chrono::Duration;
-use std::ffi::{CStr, CString};
-use failure::{Error, ResultExt};
-use errors::{ArrayError, SubmitError};
-use std::fmt;
 use std::str::Utf8Error;
-use memchr::memchr;
 
 pub use self::cdtime::{nanos_to_collectd, CdTime};
 pub use self::oconfig::{ConfigItem, ConfigValue};
@@ -275,12 +277,14 @@ impl<'a> ValueListBuilder<'a> {
     /// Submits the observed values to collectd and returns errors if encountered
     pub fn submit(self) -> Result<(), Error> {
         let mut v: Vec<value_t> = self.list.values.into_iter().map(|&x| x.into()).collect();
-        let plugin_instance = self.list
+        let plugin_instance = self
+            .list
             .plugin_instance
             .map(|x| to_array_res(x).context("plugin_instance"))
             .unwrap_or_else(|| Ok([0i8; ARR_LENGTH]))?;
 
-        let type_instance = self.list
+        let type_instance = self
+            .list
             .type_instance
             .map(|x| to_array_res(x).context("type_instance"))
             .unwrap_or_else(|| Ok([0i8; ARR_LENGTH]))?;
@@ -288,7 +292,8 @@ impl<'a> ValueListBuilder<'a> {
         // In collectd 5.7, it is no longer required to supply hostname_g for default hostname,
         // an empty array will get replaced with the hostname. However, since we're collectd 5.5
         // compatible, we use hostname_g in both circumstances, as it is not harmful
-        let host = self.list
+        let host = self
+            .list
             .host
             .map(|x| to_array_res(x).context("host"))
             .unwrap_or_else(|| unsafe { Ok(hostname_g) })?;
@@ -308,7 +313,8 @@ impl<'a> ValueListBuilder<'a> {
             type_instance,
             host,
             time: self.list.time.map(CdTime::from).unwrap_or(CdTime(0)).into(),
-            interval: self.list
+            interval: self
+                .list
                 .interval
                 .map(CdTime::from)
                 .unwrap_or(CdTime(0))
@@ -468,10 +474,10 @@ pub fn get_default_interval<T>() -> *const T {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use std::os::raw::c_char;
-    use bindings::data_source_t;
     use self::cdtime::nanos_to_collectd;
+    use super::*;
+    use bindings::data_source_t;
+    use std::os::raw::c_char;
 
     #[test]
     fn test_to_array() {
@@ -548,14 +554,12 @@ mod tests {
         assert_eq!(
             actual,
             ValueList {
-                values: vec![
-                    ValueReport {
-                        name: "hi",
-                        value: Value::Gauge(3.0),
-                        min: 10.0,
-                        max: 11.0,
-                    },
-                ],
+                values: vec![ValueReport {
+                    name: "hi",
+                    value: Value::Gauge(3.0),
+                    min: 10.0,
+                    max: 11.0,
+                }],
                 plugin_instance: Some("ho"),
                 plugin: "hi",
                 type_: "ho",

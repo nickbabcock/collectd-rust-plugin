@@ -1,9 +1,9 @@
 extern crate regex;
 
+use regex::Regex;
 use std::env;
 use std::path::PathBuf;
 use std::process::Command;
-use regex::Regex;
 
 enum CollectdVersion {
     Collectd54,

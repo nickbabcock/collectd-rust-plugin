@@ -7,14 +7,16 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 
-use collectd_plugin::{collectd_log, ConfigItem, LogLevel, Plugin, PluginCapabilities,
-                      PluginManager, PluginRegistration, Value, ValueList};
+use collectd_plugin::{
+    collectd_log, ConfigItem, LogLevel, Plugin, PluginCapabilities, PluginManager,
+    PluginRegistration, Value, ValueList,
+};
 use failure::Error;
-use std::sync::Mutex;
-use std::net::TcpStream;
-use std::io::Write;
 use std::borrow::Cow;
+use std::io::Write;
+use std::net::TcpStream;
 use std::ops::Deref;
+use std::sync::Mutex;
 
 /// Here is what our collectd config can look like:
 ///
@@ -85,12 +87,14 @@ impl PluginManager for GraphiteManager {
 
 /// If necessary removes any characters from a string that have special meaning in graphite.
 fn graphitize(s: &str) -> Cow<str> {
-    let needs_modifying = s.chars()
+    let needs_modifying = s
+        .chars()
         .any(|x| x == '.' || x.is_whitespace() || x.is_control());
     if !needs_modifying {
         Cow::Borrowed(s)
     } else {
-        let new_s: String = s.chars()
+        let new_s: String = s
+            .chars()
             .map(|x| {
                 if x == '.' || x.is_whitespace() || x.is_control() {
                     '-'

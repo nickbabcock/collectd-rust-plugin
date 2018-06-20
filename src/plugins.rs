@@ -1,7 +1,7 @@
-use failure::Error;
-use errors::NotImplemented;
 use api::{ConfigItem, LogLevel, ValueList};
 use chrono::Duration;
+use errors::NotImplemented;
+use failure::Error;
 
 bitflags! {
     /// Bitflags of capabilities that a plugin advertises to collectd.
@@ -119,8 +119,7 @@ pub trait Plugin: Sync {
 /// Sets up all the ffi entry points that collectd expects when given a `PluginManager`.
 #[macro_export]
 macro_rules! collectd_plugin {
-    ($type: ty) => {
-
+    ($type:ty) => {
         // Let's us know if we've seen our config section before
         static mut CONFIG_SEEN: bool = false;
 
@@ -131,20 +130,16 @@ macro_rules! collectd_plugin {
         #[no_mangle]
         pub extern "C" fn module_register() {
             use std::ffi::CString;
-            use $crate::bindings::{plugin_register_init, plugin_register_complex_config};
+            use $crate::bindings::{plugin_register_complex_config, plugin_register_init};
 
             let s = CString::new(<$type as PluginManager>::name())
                 .expect("Plugin name to not contain nulls");
 
             unsafe {
-                plugin_register_complex_config(
-                    s.as_ptr(),
-                    Some(collectd_plugin_complex_config)
-                );
+                plugin_register_complex_config(s.as_ptr(), Some(collectd_plugin_complex_config));
 
                 plugin_register_init(s.as_ptr(), Some(collectd_plugin_init));
             }
-
         }
 
         // Logs an error with a description and all the causes
@@ -159,18 +154,21 @@ macro_rules! collectd_plugin {
             //  - While nearly all languages will display each cause on a separate line for a
             //    stacktrace, I'm not aware of any collectd plugin doing the same. So to keep
             //    convention, all causes are logged on the same line, semicolon delimited.
-            let joined = err.causes()
+            let joined = err
+                .causes()
                 .map(|x| format!("{}", x))
                 .collect::<Vec<String>>()
                 .join("; ");
 
             $crate::collectd_log(
                 $crate::LogLevel::Error,
-                &format!("{} error: {}", desc, joined)
+                &format!("{} error: {}", desc, joined),
             );
         }
 
-        unsafe extern "C" fn collectd_plugin_read(dt: *mut $crate::bindings::user_data_t) -> std::os::raw::c_int {
+        unsafe extern "C" fn collectd_plugin_read(
+            dt: *mut $crate::bindings::user_data_t,
+        ) -> std::os::raw::c_int {
             let ptr = (*dt).data as *mut Box<$crate::Plugin>;
             let mut plugin = Box::from_raw(ptr);
             let result = if let Err(ref e) = plugin.read_values() {
@@ -192,7 +190,7 @@ macro_rules! collectd_plugin {
         unsafe extern "C" fn collectd_plugin_log(
             severity: ::std::os::raw::c_int,
             message: *const std::os::raw::c_char,
-            dt: *mut $crate::bindings::user_data_t
+            dt: *mut $crate::bindings::user_data_t,
         ) {
             use std::ffi::CStr;
             let ptr = (*dt).data as *mut Box<$crate::Plugin>;
@@ -206,9 +204,9 @@ macro_rules! collectd_plugin {
         }
 
         unsafe extern "C" fn collectd_plugin_write(
-           ds: *const $crate::bindings::data_set_t,
-           vl: *const $crate::bindings::value_list_t,
-           dt: *mut $crate::bindings::user_data_t
+            ds: *const $crate::bindings::data_set_t,
+            vl: *const $crate::bindings::value_list_t,
+            dt: *mut $crate::bindings::user_data_t,
         ) -> std::os::raw::c_int {
             let ptr = (*dt).data as *mut Box<$crate::Plugin>;
             let mut plugin = Box::from_raw(ptr);
@@ -219,13 +217,12 @@ macro_rules! collectd_plugin {
                 return -1;
             }
 
-            let result =
-                if let Err(ref e) = plugin.write_values(list.unwrap()) {
-                    collectd_log_err("writing", e);
-                    -1
-                } else {
-                    0
-                };
+            let result = if let Err(ref e) = plugin.write_values(list.unwrap()) {
+                collectd_log_err("writing", e);
+                -1
+            } else {
+                0
+            };
             std::mem::forget(plugin);
             result
         }
@@ -251,39 +248,46 @@ macro_rules! collectd_plugin {
         unsafe extern "C" fn collectd_plugin_flush(
             timeout: $crate::bindings::cdtime_t,
             identifier: *const std::os::raw::c_char,
-            dt: *mut $crate::bindings::user_data_t
+            dt: *mut $crate::bindings::user_data_t,
         ) -> std::os::raw::c_int {
             use std::ffi::CStr;
 
             let ptr = (*dt).data as *mut Box<$crate::Plugin>;
             let mut plugin = Box::from_raw(ptr);
 
-            let dur = if timeout == 0 { None } else { Some($crate::CdTime::from(timeout).into()) };
-            let result =
-                if let Ok(ident) = CStr::from_ptr(identifier).to_str() {
-                    if let Err(ref e) = plugin.flush(dur, $crate::empty_to_none(ident)) {
-                        collectd_log_err("flush", e);
-                        -1
-                    } else {
-                        0
-                    }
-                } else {
+            let dur = if timeout == 0 {
+                None
+            } else {
+                Some($crate::CdTime::from(timeout).into())
+            };
+
+            let result = if let Ok(ident) = CStr::from_ptr(identifier).to_str() {
+                if let Err(ref e) = plugin.flush(dur, $crate::empty_to_none(ident)) {
+                    collectd_log_err("flush", e);
                     -1
-                };
+                } else {
+                    0
+                }
+            } else {
+                -1
+            };
 
             std::mem::forget(plugin);
             result
         }
 
         unsafe extern "C" fn collectd_plugin_complex_config(
-            config: *mut $crate::bindings::oconfig_item_t
+            config: *mut $crate::bindings::oconfig_item_t,
         ) -> std::os::raw::c_int {
             // If we've already seen the config, let's error out as one shouldn't use multiple
             // sections of configuration (group them under nodes like write_graphite)
             if CONFIG_SEEN {
                 $crate::collectd_log(
                     $crate::LogLevel::Error,
-                    &format!("already seen a config section for {}", <$type as PluginManager>::name())
+                    &format!(
+                        "already seen a config section for {}",
+                        <$type as PluginManager>::name()
+                    ),
                 );
                 return -1;
             }
@@ -299,7 +303,7 @@ macro_rules! collectd_plugin {
         }
 
         fn collectd_register_all_plugins(
-            config: Option<&[$crate::ConfigItem]>
+            config: Option<&[$crate::ConfigItem]>,
         ) -> std::os::raw::c_int {
             match <$type as PluginManager>::plugins(config) {
                 Ok(registration) => {
@@ -307,22 +311,20 @@ macro_rules! collectd_plugin {
                         $crate::PluginRegistration::Single(pl) => {
                             collectd_plugin_registration(
                                 <$type as $crate::PluginManager>::name(),
-                                pl
+                                pl,
                             );
                         }
                         $crate::PluginRegistration::Multiple(v) => {
                             for (id, pl) in v {
-                                let name = format!("{}/{}",
-                                    <$type as $crate::PluginManager>::name(),
-                                    id
-                                );
+                                let name =
+                                    format!("{}/{}", <$type as $crate::PluginManager>::name(), id);
 
                                 collectd_plugin_registration(name.as_str(), pl);
                             }
                         }
                     }
                     0
-                },
+                }
                 Err(ref e) => {
                     collectd_log_err("collectd config", e);
                     -1
@@ -331,10 +333,13 @@ macro_rules! collectd_plugin {
         }
 
         fn collectd_plugin_registration(name: &str, plugin: Box<$crate::Plugin>) {
+            use std::ffi::CString;
             use std::os::raw::c_void;
             use std::ptr;
-            use std::ffi::CString;
-            use $crate::bindings::{plugin_register_write, plugin_register_complex_read, plugin_register_log, plugin_register_flush};
+            use $crate::bindings::{
+                plugin_register_complex_read, plugin_register_flush, plugin_register_log,
+                plugin_register_write,
+            };
 
             let pl: Box<Box<$crate::Plugin>> = Box::new(plugin);
 
@@ -368,16 +373,12 @@ macro_rules! collectd_plugin {
                         s.as_ptr(),
                         Some(collectd_plugin_read),
                         $crate::get_default_interval(),
-                        &mut data
+                        &mut data,
                     );
                 }
 
                 if should_write {
-                    plugin_register_write(
-                        s.as_ptr(),
-                        Some(collectd_plugin_write),
-                        &mut data
-                    );
+                    plugin_register_write(s.as_ptr(), Some(collectd_plugin_write), &mut data);
                 }
 
                 if should_log {
