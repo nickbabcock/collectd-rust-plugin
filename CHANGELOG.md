@@ -1,4 +1,4 @@
-## 0.5.3 - TBA
+## 0.5.3 - 2018-06-20
 
 No functionality changed in this release -- more like cleanup for those who received clippy warnings using collectd-plugin or like it when a library remove `unsafe` usages!
 
