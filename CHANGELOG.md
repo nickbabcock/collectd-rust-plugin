@@ -1,3 +1,15 @@
+## 0.5.3 - TBA
+
+No functionality changed in this release -- more like cleanup for those who received clippy warnings using collectd-plugin or like it when a library remove `unsafe` usages!
+
+- `PluginCapabilities` takes `self` by value instead of by reference (clippy lint)
+- `collectd_plugin!` macro no longer references `cfg(collectd57)`, which while set in the collectd-plugin's build.rs doesn't affect the downstream user. The only reason why `collectd_plugin!` referenced `cfg(collectd57)` was to switch up mutability of a parameter that changed in Collectd 5.7. Since the mutability of the parameter does not change the behavior, a swath of code was eliminated and the clippy lint ignored.
+- Shrank the surface area of `unsafe` code:
+  - Global static mutable boolean replaced with `AtomicBoolean`. This necessitated a move to require a minimum rust version of 1.24.0.
+  - Prefer pointer casts instead of `transmute`
+  - Remove `u32` to `LogLevel` via `transmute` instead there is a `LogLevel::try_from`
+  - Instead of wrapping functions in `unsafe`, wrap the one or two statements that need unsafe.
+
 ## 0.5.2 - 2018-05-15
 
 Another attempt to have documentation displayed correctly.
