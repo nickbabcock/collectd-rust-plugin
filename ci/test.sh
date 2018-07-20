@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-source $HOME/.cargo/env
+source $CARGO_HOME/env
 cargo build --all --features 'serde'
 cargo test --all --features 'serde'
 cargo test-junit --name TestResults --features 'serde'

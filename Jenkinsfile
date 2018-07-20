@@ -20,7 +20,7 @@ def job(os, collectd) {
             checkout scm
             dir('ci') {
                 def image = docker.build('collectd-rust-image', "--build-arg UBUNTU_VERSION=${os} --build-arg COLLECTD_VERSION=${collectd} .")
-                image.inside('-v $HOME/.cargo:/root/.cargo') {
+                image.inside("-v ${WORKSPACE}:/tmp -e CARGO_HOME=/tmp/.cargo') {
                     checkout scm
                     sh "COLLECTD_VERSION=${collectd} ci/test.sh"
                     junit 'TestResults-*'
