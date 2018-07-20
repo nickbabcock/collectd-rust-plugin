@@ -1,6 +1,9 @@
 ARG UBUNTU_VERSION=16.04
-ARG COLLECTD_VERSION=5.5
 FROM ubuntu:${UBUNTU_VERSION}
+
+# Annoying that UBUNTU_VERSION has to be specified again
+ARG UBUNTU_VERSION=16.04
+ARG COLLECTD_VERSION=5.5
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     collectd \
