@@ -353,6 +353,10 @@ fn to_array_res(s: &str) -> Result<[c_char; ARR_LENGTH], ArrayError> {
     }
 
     let bytes = s.as_bytes();
+
+    // Using memchr to find a null and work around it is 10x faster than
+    // using a CString to get the bytes_with_nul and cut the time to submit
+    // values to collectd in half.
     if let Some(ind) = memchr(0, bytes) {
         return Err(ArrayError::NullPresent(ind, s.to_string()));
     }

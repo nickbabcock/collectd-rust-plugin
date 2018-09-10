@@ -1,13 +1,15 @@
 extern crate collectd_plugin;
 #[macro_use]
 extern crate criterion;
+extern crate memchr;
 
 use collectd_plugin::bindings::{
     data_set_t, data_source_t, value_list_t, value_t, ARR_LENGTH, DS_TYPE_GAUGE,
 };
 use collectd_plugin::{nanos_to_collectd, Value, ValueList, ValueListBuilder};
-use criterion::Criterion;
+use criterion::{Criterion, Benchmark};
 use std::os::raw::c_char;
+use std::ffi::CString;
 use std::ptr;
 
 fn convert_to_value_list(c: &mut Criterion) {
@@ -65,5 +67,18 @@ fn submit_value(c: &mut Criterion) {
     });
 }
 
-criterion_group!(benches, convert_to_value_list, submit_value);
+fn gen_nul_string(c: &mut Criterion) {
+    // While not behaviorally the same, both of these functions
+    // will detect a null for the use case of preparing a
+    // rust string to be sent to collectd
+    c.bench(
+        "gen_nul_string",
+        Benchmark::new("cstring", |b| b.iter(|| {
+            let c = CString::new(&"Hello world"[..]).unwrap();
+            let _d = c.as_bytes_with_nul();
+        })).with_function("memchr", |b| b.iter(|| memchr::memchr(0, &"Hello world"[..].as_bytes())))
+    );
+}
+
+criterion_group!(benches, convert_to_value_list, submit_value, gen_nul_string);
 criterion_main!(benches);
