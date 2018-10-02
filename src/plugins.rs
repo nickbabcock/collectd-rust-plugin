@@ -156,7 +156,7 @@ macro_rules! collectd_plugin {
             //    stacktrace, I'm not aware of any collectd plugin doing the same. So to keep
             //    convention, all causes are logged on the same line, semicolon delimited.
             let joined = err
-                .causes()
+                .iter_chain()
                 .map(|x| format!("{}", x))
                 .collect::<Vec<String>>()
                 .join("; ");
