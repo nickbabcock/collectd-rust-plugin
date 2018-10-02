@@ -42,7 +42,7 @@ This repo is tested on the following:
 
 - Collectd 5.4 (Ubuntu 14.04)
 - Collectd 5.5 (Ubuntu 16.04)
-- Collectd 5.7 (and above) (Ubuntu 17.04)
+- Collectd 5.7 (and above) (Ubuntu 18.04)
 
 ## Quickstart
 
