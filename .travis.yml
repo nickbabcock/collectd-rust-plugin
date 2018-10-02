@@ -8,16 +8,16 @@ language: rust
 matrix:
   fast_finish: true
   include:
-	- rust: 1.24.1
-	- rust: stable
-	- rust: beta
-	- rust: nightly
-	- rust: stable
-	  env: UBUNTU_VERSION=14.04 COLLECTD_VERSION=5.4
-	- rust: stable
-	  env: UBUNTU_VERSION=16.04 COLLECTD_VERSION=5.5
-	- rust: stable
-	  env: UBUNTU_VERSION=18.04 COLLECTD_VERSION=5.7
+    - rust: 1.24.1
+    - rust: stable
+    - rust: beta
+    - rust: nightly
+    - rust: stable
+      env: UBUNTU_VERSION=14.04 COLLECTD_VERSION=5.4
+    - rust: stable
+      env: UBUNTU_VERSION=16.04 COLLECTD_VERSION=5.5
+    - rust: stable
+      env: UBUNTU_VERSION=18.04 COLLECTD_VERSION=5.7
 
 script:
   - cargo build --all --features "serde"
