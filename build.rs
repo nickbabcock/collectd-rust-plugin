@@ -77,7 +77,7 @@ fn bindings(loc: PathBuf, version: CollectdVersion) {
         .header("wrapper.h")
         .clang_arg("-DHAVE_CONFIG_H")
         .clang_arg(arg)
-        .rust_target(bindgen::RustTarget::Stable_1_19)
+        .rust_target(bindgen::RustTarget::Stable_1_21)
         .whitelist_type("cdtime_t")
         .whitelist_type("data_set_t")
         .whitelist_function("plugin_.*")
