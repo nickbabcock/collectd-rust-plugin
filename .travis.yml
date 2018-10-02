@@ -23,4 +23,4 @@ script:
   - COLLECTD_VERSION=5.5 cargo build --all --features "serde"
   - COLLECTD_VERSION=5.5 cargo test --all --features "serde"
   - if [ ! -z $UBUNTU_VERSION ]; then docker build -t collectd-rust-plugin --build-arg UBUNTU_VERSION=${UBUNTU_VERSION} --build-arg COLLECTD_VERSION=${COLLECTD_VERSION} .; fi;
-  - if [ ! -z $UBUNTU_VERSION ]; then docker run -ti collectd-rust-plugin bash -c "cd /tmp && COLLECTD_VERSION=${collectd} ci/test.sh"; fi;
+  - if [ ! -z $UBUNTU_VERSION ]; then docker run -ti collectd-rust-plugin bash -c "cd /tmp && COLLECTD_VERSION=${COLLECTD_VERSION} ci/test.sh"; fi;
