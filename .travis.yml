@@ -1,17 +1,26 @@
-language: rust
-rust:
-  - 1.24.1
-  - stable
-  - beta
-  - nightly
+sudo: required
 
-env:
-  - COLLECTD_VERSION=5.4 FEATURES=""
-  - COLLECTD_VERSION=5.5 FEATURES=""
-  - COLLECTD_VERSION=5.7 FEATURES=""
-  - COLLECTD_VERSION=5.4 FEATURES="serde"
-  - COLLECTD_VERSION=5.5 FEATURES="serde"
-  - COLLECTD_VERSION=5.7 FEATURES="serde"
+services:
+- docker
+
+language: rust
+
+matrix:
+  fast_finish: true
+  include:
+	- rust: 1.24.1
+	- rust: stable
+	- rust: beta
+	- rust: nightly
+	- rust: stable
+	  env: UBUNTU_VERSION=14.04 COLLECTD_VERSION=5.4
+	- rust: stable
+	  env: UBUNTU_VERSION=16.04 COLLECTD_VERSION=5.5
+	- rust: stable
+	  env: UBUNTU_VERSION=18.04 COLLECTD_VERSION=5.7
+
 script:
-  - cargo build --all --features "$FEATURES"
-  - cargo test --all --features "$FEATURES"
+  - cargo build --all --features "serde"
+  - cargo test --all --features "serde"
+  - [ ! -z $UBUNTU_VERSION ] && docker build -t collectd-rust-plugin --build-arg UBUNTU_VERSION=${UBUNTU_VERSION} --build-arg COLLECTD_VERSION=${COLLECTD_VERSION} .
+  - [ ! -z $UBUNTU_VERSION ] && docker run -ti collectd-rust-plugin bash -c "COLLECTD_VERSION=${collectd} (cd /tmp && exec ci/test.sh)"
