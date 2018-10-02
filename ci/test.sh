@@ -5,11 +5,9 @@ set -euo pipefail
 source $HOME/.cargo/env
 cargo build --all --features 'serde'
 cargo test --all --features 'serde'
-cargo test-junit --name TestResults --features 'serde'
 
 cargo build --all --features "serde bindgen"
 cargo test --all --features "serde bindgen"
-cargo test-junit --name TestResults-bindgen --features "serde bindgen"
 
 cp target/debug/examples/libloadrust.so /usr/lib/collectd/loadrust.so
 
