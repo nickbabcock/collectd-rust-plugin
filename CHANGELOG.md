@@ -1,3 +1,8 @@
+## Unreleased - TBA
+
+- Bump failure dependency to 0.1.2
+- Enable `serde` feature by default, as most plugins will have some sort of configurations, and the recommended course of action is to enable the serde feature. Instead of forcing users to hop through another step on their way to writing a collectd plugin, make `serde` feature enabled by default.
+
 ## 0.5.3 - 2018-06-20
 
 No functionality changed in this release -- more like cleanup for those who received clippy warnings using collectd-plugin or like it when a library remove `unsafe` usages!
