@@ -1,11 +1,11 @@
 [![Build Status](https://travis-ci.org/nickbabcock/collectd-rust-plugin.svg?branch=master)](https://travis-ci.org/nickbabcock/collectd-rust-plugin) [![](https://docs.rs/collectd-plugin/badge.svg)](https://docs.rs/collectd-plugin) [![Rust](https://img.shields.io/badge/rust-1.24%2B-blue.svg?maxAge=3600)](https://github.com/nickbabcock/collectd-rust-plugin) [![Version](https://img.shields.io/crates/v/collectd-plugin.svg?style=flat-square)](https://crates.io/crates/collectd-plugin)
 
-# A Collectd Plugin Written in Rust
+# Write a Collectd Plugin in Rust
 
-Collectd is a ubiquitous system statistics collection daemon.
-`collectd_plugin` leverages Collectd's ability to dynamically load plugins and
+[Collectd](https://collectd.org/) is a ubiquitous system statistics collection daemon.
+`collectd_plugin` leverages collectd's ability to dynamically load plugins and
 creates an ergonomic, yet extremely low cost abstraction API to interface with
-Collectd.
+collectd.
 
 Features:
 
@@ -34,15 +34,15 @@ extern crate collectd_plugin;
 
 This repo is tested on the following:
 
-- Collectd 5.4 (Ubuntu 14.04)
-- Collectd 5.5 (Ubuntu 16.04)
-- Collectd 5.7 (and above) (Ubuntu 18.04)
+- collectd 5.4 (Ubuntu 14.04)
+- collectd 5.5 (Ubuntu 16.04)
+- collectd 5.7 (and above) (Ubuntu 18.04)
 
 ## Quickstart
 
 [See what to add to your project's Cargo file](#to-build)
 
-Below is a complete plugin that dummy reports [load](https://en.wikipedia.org/wiki/Load_(computing)) values to collectd, as it registers a `READ` hook. For an implementation that reimplements Collectd's own load plugin, see [examples/load](https://github.com/nickbabcock/collectd-rust-plugin/tree/master/examples/load.rs)
+Below is a complete plugin that dummy reports [load](https://en.wikipedia.org/wiki/Load_(computing)) values to collectd, as it registers a `READ` hook. For an implementation that reimplements collectd's own load plugin, see [examples/load](https://github.com/nickbabcock/collectd-rust-plugin/tree/master/examples/load.rs)
 
 ```rust
 #[macro_use]
@@ -132,14 +132,14 @@ default = []
 
 - A collectd version is required. You can specify environment variable `COLLECTD_VERSION` as `5.4`, `5.5`, or `5.7`, or rely on `collectd-rust-plugin` auto detecting the version by executing `collectd -h`.
 - The bindgen feature is optional (it will re-compute the Rust bindings from C code, which shouldn't be necessary). Make sure you have an appropriate version of clang installed and `collectd-dev`
-- Collectd expects plugins to not be prefixed with `lib`, so `cp target/debug/libmyplugin.so /usr/lib/collectd/myplugin.so`
+- collectd expects plugins to not be prefixed with `lib`, so `cp target/debug/libmyplugin.so /usr/lib/collectd/myplugin.so`
 - Add `LoadPlugin myplugin` to collectd.conf
 
 ## Plugin Configuration
 
 The load plugin in
 [examples/load](https://github.com/nickbabcock/collectd-rust-plugin/tree/master/examples/load.rs)
-demonstrates how to expose configuration values to Collectd.
+demonstrates how to expose configuration values to collectd.
 
 ```xml
 # In this example configuration we provide short and long term load and leave
@@ -151,7 +151,7 @@ demonstrates how to expose configuration values to Collectd.
 
 ## Benchmarking Overhead
 
-To measure the overhead of adapting Collectd's datatypes when writing and reporting values:
+To measure the overhead of adapting collectd's datatypes when writing and reporting values:
 
 ```bash
 cargo bench --features stub
