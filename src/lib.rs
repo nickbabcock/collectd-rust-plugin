@@ -20,14 +20,7 @@
 //! collectd-plugin = "0.5.3"
 //! ```
 //!
-//! If you want [Serde](https://github.com/serde-rs/serde) support (recommended), include:
-//! features like this:
-//!
-//! ```toml
-//! [dependencies.collectd-plugin]
-//! version = "0.5.3"
-//! features = ["serde"]
-//! ```
+//! [Serde](https://github.com/serde-rs/serde) support is enabled by default for configuration parsing.
 //!
 //! Then put this in your crate root:
 //!
@@ -52,8 +45,10 @@
 //! extern crate collectd_plugin;
 //! extern crate failure;
 //!
-//! use collectd_plugin::{ConfigItem, Plugin, PluginCapabilities, PluginManager, PluginRegistration,
-//!                       Value, ValueListBuilder};
+//! use collectd_plugin::{
+//!     ConfigItem, Plugin, PluginCapabilities, PluginManager, PluginRegistration, Value,
+//!     ValueListBuilder,
+//! };
 //! use failure::Error;
 //!
 //! #[derive(Default)]
