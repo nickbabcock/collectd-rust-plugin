@@ -162,39 +162,38 @@ impl<'a> ValueList<'a> {
         let ds_len = length(set.ds_num);
         let list_len = length(list.values_len);
 
-        let values: Result<Vec<ValueReport>, Error> = unsafe {
-            slice::from_raw_parts(list.values, list_len)
-        }.iter()
-            .zip(unsafe { slice::from_raw_parts(set.ds, ds_len) })
-            .map(|(val, source)| unsafe {
-                let v = match ::std::mem::transmute(source.type_) {
-                    ValueType::Gauge => Value::Gauge(val.gauge),
-                    ValueType::Counter => Value::Counter(val.counter),
-                    ValueType::Derive => Value::Derive(val.derive),
-                    ValueType::Absolute => Value::Absolute(val.absolute),
-                };
+        let values: Result<Vec<ValueReport>, Error> =
+            unsafe { slice::from_raw_parts(list.values, list_len) }
+                .iter()
+                .zip(unsafe { slice::from_raw_parts(set.ds, ds_len) })
+                .map(|(val, source)| unsafe {
+                    let v = match ::std::mem::transmute(source.type_) {
+                        ValueType::Gauge => Value::Gauge(val.gauge),
+                        ValueType::Counter => Value::Counter(val.counter),
+                        ValueType::Derive => Value::Derive(val.derive),
+                        ValueType::Absolute => Value::Absolute(val.absolute),
+                    };
 
-                let name = from_array(&source.name).with_context(|_e| {
-                    format!("For plugin: {}, data source name could not be decoded", p)
-                })?;
+                    let name = from_array(&source.name).with_context(|_e| {
+                        format!("For plugin: {}, data source name could not be decoded", p)
+                    })?;
 
-                Ok(ValueReport {
-                    name,
-                    value: v,
-                    min: source.min,
-                    max: source.max,
-                })
-            })
-            .collect();
+                    Ok(ValueReport {
+                        name,
+                        value: v,
+                        min: source.min,
+                        max: source.max,
+                    })
+                }).collect();
 
         assert!(list.time > 0);
         assert!(list.interval > 0);
 
         Ok(ValueList {
             values: values?,
-            plugin_instance: empty_to_none(from_array(&list.plugin_instance).with_context(|_e| {
-                format!("For plugin: {}, plugin instance could not be decoded", p)
-            })?),
+            plugin_instance: empty_to_none(from_array(&list.plugin_instance).with_context(
+                |_e| format!("For plugin: {}, plugin instance could not be decoded", p),
+            )?),
             plugin: p,
             type_: from_array(&list.type_)
                 .with_context(|_e| format!("For plugin: {}, type could not be decoded", p))?,
@@ -539,7 +538,7 @@ mod tests {
         name[1] = b'i' as c_char;
 
         let val = data_source_t {
-            name: name,
+            name,
             type_: DS_TYPE_GAUGE as i32,
             min: 10.0,
             max: 11.0,

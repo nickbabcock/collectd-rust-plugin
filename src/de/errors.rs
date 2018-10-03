@@ -11,7 +11,10 @@ pub enum DeError {
     ExpectSingleValue,
     #[fail(display = "Expecting string")]
     ExpectString,
-    #[fail(display = "Expecting string of length one, received `{}`", _0)]
+    #[fail(
+        display = "Expecting string of length one, received `{}`",
+        _0
+    )]
     ExpectChar(String),
     #[fail(display = "Expecting boolean")]
     ExpectBoolean,

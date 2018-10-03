@@ -47,8 +47,7 @@ fn detect_collectd_version() -> String {
         .map(|x| {
             x.into_string()
                 .expect("COLLECTD_VERSION to be a valid string")
-        })
-        .unwrap_or_else(|| {
+        }).unwrap_or_else(|| {
             Command::new("collectd")
                 .args(&["-h"])
                 .output()
@@ -59,8 +58,7 @@ fn detect_collectd_version() -> String {
                         .get(1)
                         .map(|x| String::from(x.as_str()))
                         .unwrap()
-                })
-                .expect("Collectd -h to execute successfully")
+                }).expect("Collectd -h to execute successfully")
         })
 }
 
