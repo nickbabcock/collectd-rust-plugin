@@ -24,13 +24,7 @@ Add to your `Cargo.toml`:
 collectd-plugin = "0.5.3"
 ```
 
-If you want [Serde](https://github.com/serde-rs/serde) support (recommended), include the serde feature:
-
-```toml
-[dependencies.collectd-plugin]
-version = "0.5.3"
-features = ["serde"]
-```
+[Serde](https://github.com/serde-rs/serde) support is enabled by default for configuration parsing.
 
 Then put this in your crate root:
 
@@ -55,8 +49,10 @@ Below is a complete plugin that dummy reports [load](https://en.wikipedia.org/wi
 extern crate collectd_plugin;
 extern crate failure;
 
-use collectd_plugin::{ConfigItem, Plugin, PluginCapabilities, PluginManager, PluginRegistration,
-                      Value, ValueListBuilder};
+use collectd_plugin::{
+    ConfigItem, Plugin, PluginCapabilities, PluginManager, PluginRegistration, Value,
+    ValueListBuilder,
+};
 use failure::Error;
 
 #[derive(Default)]
