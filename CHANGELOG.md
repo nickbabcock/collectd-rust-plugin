@@ -1,6 +1,7 @@
 ## 0.6.1 - 2018-10-09
 
 - Globalize module paths found in `collectd_plugin!` macro. Previously the macro only worked if the `PluginManager` was defined in the same module as `collectd_plugin!` usage (or if one included the necessary imports used internally). This inflexibility was not conducive to organizing larger collectd plugins.
+- Update bindgen from 0.41.0 to 0.42.0
 
 ## 0.6.0 - 2018-10-03
 
