@@ -133,7 +133,7 @@ macro_rules! collectd_plugin {
             use std::ffi::CString;
             use $crate::bindings::{plugin_register_complex_config, plugin_register_init};
 
-            let s = CString::new(<$type as PluginManager>::name())
+            let s = CString::new(<$type as $crate::PluginManager>::name())
                 .expect("Plugin name to not contain nulls");
 
             unsafe {
@@ -144,7 +144,7 @@ macro_rules! collectd_plugin {
         }
 
         // Logs an error with a description and all the causes
-        fn collectd_log_err(desc: &str, err: &Error) {
+        fn collectd_log_err(desc: &str, err: &::failure::Error) {
             // We join all the causes into a single string. Some thoughts
             //  - This is not the most efficient way (that would belong to itertool crate), but
             //    collecting into a vector then joining is not terribly more expensive.
@@ -175,7 +175,7 @@ macro_rules! collectd_plugin {
 
         extern "C" fn collectd_plugin_read(
             dt: *mut $crate::bindings::user_data_t,
-        ) -> std::os::raw::c_int {
+        ) -> ::std::os::raw::c_int {
             let mut plugin = unsafe { collectd_user_data(dt) };
             let result = if let Err(ref e) = plugin.read_values() {
                 collectd_log_err("read", e);
@@ -184,7 +184,7 @@ macro_rules! collectd_plugin {
                 0
             };
 
-            std::mem::forget(plugin);
+            ::std::mem::forget(plugin);
             result
         }
 
@@ -195,7 +195,7 @@ macro_rules! collectd_plugin {
 
         extern "C" fn collectd_plugin_log(
             severity: ::std::os::raw::c_int,
-            message: *const std::os::raw::c_char,
+            message: *const ::std::os::raw::c_char,
             dt: *mut $crate::bindings::user_data_t,
         ) {
             use std::ffi::CStr;
@@ -203,7 +203,7 @@ macro_rules! collectd_plugin {
             let msg = unsafe { CStr::from_ptr(message).to_string_lossy() };
             let log_level = $crate::LogLevel::try_from(severity as u32);
             if let Some(lvl) = log_level {
-                if let Err(ref e) = plugin.log(lvl, std::ops::Deref::deref(&msg)) {
+                if let Err(ref e) = plugin.log(lvl, ::std::ops::Deref::deref(&msg)) {
                     collectd_log_err("logging", e);
                 }
             } else {
@@ -212,24 +212,24 @@ macro_rules! collectd_plugin {
                     &format!(
                         "Unrecognized severity log level: {} for {}",
                         severity,
-                        <$type as PluginManager>::name()
+                        <$type as $crate::PluginManager>::name()
                     ),
                 );
             }
 
-            std::mem::forget(plugin);
+            ::std::mem::forget(plugin);
         }
 
         extern "C" fn collectd_plugin_write(
             ds: *const $crate::bindings::data_set_t,
             vl: *const $crate::bindings::value_list_t,
             dt: *mut $crate::bindings::user_data_t,
-        ) -> std::os::raw::c_int {
+        ) -> ::std::os::raw::c_int {
             let mut plugin = unsafe { collectd_user_data(dt) };
             let list = unsafe { $crate::ValueList::from(&*ds, &*vl) };
             if let Err(ref e) = list {
                 collectd_log_err("unable to decode collectd data", e);
-                std::mem::forget(plugin);
+                ::std::mem::forget(plugin);
                 return -1;
             }
 
@@ -239,20 +239,20 @@ macro_rules! collectd_plugin {
             } else {
                 0
             };
-            std::mem::forget(plugin);
+            ::std::mem::forget(plugin);
             result
         }
 
-        extern "C" fn collectd_plugin_init() -> std::os::raw::c_int {
+        extern "C" fn collectd_plugin_init() -> ::std::os::raw::c_int {
             let mut result = if !CONFIG_SEEN.swap(true, ::std::sync::atomic::Ordering::Relaxed) {
                 collectd_register_all_plugins(None)
             } else {
                 0
             };
 
-            let capabilities = <$type as PluginManager>::capabilities();
+            let capabilities = <$type as $crate::PluginManager>::capabilities();
             if capabilities.intersects($crate::PluginManagerCapabilities::INIT) {
-                if let Err(ref e) = <$type as PluginManager>::initialize() {
+                if let Err(ref e) = <$type as $crate::PluginManager>::initialize() {
                     result = -1;
                     collectd_log_err("init", e);
                 }
@@ -263,9 +263,9 @@ macro_rules! collectd_plugin {
 
         extern "C" fn collectd_plugin_flush(
             timeout: $crate::bindings::cdtime_t,
-            identifier: *const std::os::raw::c_char,
+            identifier: *const ::std::os::raw::c_char,
             dt: *mut $crate::bindings::user_data_t,
-        ) -> std::os::raw::c_int {
+        ) -> ::std::os::raw::c_int {
             use std::ffi::CStr;
             let mut plugin = unsafe { collectd_user_data(dt) };
 
@@ -286,13 +286,13 @@ macro_rules! collectd_plugin {
                 -1
             };
 
-            std::mem::forget(plugin);
+            ::std::mem::forget(plugin);
             result
         }
 
         extern "C" fn collectd_plugin_complex_config(
             config: *mut $crate::bindings::oconfig_item_t,
-        ) -> std::os::raw::c_int {
+        ) -> ::std::os::raw::c_int {
             // If we've already seen the config, let's error out as one shouldn't use multiple
             // sections of configuration (group them under nodes like write_graphite)
             if CONFIG_SEEN.swap(true, ::std::sync::atomic::Ordering::Relaxed) {
@@ -300,7 +300,7 @@ macro_rules! collectd_plugin {
                     $crate::LogLevel::Error,
                     &format!(
                         "already seen a config section for {}",
-                        <$type as PluginManager>::name()
+                        <$type as $crate::PluginManager>::name()
                     ),
                 );
                 return -1;
@@ -317,8 +317,8 @@ macro_rules! collectd_plugin {
 
         fn collectd_register_all_plugins(
             config: Option<&[$crate::ConfigItem]>,
-        ) -> std::os::raw::c_int {
-            match <$type as PluginManager>::plugins(config) {
+        ) -> ::std::os::raw::c_int {
+            match <$type as $crate::PluginManager>::plugins(config) {
                 Ok(registration) => {
                     match registration {
                         $crate::PluginRegistration::Single(pl) => {

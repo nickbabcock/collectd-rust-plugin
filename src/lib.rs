@@ -135,23 +135,24 @@ pub use plugins::{
 #[allow(private_no_mangle_fns)]
 #[allow(dead_code)]
 mod tests {
-    use super::*;
-    use failure::Error;
+    mod tt {
+        pub struct MyPlugin;
+        use failure::Error;
+        use super::super::*;
 
-    struct MyPlugin;
+        impl PluginManager for MyPlugin {
+            fn name() -> &'static str {
+                "myplugin"
+            }
 
-    impl PluginManager for MyPlugin {
-        fn name() -> &'static str {
-            "myplugin"
-        }
-
-        fn plugins(_config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Error> {
-            collectd_log_raw!(LogLevel::Info, b"test %d\0", 10);
-            Ok(PluginRegistration::Multiple(vec![]))
+            fn plugins(_config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Error> {
+                collectd_log_raw!(LogLevel::Info, b"test %d\0", 10);
+                Ok(PluginRegistration::Multiple(vec![]))
+            }
         }
     }
 
-    collectd_plugin!(MyPlugin);
+    collectd_plugin!(tt::MyPlugin);
 
     #[test]
     fn can_generate_blank_plugin() {
