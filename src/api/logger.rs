@@ -142,13 +142,19 @@ impl CollectdLogger {
     }
 }
 
-/// Sends message and log level to collectd. Collectd configuration determines if a level is logged
+/// Sends message and log level to collectd. This bypasses any configuration setup via
+/// [`CollectdLoggerBuilder`], so collectd configuration soley determines if a level is logged
 /// and where it is delivered. Messages that are too long are truncated (1024 was the max length as
 /// of collectd-5.7).
+///
+/// In general, prefer [`CollectdLoggerBuilder`] and direct all logging as one normally would
+/// through the `log` crate.
 ///
 /// # Panics
 ///
 /// If a message containing a null character is given as a message this function will panic.
+///
+/// [`CollectdLoggerBuilder`]: struct.CollectdLoggerBuilder.html
 pub fn collectd_log(lvl: LogLevel, message: &str) {
     let cs = CString::new(message).expect("Collectd log to not contain nulls");
     unsafe {
@@ -164,7 +170,7 @@ pub fn collectd_log(lvl: LogLevel, message: &str) {
 /// collectd_log_raw!(LogLevel::Info, b"test %d\0", 10);
 /// ```
 ///
-/// Since this is a low level wrapper, prefer `collectd_log` mechanism. The only times you would
+/// Since this is a low level wrapper, prefer `CollectdLoggerBuilder` or even `collectd_log`. The only times you would
 /// prefer `collectd_log_raw`:
 ///
 /// - Collectd was not compiled with `COLLECTD_DEBUG` (chances are, your collectd is compiled with
