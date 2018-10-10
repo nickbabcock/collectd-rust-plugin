@@ -133,32 +133,3 @@ pub use errors::{ArrayError, SubmitError};
 pub use plugins::{
     Plugin, PluginCapabilities, PluginManager, PluginManagerCapabilities, PluginRegistration,
 };
-
-#[cfg(test)]
-#[allow(private_no_mangle_fns)]
-#[allow(dead_code)]
-mod tests {
-    mod tt {
-        pub struct MyPlugin;
-        use super::super::*;
-        use failure::Error;
-
-        impl PluginManager for MyPlugin {
-            fn name() -> &'static str {
-                "myplugin"
-            }
-
-            fn plugins(_config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Error> {
-                collectd_log_raw!(LogLevel::Info, b"test %d\0", 10);
-                Ok(PluginRegistration::Multiple(vec![]))
-            }
-        }
-    }
-
-    collectd_plugin!(tt::MyPlugin);
-
-    #[test]
-    fn can_generate_blank_plugin() {
-        assert!(true);
-    }
-}

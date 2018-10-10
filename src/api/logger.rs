@@ -4,6 +4,44 @@ use log::{self, Level, LevelFilter, Metadata, Record, SetLoggerError};
 use plugins::PluginManager;
 use std::ffi::CString;
 
+/// Bridges the gap between collectd and rust logging. Terminology and filters methods found here
+/// are from env_logger.
+///
+/// It is recommended to instantiate the logger in `PluginManager::plugins`.
+///
+/// The use case of multiple rust plugins that instantiate a global logger is supported. Each
+/// plugin will have its own copy of a global logger. Thus plugins won't interefere with others and
+/// their logging.
+///
+/// # Example
+///
+/// ```
+/// # extern crate collectd_plugin;
+/// # extern crate failure;
+/// # extern crate log;
+/// # fn main() {
+/// use collectd_plugin::{ConfigItem, PluginManager, PluginRegistration, CollectdLoggerBuilder};
+/// use failure::Error;
+/// use log::LevelFilter;
+///
+/// #[derive(Default)]
+/// struct MyPlugin;
+/// impl PluginManager for MyPlugin {
+///     fn name() -> &'static str {
+///         "myplugin"
+///     }
+///
+///     fn plugins(_config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Error> {
+///        CollectdLoggerBuilder::new()
+///            .prefix_plugin::<Self>()
+///            .filter_level(LevelFilter::Info)
+///            .try_init()
+///            .expect("really the only thing that should create a logger");
+///         unimplemented!()
+///     }
+/// }
+/// # }
+/// ```
 #[derive(Default)]
 pub struct CollectdLoggerBuilder {
     filter: filter::Builder,
@@ -11,10 +49,17 @@ pub struct CollectdLoggerBuilder {
 }
 
 impl CollectdLoggerBuilder {
+    /// Initializes the log builder with defaults
     pub fn new() -> Self {
         Default::default()
     }
 
+    /// Initializes the global logger with the built collectd logger.
+    ///
+    /// # Errors
+    ///
+    /// This function will fail if it is called more than once, or if another
+    /// library has already initialized a global logger.
     pub fn try_init(&mut self) -> Result<(), SetLoggerError> {
         let logger = CollectdLogger {
             filter: self.filter.build(),
@@ -25,26 +70,35 @@ impl CollectdLoggerBuilder {
         log::set_boxed_logger(Box::new(logger))
     }
 
+    /// Prefixes all log messages with a plugin's name. This is recommended to aid debugging and
+    /// gain insight into collectd logs.
     pub fn prefix_plugin<T: PluginManager>(&mut self) -> &mut Self {
         self.plugin = Some(T::name());
         self
     }
 
+    /// See
+    /// [`env_logger::Builder::filter_level`](https://docs.rs/env_logger/0.5.13/env_logger/struct.Builder.html#method.filter_level)
     pub fn filter_level(&mut self, level: LevelFilter) -> &mut Self {
         self.filter.filter_level(level);
         self
     }
 
+    /// See:
+    /// [`env_logger::Builder::filter_module`](https://docs.rs/env_logger/0.5.13/env_logger/struct.Builder.html#method.filter_module)
     pub fn filter_module(&mut self, module: &str, level: LevelFilter) -> &mut Self {
         self.filter.filter_module(module, level);
         self
     }
 
+    /// See:
+    /// [`env_logger::Builder::filter`](https://docs.rs/env_logger/0.5.13/env_logger/struct.Builder.html#method.filter)
     pub fn filter(&mut self, module: Option<&str>, level: LevelFilter) -> &mut Self {
         self.filter.filter(module, level);
         self
     }
 
+    /// See: [`env_logger::Builder::parse`](https://docs.rs/env_logger/0.5.13/env_logger/struct.Builder.html#method.parse)
     pub fn parse(&mut self, filters: &str) -> &mut Self {
         self.filter.parse(filters);
         self
