@@ -111,6 +111,8 @@ extern crate serde;
 #[cfg(feature = "serde")]
 #[macro_use]
 extern crate serde_derive;
+extern crate env_logger;
+extern crate log;
 
 #[cfg(feature = "serde")]
 pub mod de;
@@ -124,7 +126,8 @@ mod plugins;
 
 pub use api::{
     collectd_log, empty_to_none, from_array, get_default_interval, nanos_to_collectd, CdTime,
-    ConfigItem, ConfigValue, LogLevel, Value, ValueList, ValueListBuilder, ValueReport,
+    CollectdLoggerBuilder, ConfigItem, ConfigValue, LogLevel, Value, ValueList, ValueListBuilder,
+    ValueReport,
 };
 pub use errors::{ArrayError, SubmitError};
 pub use plugins::{
@@ -137,8 +140,8 @@ pub use plugins::{
 mod tests {
     mod tt {
         pub struct MyPlugin;
-        use failure::Error;
         use super::super::*;
+        use failure::Error;
 
         impl PluginManager for MyPlugin {
             fn name() -> &'static str {

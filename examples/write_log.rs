@@ -2,13 +2,16 @@
 extern crate collectd_plugin;
 extern crate failure;
 extern crate itertools;
+#[macro_use]
+extern crate log;
 
 use collectd_plugin::{
-    collectd_log, ConfigItem, LogLevel, Plugin, PluginCapabilities, PluginManager,
-    PluginRegistration, ValueList,
+    collectd_log, CollectdLoggerBuilder, ConfigItem, LogLevel, Plugin, PluginCapabilities,
+    PluginManager, PluginRegistration, ValueList,
 };
 use failure::Error;
 use itertools::Itertools;
+use log::LevelFilter;
 
 #[derive(Default)]
 struct TestWritePlugin;
@@ -19,8 +22,17 @@ impl PluginManager for TestWritePlugin {
     }
 
     fn plugins(config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Error> {
+        // Register a logging hook so that any usage of the `log` crate will be forwarded to
+        // collectd's logging facilities
+        CollectdLoggerBuilder::new()
+            .prefix_plugin::<Self>()
+            .filter_level(LevelFilter::Info)
+            .try_init()
+            .expect("really the only thing that should create a logger");
+
         let line = format!("Received configuration of {:?}", config);
         collectd_log(LogLevel::Info, &line);
+        info!("Rust: {}", line);
         Ok(PluginRegistration::Single(Box::new(TestWritePlugin)))
     }
 }
@@ -37,7 +49,7 @@ impl Plugin for TestWritePlugin {
             .map(|v| format!("{} - {}", v.name, v.value))
             .join(", ");
 
-        let line = format!(
+        info!(
             "plugin_instance: {}, plugin: {}, type: {}, type_instance: {}, host: {}, time: {}, interval: {} seconds, values: {}",
             list.plugin_instance.unwrap_or("<none>"),
             list.plugin,
@@ -49,7 +61,6 @@ impl Plugin for TestWritePlugin {
             values,
         );
 
-        collectd_log(LogLevel::Info, &line);
         collectd_log_raw!(LogLevel::Info, b"I'm a raw log with arguments: %d\0", 10);
         Ok(())
     }

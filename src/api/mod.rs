@@ -1,14 +1,13 @@
 use bindings::{
-    data_set_t, hostname_g, plugin_dispatch_values, plugin_log, value_list_t, value_t, ARR_LENGTH,
-    DS_TYPE_ABSOLUTE, DS_TYPE_COUNTER, DS_TYPE_DERIVE, DS_TYPE_GAUGE, LOG_DEBUG, LOG_ERR, LOG_INFO,
-    LOG_NOTICE, LOG_WARNING,
+    data_set_t, hostname_g, plugin_dispatch_values, value_list_t, value_t, ARR_LENGTH,
+    DS_TYPE_ABSOLUTE, DS_TYPE_COUNTER, DS_TYPE_DERIVE, DS_TYPE_GAUGE,
 };
 use chrono::prelude::*;
 use chrono::Duration;
 use errors::{ArrayError, SubmitError};
 use failure::{Error, ResultExt};
 use memchr::memchr;
-use std::ffi::{CStr, CString};
+use std::ffi::CStr;
 use std::fmt;
 use std::os::raw::c_char;
 use std::ptr;
@@ -16,35 +15,12 @@ use std::slice;
 use std::str::Utf8Error;
 
 pub use self::cdtime::{nanos_to_collectd, CdTime};
+pub use self::logger::{collectd_log, CollectdLoggerBuilder, LogLevel};
 pub use self::oconfig::{ConfigItem, ConfigValue};
 
 mod cdtime;
+mod logger;
 mod oconfig;
-
-/// The available levels that collectd exposes to log messages.
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-#[repr(u32)]
-pub enum LogLevel {
-    Error = LOG_ERR,
-    Warning = LOG_WARNING,
-    Notice = LOG_NOTICE,
-    Info = LOG_INFO,
-    Debug = LOG_DEBUG,
-}
-
-impl LogLevel {
-    /// Attempts to convert a u32 representing a collectd logging level into a Rust enum
-    pub fn try_from(s: u32) -> Option<LogLevel> {
-        match s {
-            LOG_ERR => Some(LogLevel::Error),
-            LOG_WARNING => Some(LogLevel::Warning),
-            LOG_NOTICE => Some(LogLevel::Notice),
-            LOG_INFO => Some(LogLevel::Info),
-            LOG_DEBUG => Some(LogLevel::Debug),
-            _ => None,
-        }
-    }
-}
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[repr(u32)]
@@ -404,68 +380,6 @@ pub fn empty_to_none(s: &str) -> Option<&str> {
     } else {
         Some(s)
     }
-}
-
-/// Sends message and log level to collectd. Collectd configuration determines if a level is logged
-/// and where it is delivered. Messages that are too long are truncated (1024 was the max length as
-/// of collectd-5.7).
-///
-/// # Panics
-///
-/// If a message containing a null character is given as a message this function will panic.
-pub fn collectd_log(lvl: LogLevel, message: &str) {
-    let cs = CString::new(message).expect("Collectd log to not contain nulls");
-    unsafe {
-        // Collectd will allocate another string behind the scenes before passing to plugins that
-        // registered a log hook, so passing it a string slice is fine.
-        plugin_log(lvl as i32, cs.as_ptr());
-    }
-}
-
-/// A simple wrapper around the collectd's plugin_log, which in turn wraps `vsnprintf`.
-///
-/// ```ignore
-/// collectd_log_raw!(LogLevel::Info, b"test %d\0", 10);
-/// ```
-///
-/// Since this is a low level wrapper, prefer `collectd_log` mechanism. The only times you would
-/// prefer `collectd_log_raw`:
-///
-/// - Collectd was not compiled with `COLLECTD_DEBUG` (chances are, your collectd is compiled with
-/// debugging enabled) and you are logging a debug message.
-/// - The performance price of string formatting in rust instead of C is too large (this shouldn't
-/// be the case)
-///
-/// Undefined behavior can result from any of the following:
-///
-/// - If the format string is not null terminated
-/// - If any string arguments are not null terminated. Use `CString::as_ptr()` to ensure null
-/// termination
-/// - Malformed format string or mismatched arguments
-///
-/// This expects an already null terminated byte string. In the future once the byte equivalent of
-/// `concat!` is rfc accepted and implemented, this won't be a requirement. I also wish that we
-/// could statically assert that the format string contained a null byte for the last character,
-/// but alas, I think we've hit brick wall with the current Rust compiler.
-///
-/// For ergonomic reasons, the format string is converted to the appropriate C ffi type from a byte
-/// string, but no other string arguments are afforded this luxury (so make sure you convert them).
-#[macro_export]
-macro_rules! collectd_log_raw {
-    ($lvl:expr, $fmt:expr) => ({
-        let level: $crate::LogLevel = $lvl;
-        let level = level as i32;
-        unsafe {
-            $crate::bindings::plugin_log(level, ($fmt).as_ptr() as *const i8);
-        }
-    });
-    ($lvl:expr, $fmt:expr, $($arg:expr),*) => ({
-        let level: $crate::LogLevel = $lvl;
-        let level = level as i32;
-        unsafe {
-            $crate::bindings::plugin_log(level, ($fmt).as_ptr() as *const i8, $($arg)*);
-        }
-    });
 }
 
 #[cfg(collectd57)]

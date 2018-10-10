@@ -6,12 +6,15 @@ extern crate failure;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
+#[macro_use]
+extern crate log;
 
 use collectd_plugin::{
-    collectd_log, ConfigItem, LogLevel, Plugin, PluginCapabilities, PluginManager,
+    CollectdLoggerBuilder, ConfigItem, Plugin, PluginCapabilities, PluginManager,
     PluginRegistration, Value, ValueList,
 };
 use failure::Error;
+use log::LevelFilter;
 use std::borrow::Cow;
 use std::io::Write;
 use std::net::TcpStream;
@@ -64,6 +67,14 @@ impl PluginManager for GraphiteManager {
     }
 
     fn plugins(config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Error> {
+        // Register a logging hook so that any usage of the `log` crate will be forwarded to
+        // collectd's logging facilities
+        CollectdLoggerBuilder::new()
+            .prefix_plugin::<Self>()
+            .filter_level(LevelFilter::Info)
+            .try_init()
+            .expect("really the only thing that should create a logger");
+
         // Deserialize the collectd configuration into our configuration struct
         let config: GraphiteConfig =
             collectd_plugin::de::from_collectd(config.unwrap_or_else(Default::default))?;
@@ -118,7 +129,7 @@ impl<W: Write + Send> GraphitePlugin<W> {
         // backoff. Instead we log the error.
         let mut w = self.writer.lock().unwrap();
         if let Err(ref e) = w.write(line.as_bytes()) {
-            collectd_log(LogLevel::Error, e.to_string().as_str());
+            error!("could not write to graphite: {}", e);
         }
     }
 }
