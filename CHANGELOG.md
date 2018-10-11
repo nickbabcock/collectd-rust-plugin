@@ -1,3 +1,49 @@
+## Unreleased - TBA
+
+I know it's a little unheard for two release two minor versions to be so close to each other, but an important integration has been added. Users can opt in to have [`log`](https://docs.rs/log) statements forwarded to collectd's logger.
+
+Here is the recommended way to log:
+
+*Before*:
+
+```rust
+let line = format!("collectd logging!");
+collectd_log(LogLevel::Info, &line);
+```
+
+*After*:
+
+```rust
+info!("collectd logging!");
+```
+
+To opt into this feature, utilize the `CollectdLoggerBuilder` to register the logger in a `PluginManager::plugins`.
+
+```rust
+#[derive(Default)]
+struct MyPlugin;
+impl PluginManager for MyPlugin {
+    fn name() -> &'static str {
+        "myplugin"
+    }
+
+    fn plugins(_config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Error> {
+       CollectdLoggerBuilder::new()
+           .prefix_plugin::<Self>()
+           .filter_level(LevelFilter::Info)
+           .try_init()
+           .expect("really the only thing that should create a logger");
+        unimplemented!()
+    }
+}
+```
+
+`CollectdLoggerBuilder` will look and feel very similar to [`env_logger`](https://docs.rs/env_logger).
+
+The motivation for this feature came when I realized that in one of my collectd plugins, a dependency was logging an error but since no logger was setup, the message was discarded.
+
+What's happening to `collectd_log`? Nothing right now. While it still has some uses, most should prefer using rust's native logging for a performance, ergonomic, and debugging win. If one needs to circumvent a potential rust logging filter, `collectd_log` is available.
+
 ## 0.6.1 - 2018-10-09
 
 - Globalize module paths found in `collectd_plugin!` macro. Previously the macro only worked if the `PluginManager` was defined in the same module as `collectd_plugin!` usage (or if one included the necessary imports used internally). This inflexibility was not conducive to organizing larger collectd plugins.
