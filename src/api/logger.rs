@@ -2,7 +2,10 @@ use bindings::{plugin_log, LOG_DEBUG, LOG_ERR, LOG_INFO, LOG_NOTICE, LOG_WARNING
 use env_logger::filter;
 use log::{self, Level, LevelFilter, Metadata, Record, SetLoggerError};
 use plugins::PluginManager;
-use std::ffi::CString;
+use std::cell::Cell;
+use std::ffi::{CStr, CString};
+use std::io::{self, Cursor, Write};
+use std::mem;
 
 /// Bridges the gap between collectd and rust logging. Terminology and filters methods found here
 /// are from env_logger.
@@ -46,7 +49,10 @@ use std::ffi::CString;
 pub struct CollectdLoggerBuilder {
     filter: filter::Builder,
     plugin: Option<&'static str>,
+    format: Format,
 }
+
+type FormatFn = Fn(&mut Write, &Record) -> io::Result<()> + Sync + Send;
 
 impl CollectdLoggerBuilder {
     /// Initializes the log builder with defaults
@@ -64,6 +70,7 @@ impl CollectdLoggerBuilder {
         let logger = CollectdLogger {
             filter: self.filter.build(),
             plugin: self.plugin,
+            format: mem::replace(&mut self.format, Default::default()).into_boxed_fn(),
         };
 
         log::set_max_level(logger.filter());
@@ -103,11 +110,41 @@ impl CollectdLoggerBuilder {
         self.filter.parse(filters);
         self
     }
+
+    /// Sets the format function for formatting the log output.
+    pub fn format<F: 'static>(&mut self, format: F) -> &mut Self
+        where F: Fn(&mut Write, &Record) -> io::Result<()> + Sync + Send
+    {
+        self.format.custom_format = Some(Box::new(format));
+        self
+	}
+}
+
+#[derive(Default)]
+struct Format {
+    custom_format: Option<Box<FormatFn>>,
+}
+
+impl Format {
+    fn into_boxed_fn(self) -> Box<FormatFn> {
+        if let Some(fmt) = self.custom_format {
+            fmt
+        } else {
+            Box::new(move |buf, record| {
+                if let Some(path) = record.module_path() {
+                    write!(buf, "{}: ", path)?;
+                }
+
+                write!(buf, "{}", record.args())
+            })
+        }
+    }
 }
 
 struct CollectdLogger {
     filter: filter::Filter,
     plugin: Option<&'static str>,
+    format: Box<FormatFn>,
 }
 
 impl log::Log for CollectdLogger {
@@ -117,12 +154,37 @@ impl log::Log for CollectdLogger {
 
     fn log(&self, record: &Record) {
         if self.matches(record) {
-            let lvl = LogLevel::from(record.level());
-            let s = match self.plugin {
-                Some(p) => format!("{}: {}", p, record.args()),
-                None => format!("{}", record.args()),
-            };
-            collectd_log(lvl, &s);
+            // Log records are written to a thread local storage before being submitted to
+            // collectd. The buffers are cleared afterwards
+            thread_local!(static LOG_BUF: Cell<Vec<u8>> = Cell::new(Vec::new()));
+            LOG_BUF.with(|cell| {
+                // Replaces the cell's contents with the default value, which is an empty vector.
+                // Should be very cheap to move in and out of
+                let v = cell.take();
+                let mut curse = Cursor::new(v);
+                if let Some(plugin) = self.plugin {
+                    write!(curse, "{}: ", plugin);
+                }
+
+                let mut new_vec = if (self.format)(&mut curse, record).is_ok() {
+                    let lvl = LogLevel::from(record.level());
+                    let mut nv = curse.into_inner();
+
+                    // Force a trailing NUL so that we can use fast path
+                    nv.push(b'\0');
+                    {
+                        let cs = unsafe { CStr::from_bytes_with_nul_unchecked(&nv[..]) };
+                        unsafe { plugin_log(lvl as i32, cs.as_ptr()) };
+                    }
+
+                    nv
+                } else {
+                    curse.into_inner()
+                };
+
+                new_vec.clear();
+                cell.set(new_vec);
+            });
         }
     }
 
