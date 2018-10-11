@@ -1,4 +1,4 @@
-## Unreleased - TBA
+## 0.7.0 - 2018-10-11
 
 I know it's a little unheard for two release two minor versions to be so close to each other, but an important integration has been added. Users can opt in to have [`log`](https://docs.rs/log) statements forwarded to collectd's logger.
 
