@@ -14,4 +14,4 @@ build: false
 # isn't something we really should care about
 test_script:
   - set COLLECTD_VERSION=5.5
-  - cargo build --features serde
+  - cargo build

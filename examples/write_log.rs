@@ -30,9 +30,9 @@ impl PluginManager for TestWritePlugin {
             .try_init()
             .expect("really the only thing that should create a logger");
 
-        let line = format!("Received configuration of {:?}", config);
+        let line = format!("collectd logging configuration: {:?}", config);
         collectd_log(LogLevel::Info, &line);
-        info!("Rust: {}", line);
+        info!("rust logging configuration: {:?}", config);
         Ok(PluginRegistration::Single(Box::new(TestWritePlugin)))
     }
 }
