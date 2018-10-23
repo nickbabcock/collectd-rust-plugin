@@ -164,7 +164,9 @@ impl log::Log for CollectdLogger {
                 let v = cell.take();
                 let mut curse = Cursor::new(v);
                 if let Some(plugin) = self.plugin {
-                    write!(curse, "{}: ", plugin);
+                    // writing the formatting to the vec shouldn't fail unless we ran out of
+                    // memory, but in that case, we have a host of other problems.
+                    let _ = write!(curse, "{}: ", plugin);
                 }
 
                 let mut new_vec = if (self.format)(&mut curse, record).is_ok() {
