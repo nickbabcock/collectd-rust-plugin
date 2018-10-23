@@ -12,6 +12,7 @@ matrix:
     - rust: stable
     - rust: beta
     - rust: nightly
+      env: RUSTFLAGS="--cfg nightly_test"
     - rust: stable
       env: UBUNTU_VERSION=14.04 COLLECTD_VERSION=5.4
     - rust: stable
