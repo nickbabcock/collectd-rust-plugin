@@ -139,7 +139,7 @@ impl<W: Write + Send> Plugin for GraphitePlugin<W> {
         PluginCapabilities::WRITE
     }
 
-    fn write_values<'a>(&self, list: ValueList<'a>) -> Result<(), Error> {
+    fn write_values(&self, list: ValueList) -> Result<(), Error> {
         // We use a heap allocated string to construct data to send to graphite. Collectd doesn't
         // use the heap (preferring fixed size arrays). We could get the same behavior using the
         // ArrayString type from the arrayvec crate.

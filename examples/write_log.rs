@@ -42,7 +42,7 @@ impl Plugin for TestWritePlugin {
         PluginCapabilities::WRITE
     }
 
-    fn write_values<'a>(&self, list: ValueList<'a>) -> Result<(), Error> {
+    fn write_values(&self, list: ValueList) -> Result<(), Error> {
         let values = list
             .values
             .iter()

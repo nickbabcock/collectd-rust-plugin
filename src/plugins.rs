@@ -101,7 +101,7 @@ pub trait Plugin: Send + Sync {
 
     /// Collectd is giving you reported values, do with them as you please. If writing values is
     /// expensive, prefer to buffer them in some way and register a `flush` callback to write.
-    fn write_values<'a>(&self, _list: ValueList<'a>) -> Result<(), Error> {
+    fn write_values(&self, _list: ValueList) -> Result<(), Error> {
         Err(Error::from(NotImplemented))
     }
 
