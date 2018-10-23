@@ -113,11 +113,12 @@ impl CollectdLoggerBuilder {
 
     /// Sets the format function for formatting the log output.
     pub fn format<F: 'static>(&mut self, format: F) -> &mut Self
-        where F: Fn(&mut Write, &Record) -> io::Result<()> + Sync + Send
+    where
+        F: Fn(&mut Write, &Record) -> io::Result<()> + Sync + Send,
     {
         self.format.custom_format = Some(Box::new(format));
         self
-	}
+    }
 }
 
 #[derive(Default)]

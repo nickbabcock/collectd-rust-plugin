@@ -74,8 +74,8 @@ pub trait PluginManager {
 }
 
 /// An individual plugin that is capable of reporting values to collectd, receiving values from
-/// other plugins, or logging messages. A plugin must implement `Sync` as collectd could be sending
-/// values to be written or logged concurrently. The Rust compiler will now ensure that everything
+/// other plugins, or logging messages. A plugin must implement `Sync + Send` as collectd could be sending
+/// values to be written or logged concurrently. The Rust compiler will ensure that everything
 /// not thread safe is wrapped in a Mutex (or another compatible datastructure)
 pub trait Plugin: Send + Sync {
     /// A plugin's capabilities. By default a plugin does nothing, but can advertise that it can
@@ -107,11 +107,7 @@ pub trait Plugin: Send + Sync {
 
     /// Flush values to be written that are older than given duration. If an identifier is given,
     /// then only those buffered values should be flushed.
-    fn flush(
-        &self,
-        _timeout: Option<Duration>,
-        _identifier: Option<&str>,
-    ) -> Result<(), Error> {
+    fn flush(&self, _timeout: Option<Duration>, _identifier: Option<&str>) -> Result<(), Error> {
         Err(Error::from(NotImplemented))
     }
 }
