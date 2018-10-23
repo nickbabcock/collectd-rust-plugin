@@ -86,7 +86,7 @@ impl Plugin for AbsoluteLoadPlugin {
         PluginCapabilities::READ
     }
 
-    fn read_values(&mut self) -> Result<(), Error> {
+    fn read_values(&self) -> Result<(), Error> {
         // Create a list of values to submit to collectd. We'll be sending in a vector representing the
         // "load" type. Short-term load is first followed by mid-term and long-term. The number of
         // values that you submit at a time depends on types.db in collectd configurations
@@ -104,7 +104,7 @@ impl Plugin for RelativeLoadPlugin {
         PluginCapabilities::READ
     }
 
-    fn read_values(&mut self) -> Result<(), Error> {
+    fn read_values(&self) -> Result<(), Error> {
         // Essentially the same as `AbsoluteLoadPlugin`, but divides each load value by the number
         // of cpus and submits the values as the type of "relative"
         let values: Vec<Value> = get_load()?

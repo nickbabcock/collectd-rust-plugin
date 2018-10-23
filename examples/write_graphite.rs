@@ -117,7 +117,7 @@ fn graphitize(s: &str) -> Cow<str> {
 }
 
 impl<W: Write + Send> GraphitePlugin<W> {
-    fn write_value(&mut self, mut line: String, val: Value, dt: &str) {
+    fn write_value(&self, mut line: String, val: Value, dt: &str) {
         line.push(' ');
         line.push_str(val.to_string().as_str());
         line.push(' ');
@@ -139,7 +139,7 @@ impl<W: Write + Send> Plugin for GraphitePlugin<W> {
         PluginCapabilities::WRITE
     }
 
-    fn write_values<'a>(&mut self, list: ValueList<'a>) -> Result<(), Error> {
+    fn write_values<'a>(&self, list: ValueList<'a>) -> Result<(), Error> {
         // We use a heap allocated string to construct data to send to graphite. Collectd doesn't
         // use the heap (preferring fixed size arrays). We could get the same behavior using the
         // ArrayString type from the arrayvec crate.

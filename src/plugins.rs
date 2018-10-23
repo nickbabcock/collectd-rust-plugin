@@ -77,7 +77,7 @@ pub trait PluginManager {
 /// other plugins, or logging messages. A plugin must implement `Sync` as collectd could be sending
 /// values to be written or logged concurrently. The Rust compiler will now ensure that everything
 /// not thread safe is wrapped in a Mutex (or another compatible datastructure)
-pub trait Plugin: Sync {
+pub trait Plugin: Send + Sync {
     /// A plugin's capabilities. By default a plugin does nothing, but can advertise that it can
     /// configure itself and / or report values.
     fn capabilities(&self) -> PluginCapabilities {
@@ -86,7 +86,7 @@ pub trait Plugin: Sync {
 
     /// Customizes how a message of a given level is logged. If the message isn't valid UTF-8, an
     /// allocation is done to replace all invalid characters with the UTF-8 replacement character
-    fn log(&mut self, _lvl: LogLevel, _msg: &str) -> Result<(), Error> {
+    fn log(&self, _lvl: LogLevel, _msg: &str) -> Result<(), Error> {
         Err(Error::from(NotImplemented))
     }
 
@@ -95,20 +95,20 @@ pub trait Plugin: Sync {
     /// that expect to report values need to have at least have a capability of `READ`. An error in
     /// reporting values will cause collectd to backoff exponentially until a delay of a day is
     /// reached.
-    fn read_values(&mut self) -> Result<(), Error> {
+    fn read_values(&self) -> Result<(), Error> {
         Err(Error::from(NotImplemented))
     }
 
     /// Collectd is giving you reported values, do with them as you please. If writing values is
     /// expensive, prefer to buffer them in some way and register a `flush` callback to write.
-    fn write_values<'a>(&mut self, _list: ValueList<'a>) -> Result<(), Error> {
+    fn write_values<'a>(&self, _list: ValueList<'a>) -> Result<(), Error> {
         Err(Error::from(NotImplemented))
     }
 
     /// Flush values to be written that are older than given duration. If an identifier is given,
     /// then only those buffered values should be flushed.
     fn flush(
-        &mut self,
+        &self,
         _timeout: Option<Duration>,
         _identifier: Option<&str>,
     ) -> Result<(), Error> {
@@ -167,16 +167,10 @@ macro_rules! collectd_plugin {
             );
         }
 
-        unsafe fn collectd_user_data(
-            dt: *mut $crate::bindings::user_data_t,
-        ) -> Box<Box<$crate::Plugin>> {
-            Box::from_raw((*dt).data as *mut Box<$crate::Plugin>)
-        }
-
         extern "C" fn collectd_plugin_read(
             dt: *mut $crate::bindings::user_data_t,
         ) -> ::std::os::raw::c_int {
-            let mut plugin = unsafe { collectd_user_data(dt) };
+            let mut plugin = unsafe { &mut *((*dt).data as *mut Box<$crate::Plugin>) };
             let result = if let Err(ref e) = plugin.read_values() {
                 collectd_log_err("read", e);
                 -1
@@ -184,13 +178,12 @@ macro_rules! collectd_plugin {
                 0
             };
 
-            ::std::mem::forget(plugin);
             result
         }
 
         unsafe extern "C" fn collectd_plugin_free_user_data(raw: *mut ::std::os::raw::c_void) {
             let ptr = raw as *mut Box<$crate::Plugin>;
-            Box::from_raw(ptr);
+            drop(Box::from_raw(ptr));
         }
 
         extern "C" fn collectd_plugin_log(
@@ -199,7 +192,7 @@ macro_rules! collectd_plugin {
             dt: *mut $crate::bindings::user_data_t,
         ) {
             use std::ffi::CStr;
-            let mut plugin = unsafe { collectd_user_data(dt) };
+            let mut plugin = unsafe { &mut *((*dt).data as *mut Box<$crate::Plugin>) };
             let msg = unsafe { CStr::from_ptr(message).to_string_lossy() };
             let log_level = $crate::LogLevel::try_from(severity as u32);
             if let Some(lvl) = log_level {
@@ -216,8 +209,6 @@ macro_rules! collectd_plugin {
                     ),
                 );
             }
-
-            ::std::mem::forget(plugin);
         }
 
         extern "C" fn collectd_plugin_write(
@@ -225,22 +216,19 @@ macro_rules! collectd_plugin {
             vl: *const $crate::bindings::value_list_t,
             dt: *mut $crate::bindings::user_data_t,
         ) -> ::std::os::raw::c_int {
-            let mut plugin = unsafe { collectd_user_data(dt) };
+            let mut plugin = unsafe { &mut *((*dt).data as *mut Box<$crate::Plugin>) };
             let list = unsafe { $crate::ValueList::from(&*ds, &*vl) };
             if let Err(ref e) = list {
                 collectd_log_err("unable to decode collectd data", e);
-                ::std::mem::forget(plugin);
                 return -1;
             }
 
-            let result = if let Err(ref e) = plugin.write_values(list.unwrap()) {
+            if let Err(ref e) = plugin.write_values(list.unwrap()) {
                 collectd_log_err("writing", e);
                 -1
             } else {
                 0
-            };
-            ::std::mem::forget(plugin);
-            result
+            }
         }
 
         extern "C" fn collectd_plugin_init() -> ::std::os::raw::c_int {
@@ -267,7 +255,7 @@ macro_rules! collectd_plugin {
             dt: *mut $crate::bindings::user_data_t,
         ) -> ::std::os::raw::c_int {
             use std::ffi::CStr;
-            let mut plugin = unsafe { collectd_user_data(dt) };
+            let mut plugin = unsafe { &mut *((*dt).data as *mut Box<$crate::Plugin>) };
 
             let dur = if timeout == 0 {
                 None
@@ -275,7 +263,7 @@ macro_rules! collectd_plugin {
                 Some($crate::CdTime::from(timeout).into())
             };
 
-            let result = if let Ok(ident) = unsafe { CStr::from_ptr(identifier) }.to_str() {
+            if let Ok(ident) = unsafe { CStr::from_ptr(identifier) }.to_str() {
                 if let Err(ref e) = plugin.flush(dur, $crate::empty_to_none(ident)) {
                     collectd_log_err("flush", e);
                     -1
@@ -284,10 +272,7 @@ macro_rules! collectd_plugin {
                 }
             } else {
                 -1
-            };
-
-            ::std::mem::forget(plugin);
-            result
+            }
         }
 
         extern "C" fn collectd_plugin_complex_config(
