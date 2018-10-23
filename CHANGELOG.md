@@ -1,3 +1,81 @@
+## Unreleased - TBA
+
+This is a breaking change that is going to affect everyone. It's a bummer, but hopefully by the end of this blurb, you will be convinced that the breaking change is worth it.
+
+For background, collectd has the right to call any of the `Plugin` methods in parallel and concurrently. Previously, a `Plugin` only needed to be `Sync` (a plugin is safe to have its references shared between threads), but this allowed for undefined behavior with code that isn't thread safe. The compiler only allowed it as transcended `unsafe` (ffi) boundaries. We can do better. `Send` is now required (so a plugin can be transferred across thread boundaries). We don't control collectd and how they manage our Plugin, so if collectd offloads our plugin to another thread, the plugin functionality must remain the same.
+
+Also all `Plugin` methods now force interior mutability by changing `&mut self` to `&self` to ensure thread safety in conjunction with the `Sync + Send` requirement. For instance, `Vec<u8>` is `Sync + Send` but one can't `Vec::push` across multiple threads, so synchronization primitives will now be required if mutability is desired.
+
+Everything is more clear with examples. Here is the error one will receive if they attempt to mutate something that is not thread safe (this code was previously allowed)
+
+```rust
+#[derive(Debug, Default)]
+pub struct MyPlugin {
+    names: HashSet<String>,
+}
+
+impl Plugin for MyPlugin {
+    fn read_values(&self) -> Result<(), Error> {
+        self.names.insert(String::from("A"));
+    }
+}
+```
+
+The compiler error:
+
+```
+error[E0596]: cannot borrow field `self.names` of immutable binding as mutable
+   --> src/plugin.rs:102:9
+    |
+97  |     fn read_values(&self) -> Result<(), Error> {
+    |                    ----- use `&mut self` here to make mutable
+...
+102 |         self.names.insert(String::from("A"));
+    |         ^^^^^^^^^^ cannot mutably borrow field of immutable binding
+```
+
+The fix is to use a synchronization primitive like a `Mutex`, which will allow one to mutate the inner data by taking an exclusive lock on the data.
+
+```rust
+#[derive(Debug, Default)]
+pub struct MyPlugin {
+    names: Mutex<HashSet<String>>,
+}
+
+impl Plugin for MyPlugin {
+    fn read_values(&self) -> Result<(), Error> {
+        let mut n = self.names.lock().unwrap();
+        n.insert(String::from("A"));
+    }
+}
+```
+
+Now if collectd happens to call `read_values` in parallel, there is no way we would stumble into undefined behavior, as the mutex ensures that thread B waits until thread A is done with the data (`names` in this instance). `Mutex` may not be right for you, so make sure employ correct synchronization primitives
+
+As a final demostration of why the changes were necessary the following should not compile:
+
+```rust
+#[derive(Debug, Default)]
+pub struct MyPlugin {
+    names: RefCell<HashSet<String>>,
+}
+
+impl Plugin for MyPlugin {
+    fn read_values(&self) -> Result<(), Error> {
+        let mut n = self.names.borrow_mut();
+        n.insert(String::from("A"));
+    }
+}
+```
+
+`RefCell` does not implement `Sync`. [From the Rust book](https://doc.rust-lang.org/book/second-edition/ch15-05-interior-mutability.html)
+
+> only for use in single-threaded scenarios and will give you a compile-time error if you try using it in a multithreaded context
+
+But it did previously compile! This hints that we were not setting up enough context for the compiler to ensure code is threadsafe.
+
+Thank you to the [Rust FFI Guide](https://michael-f-bryan.github.io/rust-ffi-guide/dynamic_loading.html#setting-up-plugins) for inspiration on this bugfix.
+
 ## 0.7.0 - 2018-10-11
 
 I know it's a little unheard for two release two minor versions to be so close to each other, but an important integration has been added. Users can opt in to have [`log`](https://docs.rs/log) statements forwarded to collectd's logger.
