@@ -1,4 +1,13 @@
-#[cfg(nightly_test)]
+// This test is disabled by default due compiletest issues:
+// https://github.com/laumann/compiletest-rs/issues/114
+//
+// If you do want to run this:
+//
+// ```
+// cargo clean
+// cargo test --features unstable
+// ```
+#[cfg(feature = "unstable")]
 mod tests {
     extern crate compiletest_rs as compiletest;
     use std::path::PathBuf;

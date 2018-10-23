@@ -28,6 +28,7 @@ memchr = "2"
 log = "0.4"
 env_logger = "0.5"
 serde = { version = "1", optional = true }
+compiletest_rs = { version =  "0.3.14", optional = true }
 
 [dev-dependencies]
 serde_derive = "1.0"
@@ -35,11 +36,11 @@ criterion = "0.2"
 itertools = "0.7"
 num_cpus = "1.0"
 libc = "0.2"
-compiletest_rs = { version = "0.3.14", features = ["stable"] }
 
 [features]
 stub = []
 default = ["serde"]
+unstable = ["compiletest_rs"]
 
 [[example]]
 name = "readme"
