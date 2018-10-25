@@ -61,6 +61,25 @@ pub enum Value {
     Absolute(u64),
 }
 
+impl Value {
+    /// Returns if an underlying value is nan
+    ///
+    /// ```
+    /// # extern crate collectd_plugin;
+    /// # use collectd_plugin::Value;
+    /// assert_eq!(true, Value::Gauge(::std::f64::NAN).is_nan());
+    /// assert_eq!(false, Value::Gauge(0.0).is_nan());
+    /// assert_eq!(false, Value::Derive(0).is_nan());
+    /// ```
+    pub fn is_nan(&self) -> bool {
+        if let Value::Gauge(x) = *self {
+            x.is_nan()
+        } else {
+            false
+        }
+    }
+}
+
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
