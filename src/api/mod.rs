@@ -547,6 +547,8 @@ mod tests {
                 host: "ho",
                 time: Utc.ymd(1970, 1, 1).and_hms(0, 0, 1),
                 interval: Duration::seconds(1),
+                original_list: &list_t,
+                original_set: &conv,
             }
         );
     }
