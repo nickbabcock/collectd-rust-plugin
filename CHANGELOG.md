@@ -1,4 +1,4 @@
-## Unreleased - TBA
+## 0.8.0 - 2018-10-25
 
 This is a breaking change that is going to affect everyone. It's a bummer, but hopefully by the end of this blurb, you will be convinced that the breaking change is worth it.
 
