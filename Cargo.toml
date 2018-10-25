@@ -32,6 +32,7 @@ compiletest_rs = { version =  "0.3.14", optional = true }
 
 [dev-dependencies]
 serde_derive = "1.0"
+serde_test = "1.0"
 criterion = "0.2"
 itertools = "0.7"
 num_cpus = "1.0"

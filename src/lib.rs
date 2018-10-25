@@ -117,6 +117,9 @@ extern crate log;
 #[cfg(feature = "serde")]
 pub mod de;
 
+#[cfg(feature = "serde")]
+pub mod ser;
+
 pub mod bindings;
 #[macro_use]
 mod api;
