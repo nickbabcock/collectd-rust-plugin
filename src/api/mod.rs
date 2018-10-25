@@ -65,7 +65,6 @@ impl Value {
     /// Returns if an underlying value is nan
     ///
     /// ```
-    /// # extern crate collectd_plugin;
     /// # use collectd_plugin::Value;
     /// assert_eq!(true, Value::Gauge(::std::f64::NAN).is_nan());
     /// assert_eq!(false, Value::Gauge(0.0).is_nan());
