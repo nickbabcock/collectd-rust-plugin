@@ -13,6 +13,7 @@ use std::os::raw::c_char;
 use std::ptr;
 use std::slice;
 use std::str::Utf8Error;
+use std::borrow::Cow;
 
 pub use self::cdtime::{nanos_to_collectd, CdTime};
 pub use self::logger::{collectd_log, CollectdLoggerBuilder, LogLevel};
@@ -161,10 +162,21 @@ impl<'a> ValueList<'a> {
     /// the `values` field that contains the rate of all non-gauge values. Values that are gauges
     /// remain unchanged, so one doesn't need to resort back to `values` field as this function
     /// will return everything prepped for submission.
-    pub fn rates(&self) -> Result<Vec<ValueReport<'a>>, Error> {
+    pub fn rates(&self) -> Result<Cow<Vec<ValueReport<'a>>>, Error> {
+        // As an optimization step, if we know all values are gauges there is no need to call out
+        // to uc_get_rate as no values will be changed
+        let all_gauges = self.values.iter().all(|x| match x.value {
+            Value::Gauge(_) => true,
+            _ => false
+        });
+
+        if all_gauges {
+            return Ok(Cow::Borrowed(&self.values))
+        }
+
         let ptr = unsafe { uc_get_rate(self.original_set, self.original_list) };
         if !ptr.is_null() {
-            Ok(unsafe { slice::from_raw_parts(ptr, self.values.len()) }
+            let nv = unsafe { slice::from_raw_parts(ptr, self.values.len()) }
                 .iter()
                 .zip(self.values.iter())
                 .map(|(rate, report)| match report.value {
@@ -173,7 +185,8 @@ impl<'a> ValueList<'a> {
                         value: Value::Gauge(*rate),
                         ..*report
                     },
-                }).collect())
+                }).collect();
+            Ok(Cow::Owned(nv))
         } else {
             Err(CacheRateError.into())
         }

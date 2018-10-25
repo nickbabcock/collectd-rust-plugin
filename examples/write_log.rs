@@ -60,7 +60,7 @@ impl Plugin for TestWritePlugin {
         let values = if self.store_rates {
             list.rates()
         } else {
-            Ok(list.values)
+            Ok(::std::borrow::Cow::Borrowed(&list.values))
         }?;
 
         let values = values
