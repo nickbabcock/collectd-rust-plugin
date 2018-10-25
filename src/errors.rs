@@ -24,3 +24,8 @@ pub enum SubmitError {
 #[derive(Fail, Debug)]
 #[fail(display = "Function is not implemented")]
 pub struct NotImplemented;
+
+/// Errors that occur when retrieving rates
+#[derive(Fail, Debug)]
+#[fail(display = "Unable to retrieve rate (see collectd logs for additional details)")]
+pub struct CacheRateError;

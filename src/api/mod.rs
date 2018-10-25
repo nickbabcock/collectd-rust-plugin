@@ -1,10 +1,10 @@
 use bindings::{
-    data_set_t, hostname_g, plugin_dispatch_values, value_list_t, value_t, ARR_LENGTH,
+    data_set_t, hostname_g, plugin_dispatch_values, uc_get_rate, value_list_t, value_t, ARR_LENGTH,
     DS_TYPE_ABSOLUTE, DS_TYPE_COUNTER, DS_TYPE_DERIVE, DS_TYPE_GAUGE,
 };
 use chrono::prelude::*;
 use chrono::Duration;
-use errors::{ArrayError, SubmitError};
+use errors::{ArrayError, CacheRateError, SubmitError};
 use failure::{Error, ResultExt};
 use memchr::memchr;
 use std::ffi::CStr;
@@ -130,9 +130,37 @@ pub struct ValueList<'a> {
 
     /// The interval in which new values are to be expected
     pub interval: Duration,
+
+    // Keep the original list and set around for calculating rates on demand
+    original_list: *const value_list_t,
+    original_set: *const data_set_t,
 }
 
 impl<'a> ValueList<'a> {
+    /// Collectd does not automatically convert `Derived` values into a rate. This is why many
+    /// write plugins have a `StoreRates` config option so that these rates are calculated on
+    /// demand from collectd's internal cache. This function will return a vector that can supercede
+    /// the `values` field that contains the rate of all non-gauge values. Values that are gauges
+    /// remain unchanged, so one doesn't need to resort back to `values` field as this function
+    /// will return everything prepped for submission.
+    pub fn rates(&self) -> Result<Vec<ValueReport<'a>>, Error> {
+        let ptr = unsafe { uc_get_rate(self.original_set, self.original_list) };
+        if !ptr.is_null() {
+            Ok(unsafe { slice::from_raw_parts(ptr, self.values.len()) }
+                .iter()
+                .zip(self.values.iter())
+                .map(|(rate, report)| match report.value {
+                    Value::Gauge(_) => *report,
+                    _ => ValueReport {
+                        value: Value::Gauge(*rate),
+                        ..*report
+                    },
+                }).collect())
+        } else {
+            Err(CacheRateError.into())
+        }
+    }
+
     pub fn from<'b>(set: &'b data_set_t, list: &'b value_list_t) -> Result<ValueList<'b>, Error> {
         let p = from_array(&list.plugin).context("Plugin could not be parsed")?;
         let ds_len = length(set.ds_num);
@@ -180,6 +208,8 @@ impl<'a> ValueList<'a> {
                 .with_context(|_e| format!("For plugin: {}, host could not be decoded", p))?,
             time: CdTime::from(list.time).into(),
             interval: CdTime::from(list.interval).into(),
+            original_list: list,
+            original_set: set,
         })
     }
 }

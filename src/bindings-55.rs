@@ -1224,3 +1224,6 @@ extern "C" {
         arg: *mut ::std::os::raw::c_void,
     ) -> ::std::os::raw::c_int;
 }
+extern "C" {
+    pub fn uc_get_rate(ds: *const data_set_t, vl: *const value_list_t) -> *mut gauge_t;
+}

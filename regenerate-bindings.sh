@@ -13,6 +13,7 @@ generate () {
             --whitelist-type cdtime_t \
             --whitelist-type data_set_t \
             --whitelist-function 'plugin_.*' \
+            --whitelist-function 'uc_get_rate' \
             --whitelist-var 'OCONFIG_TYPE_.*' \
             --whitelist-var 'LOG_.*' \
             --whitelist-var 'DS_TYPE_.*' \

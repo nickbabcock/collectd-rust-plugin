@@ -79,6 +79,7 @@ fn bindings(loc: PathBuf, version: CollectdVersion) {
         .whitelist_type("cdtime_t")
         .whitelist_type("data_set_t")
         .whitelist_function("plugin_.*")
+        .whitelist_function("uc_get_rate")
         .whitelist_var("OCONFIG_TYPE_.*")
         .whitelist_var("LOG_.*")
         .whitelist_var("DS_TYPE_.*")
