@@ -2,6 +2,8 @@
 
 This is a breaking change that is going to affect everyone. It's a bummer, but hopefully by the end of this blurb, you will be convinced that the breaking change is worth it.
 
+### Thread Safety
+
 For background, collectd has the right to call any of the `Plugin` methods in parallel and concurrently. Previously, a `Plugin` only needed to be `Sync` (a plugin is safe to have its references shared between threads), but this allowed for undefined behavior with code that isn't thread safe. The compiler only allowed it as transcended `unsafe` (ffi) boundaries. We can do better. `Send` is now required (so a plugin can be transferred across thread boundaries). We don't control collectd and how they manage our Plugin, so if collectd offloads our plugin to another thread, the plugin functionality must remain the same.
 
 Also all `Plugin` methods now force interior mutability by changing `&mut self` to `&self` to ensure thread safety in conjunction with the `Sync + Send` requirement. For instance, `Vec<u8>` is `Sync + Send` but one can't `Vec::push` across multiple threads, so synchronization primitives will now be required if mutability is desired.
@@ -75,6 +77,36 @@ impl Plugin for MyPlugin {
 But it did previously compile! This hints that we were not setting up enough context for the compiler to ensure code is threadsafe.
 
 Thank you to the [Rust FFI Guide](https://michael-f-bryan.github.io/rust-ffi-guide/dynamic_loading.html#setting-up-plugins) for inspiration on this bugfix.
+
+### Calculating Rates
+
+Many plugins that write out collectd values (write_graphite, write_tsdb, write_mongodb) contain an option called `StoreRates`, which is described with:
+
+> Controls whether DERIVE and COUNTER metrics are converted to a rate before sending
+
+If one is creating a plugin that writes, it is also a good idea to expose a `StoreRates` configuration option, so that users familiar with `StoreRates` behavior can migrate seamlessly -- else users will receive a shock when they see accumulated values (eg: total number of bytes sent on an interface instead of bytes per second). Prior to this release it was too cumbersome for one to reasonably calculate rates. This all changes with the availability of `ValueList::rates`, which will delegate to collectd's `uc_get_rate`
+
+```rust
+fn write_values(&self, list: ValueList) -> Result<(), Error> {
+    // if the user configured `StoreRates` then, as needed, convert the given values to rates
+    let values = if self.store_rates {
+        list.rates()
+    } else {
+        Ok(::std::borrow::Cow::Borrowed(&list.values))
+    }?;
+
+    // do something with values
+}
+```
+
+The reason why rates returns a `Cow<Vec<_>>` is because if all values are already `Value::Gauge` then there is no work to be done (or allocations needed), so it provides an optimisation.
+
+### Other Changes
+
+- Update bindgen requirement from 0.42.0 to 0.43.0
+- Update failure requirement from 0.1.2 to 0.1.3
+- Implement `Value::is_nan` to determine if the inner value is not a number.
+- Implement `Serialize` for collectd Value. Note this serialization cannot be completed roundtrip (eg: serialize a Value and then deserialize it), as the inner value is directly serialized without additional type information. This is intended for writers outputting values for csv, postgres, etc.
 
 ## 0.7.0 - 2018-10-11
 
