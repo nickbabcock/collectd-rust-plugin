@@ -1,9 +1,14 @@
+#![cfg(feature = "serde")]
+
 #[macro_use]
 extern crate collectd_plugin;
 extern crate failure;
 extern crate itertools;
 #[macro_use]
 extern crate log;
+extern crate serde;
+#[macro_use]
+extern crate serde_derive;
 
 use collectd_plugin::{
     collectd_log, CollectdLoggerBuilder, ConfigItem, LogLevel, Plugin, PluginCapabilities,
@@ -13,8 +18,15 @@ use failure::Error;
 use itertools::Itertools;
 use log::LevelFilter;
 
-#[derive(Default)]
-struct TestWritePlugin;
+fn true_default() -> bool {
+    true
+}
+
+#[derive(Debug, Deserialize)]
+struct TestWritePlugin {
+    #[serde(default = "true_default", rename = "StoreRates")]
+    store_rates: bool,
+}
 
 impl PluginManager for TestWritePlugin {
     fn name() -> &'static str {
@@ -33,7 +45,9 @@ impl PluginManager for TestWritePlugin {
         let line = format!("collectd logging configuration: {:?}", config);
         collectd_log(LogLevel::Info, &line);
         info!("rust logging configuration: {:?}", config);
-        Ok(PluginRegistration::Single(Box::new(TestWritePlugin)))
+        let plugin: TestWritePlugin =
+            collectd_plugin::de::from_collectd(config.unwrap_or_else(Default::default))?;
+        Ok(PluginRegistration::Single(Box::new(plugin)))
     }
 }
 
@@ -43,8 +57,13 @@ impl Plugin for TestWritePlugin {
     }
 
     fn write_values(&self, list: ValueList) -> Result<(), Error> {
-        let values = list
-            .values
+        let values = if self.store_rates {
+            list.rates()
+        } else {
+            Ok(list.values)
+        }?;
+
+        let values = values
             .iter()
             .map(|v| format!("{} - {}", v.name, v.value))
             .join(", ");
