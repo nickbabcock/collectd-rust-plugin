@@ -18,6 +18,8 @@ matrix:
       env: UBUNTU_VERSION=16.04 COLLECTD_VERSION=5.5
     - rust: stable
       env: UBUNTU_VERSION=18.04 COLLECTD_VERSION=5.7
+    - rust: stable
+      env: UBUNTU_VERSION=18.10 COLLECTD_VERSION=5.7
 
 script:
   - COLLECTD_VERSION=5.5 cargo build --all
