@@ -339,14 +339,18 @@ impl<'a> ValueListBuilder<'a> {
             .map(|x| to_array_res(x).context("type_instance"))
             .unwrap_or_else(|| Ok([0i8; ARR_LENGTH]))?;
 
-        // In collectd 5.7, it is no longer required to supply hostname_g for default hostname,
-        // an empty array will get replaced with the hostname. However, since we're collectd 5.5
-        // compatible, we use hostname_g in both circumstances, as it is not harmful
         let host = self
             .list
             .host
             .map(|x| to_array_res(x).context("host"))
             .unwrap_or_else(|| {
+                // If a custom host is not provided by the plugin, we default to the global
+                // hostname. In versions prior to collectd 5.7, it was required to propagate the
+                // global hostname (hostname_g) in the submission. In collectd 5.7, one could
+                // submit an empty array or hostname_g and they would equate to the same thing. In
+                // collectd 5.8, hostname_g had the type signature changed so it could no longer be
+                // submitted and would cause garbage to be read (and thus could have very much
+                // unintended side effects)
                 if cfg!(collectd57) {
                     Ok([0i8; ARR_LENGTH])
                 } else {
