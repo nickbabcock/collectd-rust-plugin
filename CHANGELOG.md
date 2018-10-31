@@ -1,3 +1,7 @@
+## Unreleased - TBA
+
+* Compatibility with collectd 5.8. Collectd 5.8 changed the signature of `hostname_g` so it can no longer be submitted as a host value. We allowed it and resulted in collectd interpretting garbage. The fix is to switch to submitting empty arrays for collectd 5.7+, which will default to `hostname_g` internally.
+
 ## 0.8.0 - 2018-10-25
 
 This is a breaking change that is going to affect everyone. It's a bummer, but hopefully by the end of this blurb, you will be convinced that the breaking change is worth it.
