@@ -22,7 +22,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-collectd-plugin = "0.8.0"
+collectd-plugin = "0.8.1"
 ```
 
 [Serde](https://github.com/serde-rs/serde) support is enabled by default for configuration parsing.
