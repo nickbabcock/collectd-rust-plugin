@@ -165,3 +165,9 @@ If you'd like to use the timings on my machine:
 - 150ns to create a `ValueList` for plugins that write values
 
 Unless you are reporting or writing millions of metrics every interval (in which case you'll most likely hit an earlier snap), you'll be fine.
+
+## Plugins
+
+Do you use collectd-rust-plugin? Feel free to add your plugin to the list.
+
+- [pg-collectd](https://github.com/nickbabcock/pg-collectd): An alternative and opinionated postgres collectd writer
