@@ -37,7 +37,8 @@ This repo is tested on the following:
 
 - collectd 5.4 (Ubuntu 14.04)
 - collectd 5.5 (Ubuntu 16.04)
-- collectd 5.7 (and above) (Ubuntu 18.04)
+- collectd 5.7 (Ubuntu 18.04)
+- collectd 5.8 (Ubuntu 18.10) (can use package compiled for collectd 5.7)
 
 ## Quickstart
 
