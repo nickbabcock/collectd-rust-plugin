@@ -19,34 +19,26 @@ impl Serialize for Value {
 mod tests {
     extern crate serde_test;
 
-    use self::serde_test::{Token, assert_ser_tokens};
+    use self::serde_test::{assert_ser_tokens, Token};
     use super::Value;
 
     #[test]
     fn test_ser_value_counter() {
-        assert_ser_tokens(&Value::Counter(10), &[
-            Token::U64(10)
-        ]);
+        assert_ser_tokens(&Value::Counter(10), &[Token::U64(10)]);
     }
 
     #[test]
     fn test_ser_value_gauge() {
-        assert_ser_tokens(&Value::Gauge(1.0), &[
-            Token::F64(1.0)
-        ]);
+        assert_ser_tokens(&Value::Gauge(1.0), &[Token::F64(1.0)]);
     }
 
     #[test]
     fn test_ser_value_derive() {
-        assert_ser_tokens(&Value::Derive(-5), &[
-            Token::I64(-5)
-        ]);
+        assert_ser_tokens(&Value::Derive(-5), &[Token::I64(-5)]);
     }
 
     #[test]
     fn test_ser_value_absolute() {
-        assert_ser_tokens(&Value::Absolute(15), &[
-            Token::U64(15)
-        ]);
+        assert_ser_tokens(&Value::Absolute(15), &[Token::U64(15)]);
     }
 }

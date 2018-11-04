@@ -7,13 +7,13 @@ use chrono::Duration;
 use errors::{ArrayError, CacheRateError, SubmitError};
 use failure::{Error, ResultExt};
 use memchr::memchr;
+use std::borrow::Cow;
 use std::ffi::CStr;
 use std::fmt;
 use std::os::raw::c_char;
 use std::ptr;
 use std::slice;
 use std::str::Utf8Error;
-use std::borrow::Cow;
 
 pub use self::cdtime::{nanos_to_collectd, CdTime};
 pub use self::logger::{collectd_log, CollectdLoggerBuilder, LogLevel};
@@ -167,11 +167,11 @@ impl<'a> ValueList<'a> {
         // to uc_get_rate as no values will be changed
         let all_gauges = self.values.iter().all(|x| match x.value {
             Value::Gauge(_) => true,
-            _ => false
+            _ => false,
         });
 
         if all_gauges {
-            return Ok(Cow::Borrowed(&self.values))
+            return Ok(Cow::Borrowed(&self.values));
         }
 
         let ptr = unsafe { uc_get_rate(self.original_set, self.original_list) };
