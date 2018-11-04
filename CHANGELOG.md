@@ -1,3 +1,7 @@
+## TBA - Unreleased
+
+* Fix segfault on plugins that implement flush when given a null identifier. The proper behavior now includes a check to see if the identifier is `NULL` (and convert it to an `Option` appropriately) before interpretting it as a `str`.
+
 ## 0.8.1 - 2018-10-30
 
 * Compatibility with collectd 5.8. Collectd 5.8 changed the signature of `hostname_g` so it can no longer be submitted as a host value. We allowed it and resulted in collectd interpretting garbage. The fix is to switch to submitting empty arrays for collectd 5.7+, which will default to `hostname_g` internally.
