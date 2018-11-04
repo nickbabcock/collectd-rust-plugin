@@ -34,8 +34,10 @@ EOF
 service collectd start
 sleep 15
 service collectd status
+service collectd stop
 
 grep 'epoch,shortterm,midterm,longterm' /var/lib/collectd/csv/localhost/loadrust/load*
 grep 'collectd logging configuration: None' /var/lib/collectd/log
 grep 'testwriteplugin: write_log: rust logging configuration: None' /var/lib/collectd/log
+grep 'testwriteplugin: write_log: flushing: timeout: no timeout, identifier: no identifier' /var/lib/collectd/log
 exit $?

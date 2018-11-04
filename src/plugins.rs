@@ -250,6 +250,7 @@ macro_rules! collectd_plugin {
             identifier: *const ::std::os::raw::c_char,
             dt: *mut $crate::bindings::user_data_t,
         ) -> ::std::os::raw::c_int {
+            use failure::err_msg;
             use std::ffi::CStr;
             let mut plugin = unsafe { &mut *((*dt).data as *mut Box<$crate::Plugin>) };
 
@@ -259,15 +260,20 @@ macro_rules! collectd_plugin {
                 Some($crate::CdTime::from(timeout).into())
             };
 
-            if let Ok(ident) = unsafe { CStr::from_ptr(identifier) }.to_str() {
-                if let Err(ref e) = plugin.flush(dur, $crate::empty_to_none(ident)) {
-                    collectd_log_err("flush", e);
-                    -1
-                } else {
-                    0
-                }
+            let ident = if identifier.is_null() {
+                Ok(None)
             } else {
+                let cs = unsafe { CStr::from_ptr(identifier) };
+                cs.to_str()
+                    .map($crate::empty_to_none)
+                    .map_err(|_e| err_msg("could not convert flush identifier to utf-8"))
+            };
+
+            if let Err(ref e) = ident.and_then(|id| plugin.flush(dur, id)) {
+                collectd_log_err("flush", e);
                 -1
+            } else {
+                0
             }
         }
 

@@ -2,6 +2,7 @@
 
 #[macro_use]
 extern crate collectd_plugin;
+extern crate chrono;
 extern crate failure;
 extern crate itertools;
 #[macro_use]
@@ -10,6 +11,7 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 
+use chrono::Duration;
 use collectd_plugin::{
     collectd_log, CollectdLoggerBuilder, ConfigItem, LogLevel, Plugin, PluginCapabilities,
     PluginManager, PluginRegistration, ValueList,
@@ -53,7 +55,7 @@ impl PluginManager for TestWritePlugin {
 
 impl Plugin for TestWritePlugin {
     fn capabilities(&self) -> PluginCapabilities {
-        PluginCapabilities::WRITE
+        PluginCapabilities::WRITE | PluginCapabilities::FLUSH
     }
 
     fn write_values(&self, list: ValueList) -> Result<(), Error> {
@@ -81,6 +83,19 @@ impl Plugin for TestWritePlugin {
         );
 
         collectd_log_raw!(LogLevel::Info, b"I'm a raw log with arguments: %d\0", 10);
+        Ok(())
+    }
+
+    fn flush(&self, timeout: Option<Duration>, identifier: Option<&str>) -> Result<(), Error> {
+        info!(
+            "flushing: timeout: {}, identifier: {}",
+            timeout
+                .map(|x| format!("{}", x))
+                .unwrap_or_else(|| String::from("no timeout")),
+            identifier
+                .map(|x| x.to_string())
+                .unwrap_or_else(|| String::from("no identifier"))
+        );
         Ok(())
     }
 }
