@@ -1,4 +1,4 @@
-## TBA - Unreleased
+## 0.8.2 - 2018-11-04
 
 * Fix segfault on plugins that implement flush when given a null identifier. The proper behavior now includes a check to see if the identifier is `NULL` (and convert it to an `Option` appropriately) before interpretting it as a `str`.
 
