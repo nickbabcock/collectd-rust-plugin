@@ -40,4 +40,5 @@ grep 'epoch,shortterm,midterm,longterm' /var/lib/collectd/csv/localhost/loadrust
 grep 'collectd logging configuration: None' /var/lib/collectd/log
 grep 'testwriteplugin: write_log: rust logging configuration: None' /var/lib/collectd/log
 grep 'testwriteplugin: write_log: flushing: timeout: no timeout, identifier: no identifier' /var/lib/collectd/log
+grep 'testwriteplugin: write_log: yes drop is called' /var/lib/collectd/log
 exit $?

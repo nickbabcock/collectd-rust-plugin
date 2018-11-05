@@ -386,7 +386,21 @@ macro_rules! collectd_plugin {
                 }
 
                 if should_flush {
-                    plugin_register_flush(s.as_ptr(), Some(collectd_plugin_flush), &mut data);
+                    if !should_write {
+                        plugin_register_flush(s.as_ptr(), Some(collectd_plugin_flush), &mut data);
+                    } else {
+                        // If a plugin registers both write and flush callbacks, we make sure to
+                        // deregister the free function to avoid data being freed twice:
+                        // https://collectd.org/wiki/index.php/User_data_t
+                        plugin_register_flush(
+                            s.as_ptr(),
+                            Some(collectd_plugin_flush),
+                            &mut $crate::bindings::user_data_t {
+                                data: plugin_ptr,
+                                free_func: None,
+                            },
+                        );
+                    }
                 }
             }
         }

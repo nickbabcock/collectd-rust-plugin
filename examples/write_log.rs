@@ -30,6 +30,12 @@ struct TestWritePlugin {
     store_rates: bool,
 }
 
+impl Drop for TestWritePlugin {
+    fn drop(&mut self) {
+        info!("yes drop is called");
+    }
+}
+
 impl PluginManager for TestWritePlugin {
     fn name() -> &'static str {
         "testwriteplugin"
