@@ -367,6 +367,14 @@ macro_rules! collectd_plugin {
                     free_func: Some(collectd_plugin_free_user_data),
                 };
 
+                // If a plugin registers more than one callback, we make sure to deregister the
+                // free function to avoid data being freed twice:
+                // https://collectd.org/wiki/index.php/User_data_t
+                let mut no_free_data = $crate::bindings::user_data_t {
+                    data: plugin_ptr,
+                    free_func: None,
+                };
+
                 if should_read {
                     plugin_register_complex_read(
                         ptr::null(),
@@ -378,29 +386,33 @@ macro_rules! collectd_plugin {
                 }
 
                 if should_write {
-                    plugin_register_write(s.as_ptr(), Some(collectd_plugin_write), &mut data);
+                    let d = if !should_read {
+                        &mut data
+                    } else {
+                        &mut no_free_data
+                    };
+
+                    plugin_register_write(s.as_ptr(), Some(collectd_plugin_write), d);
                 }
 
                 if should_log {
-                    plugin_register_log(s.as_ptr(), Some(collectd_plugin_log), &mut data);
+                    let d = if !should_read && !should_write {
+                        &mut data
+                    } else {
+                        &mut no_free_data
+                    };
+
+                    plugin_register_log(s.as_ptr(), Some(collectd_plugin_log), d);
                 }
 
                 if should_flush {
-                    if !should_write {
-                        plugin_register_flush(s.as_ptr(), Some(collectd_plugin_flush), &mut data);
+                    let d = if !should_read && !should_write && !should_log {
+                        &mut data
                     } else {
-                        // If a plugin registers both write and flush callbacks, we make sure to
-                        // deregister the free function to avoid data being freed twice:
-                        // https://collectd.org/wiki/index.php/User_data_t
-                        plugin_register_flush(
-                            s.as_ptr(),
-                            Some(collectd_plugin_flush),
-                            &mut $crate::bindings::user_data_t {
-                                data: plugin_ptr,
-                                free_func: None,
-                            },
-                        );
-                    }
+                        &mut no_free_data
+                    };
+
+                    plugin_register_flush(s.as_ptr(), Some(collectd_plugin_flush), d);
                 }
             }
         }
