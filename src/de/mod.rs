@@ -327,9 +327,16 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         Err(Error(DeError::DataTypeNotSupported))
     }
 
+    fn deserialize_newtype_struct<V>(self, _name: &str, visitor: V) -> DeResult<V::Value>
+    where
+        V: Visitor<'de>,
+    {
+        visitor.visit_newtype_struct(self)
+    }
+
     forward_to_deserialize_any! {
         bytes
-        byte_buf unit unit_struct newtype_struct tuple
+        byte_buf unit unit_struct tuple
         tuple_struct map enum
     }
 }
@@ -856,6 +863,31 @@ mod tests {
                         port: 2004,
                     },
                 ],
+            },
+            actual
+        );
+    }
+
+    #[test]
+    fn test_serde_new_type() {
+        #[derive(Deserialize, PartialEq, Eq, Debug)]
+        struct MyNew(String);
+
+        #[derive(Deserialize, PartialEq, Eq, Debug)]
+        struct MyStruct {
+            it: MyNew,
+        };
+
+        let items = vec![ConfigItem {
+            key: "it",
+            values: vec![ConfigValue::String("INFO")],
+            children: vec![],
+        }];
+
+        let actual = from_collectd(&items).unwrap();
+        assert_eq!(
+            MyStruct {
+                it: MyNew(String::from("INFO"))
             },
             actual
         );
