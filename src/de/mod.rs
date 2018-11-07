@@ -260,7 +260,16 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         let v = &self.depth[self.depth.len() - 1];
         match *v {
             DeType::Item(key, _) => visitor.visit_borrowed_str(key),
-            _ => Err(Error(DeError::ExpectStruct)),
+            DeType::Seq(ref x, pos) if pos == 0 => {
+                if let DeConfig::String(ss) = x[pos] {
+                    visitor.visit_borrowed_str(ss)
+                } else {
+                    Err(de::Error::custom("expected the first element, when deserializing for an identifier, to be a string"))
+                }
+            }
+            _ => Err(de::Error::custom(
+                "expected an item when deserializing identifier",
+            )),
         }
     }
 
@@ -271,7 +280,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         let len = if let DeType::Item(_key, ref v) = *self.current()? {
             v.len()
         } else {
-            return Err(Error(DeError::ExpectStruct));
+            return Err(de::Error::custom("expected an item when deserializing seq"));
         };
 
         visitor.visit_seq(SeqSeparated::new(&mut self, len))
@@ -334,10 +343,89 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         visitor.visit_newtype_struct(self)
     }
 
+    fn deserialize_enum<V>(
+        self,
+        _name: &str,
+        _variants: &'static [&'static str],
+        visitor: V,
+    ) -> DeResult<V::Value>
+    where
+        V: Visitor<'de>,
+    {
+        if let DeType::Item(_key, ref v) = self.current()?.clone() {
+            if v.len() != 1 {
+                return Err(de::Error::custom(
+                    "expected enum item to have a single item list",
+                ));
+            }
+
+            // With a unit variant enum, it needs to take a look at the identifier, so in the case
+            // deserializing JSON {"level": "INFO"} serde will attempt to deserialize two identifiers
+            // in a row (first "level" and then "INFO"). Since we don't want to re-read the "level"
+            // identifier we simulate sequence. Not the most elegant solution, but it works.
+            self.push_seq(0);
+            visitor.visit_enum(UnitVariantAccess::new(self))
+        } else {
+            return Err(Error(DeError::ExpectStruct));
+        }
+    }
+
     forward_to_deserialize_any! {
         bytes
         byte_buf unit unit_struct tuple
-        tuple_struct map enum
+        tuple_struct map
+    }
+}
+
+struct UnitVariantAccess<'a, 'de: 'a> {
+    de: &'a mut Deserializer<'de>,
+}
+
+impl<'a, 'de: 'a> UnitVariantAccess<'a, 'de> {
+    fn new(de: &'a mut Deserializer<'de>) -> Self {
+        UnitVariantAccess { de }
+    }
+}
+
+impl<'de, 'a> de::EnumAccess<'de> for UnitVariantAccess<'a, 'de> {
+    type Error = Error;
+    type Variant = Self;
+
+    fn variant_seed<V>(self, seed: V) -> DeResult<(V::Value, Self)>
+    where
+        V: de::DeserializeSeed<'de>,
+    {
+        let variant = seed.deserialize(&mut *self.de)?;
+        Ok((variant, self))
+    }
+}
+
+impl<'de, 'a> de::VariantAccess<'de> for UnitVariantAccess<'a, 'de> {
+    type Error = Error;
+
+    fn unit_variant(self) -> DeResult<()> {
+        Ok(())
+    }
+
+    fn newtype_variant_seed<T>(self, _seed: T) -> DeResult<T::Value>
+    where
+        T: de::DeserializeSeed<'de>,
+    {
+        Err(de::Error::custom("newtype variant"))
+    }
+
+    fn tuple_variant<V>(self, _len: usize, _visitor: V) -> DeResult<V::Value>
+    where
+        V: de::Visitor<'de>,
+    {
+        Err(de::Error::custom("tuple variant"))
+    }
+
+    fn struct_variant<V>(self, _fields: &'static [&'static str], _visitor: V) -> DeResult<V::Value>
+    where
+        V: de::Visitor<'de>,
+    {
+        Err(de::Error::custom("struct variant"))
     }
 }
 
@@ -891,5 +979,61 @@ mod tests {
             },
             actual
         );
+    }
+
+    #[test]
+    fn test_log_serde_enum() {
+        use log::Level;
+
+        #[derive(Deserialize, PartialEq, Eq, Debug)]
+        struct MyStruct {
+            it: Level,
+        };
+
+        let items = vec![ConfigItem {
+            key: "it",
+            values: vec![ConfigValue::String("INFO")],
+            children: vec![],
+        }];
+
+        let actual = from_collectd(&items).unwrap();
+        assert_eq!(MyStruct { it: Level::Info }, actual);
+    }
+
+    #[test]
+    fn test_serde_enum() {
+        #[derive(PartialEq, Eq, Debug)]
+        enum MyEnum {
+            Foo,
+        }
+
+        use serde::de::{self, Deserializer};
+
+        impl<'de> Deserialize<'de> for MyEnum {
+            fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+            where
+                D: Deserializer<'de>,
+            {
+                let s = String::deserialize(deserializer)?;
+                match s.as_str() {
+                    "Foo" => Ok(MyEnum::Foo),
+                    _ => Err(de::Error::custom(format!("bad type: {}", s))),
+                }
+            }
+        }
+
+        #[derive(Deserialize, PartialEq, Eq, Debug)]
+        struct MyStruct {
+            it: MyEnum,
+        };
+
+        let items = vec![ConfigItem {
+            key: "it",
+            values: vec![ConfigValue::String("Foo")],
+            children: vec![],
+        }];
+
+        let actual = from_collectd(&items).unwrap();
+        assert_eq!(MyStruct { it: MyEnum::Foo }, actual);
     }
 }
