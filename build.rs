@@ -58,7 +58,9 @@ fn detect_collectd_version() -> String {
                         .get(1)
                         .map(|x| String::from(x.as_str()))
                         .unwrap()
-                }).expect("Collectd -h to execute successfully")
+                }).expect("collectd -h did not execute successfully. \
+                          Did you forget to either build with a `COLLECTD_VERSION` environment variable or \
+                          install collectd so the version can be autodetected?")
         })
 }
 
