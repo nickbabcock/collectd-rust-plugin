@@ -4,7 +4,7 @@ use log::{self, Level, LevelFilter, Metadata, Record, SetLoggerError};
 use plugins::PluginManager;
 use std::cell::Cell;
 use std::ffi::{CStr, CString};
-use std::io::{self, Cursor, Write};
+use std::io::{self, Write};
 use std::mem;
 
 /// Bridges the gap between collectd and rust logging. Terminology and filters methods found here
@@ -161,32 +161,26 @@ impl log::Log for CollectdLogger {
             LOG_BUF.with(|cell| {
                 // Replaces the cell's contents with the default value, which is an empty vector.
                 // Should be very cheap to move in and out of
-                let v = cell.take();
-                let mut curse = Cursor::new(v);
+                let mut write_buffer = cell.take();
                 if let Some(plugin) = self.plugin {
                     // writing the formatting to the vec shouldn't fail unless we ran out of
                     // memory, but in that case, we have a host of other problems.
-                    let _ = write!(curse, "{}: ", plugin);
+                    let _ = write!(write_buffer, "{}: ", plugin);
                 }
 
-                let mut new_vec = if (self.format)(&mut curse, record).is_ok() {
+                if (self.format)(&mut write_buffer, record).is_ok() {
                     let lvl = LogLevel::from(record.level());
-                    let mut nv = curse.into_inner();
 
                     // Force a trailing NUL so that we can use fast path
-                    nv.push(b'\0');
+                    write_buffer.push(b'\0');
                     {
-                        let cs = unsafe { CStr::from_bytes_with_nul_unchecked(&nv[..]) };
+                        let cs = unsafe { CStr::from_bytes_with_nul_unchecked(&write_buffer[..]) };
                         unsafe { plugin_log(lvl as i32, cs.as_ptr()) };
                     }
+                }
 
-                    nv
-                } else {
-                    curse.into_inner()
-                };
-
-                new_vec.clear();
-                cell.set(new_vec);
+                write_buffer.clear();
+                cell.set(write_buffer);
             });
         }
     }
