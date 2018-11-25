@@ -30,8 +30,6 @@ LoadPlugin logfile
 </Plugin>
 <Plugin loadrust>
 </Plugin>
-<Plugin write_log>
-</Plugin>
 EOF
 
 service collectd start
