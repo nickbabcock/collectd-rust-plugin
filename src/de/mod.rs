@@ -994,18 +994,27 @@ mod tests {
             sentinel: i32,
         };
 
-        let items = vec![ConfigItem {
-            key: "it",
-            values: vec![ConfigValue::String("INFO")],
-            children: vec![],
-        }, ConfigItem {
-            key: "sentinel",
-            values: vec![ConfigValue::Number(2003.0)],
-            children: vec![],
-        }];
+        let items = vec![
+            ConfigItem {
+                key: "it",
+                values: vec![ConfigValue::String("INFO")],
+                children: vec![],
+            },
+            ConfigItem {
+                key: "sentinel",
+                values: vec![ConfigValue::Number(2003.0)],
+                children: vec![],
+            },
+        ];
 
         let actual = from_collectd(&items).unwrap();
-        assert_eq!(MyStruct { it: Level::Info, sentinel: 2003 }, actual);
+        assert_eq!(
+            MyStruct {
+                it: Level::Info,
+                sentinel: 2003
+            },
+            actual
+        );
     }
 
     #[test]
@@ -1037,17 +1046,26 @@ mod tests {
             sentinel: i32,
         };
 
-        let items = vec![ConfigItem {
-            key: "it",
-            values: vec![ConfigValue::String("Foo")],
-            children: vec![],
-        }, ConfigItem {
-            key: "sentinel",
-            values: vec![ConfigValue::Number(2003.0)],
-            children: vec![],
-        }];
+        let items = vec![
+            ConfigItem {
+                key: "it",
+                values: vec![ConfigValue::String("Foo")],
+                children: vec![],
+            },
+            ConfigItem {
+                key: "sentinel",
+                values: vec![ConfigValue::Number(2003.0)],
+                children: vec![],
+            },
+        ];
 
         let actual = from_collectd(&items).unwrap();
-        assert_eq!(MyStruct { it: MyEnum::Foo, sentinel: 2003 }, actual);
+        assert_eq!(
+            MyStruct {
+                it: MyEnum::Foo,
+                sentinel: 2003
+            },
+            actual
+        );
     }
 }
