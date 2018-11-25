@@ -17,12 +17,12 @@ LoadPlugin write_logrs
 LoadPlugin csv
 LoadPlugin logfile
 
-<Plugin write_logrs>
-    LogTimings "INFO"
-</Plugin>
 <Plugin logfile>
     LogLevel info
     File "/var/lib/collectd/log"
+</Plugin>
+<Plugin write_logrs>
+    LogTimings "INFO"
 </Plugin>
 <Plugin csv>
   DataDir "/var/lib/collectd/csv"
