@@ -40,8 +40,15 @@ service collectd status
 service collectd stop
 
 grep_test() {
-    echo "looking for $1 in $2"
-    grep $1 $2
+    grep "$1" "$2" || EXIT_CODE=$? && true
+    PREFIX="F"
+    if [[ $EXIT_CODE -ne 0 ]];
+        PREFIX="Not f"
+    fi
+    echo "${PREFIX}ound: $1 in $2"
+    echo "contents of $2:"
+    cat "$2"
+    return $EXIT_CODE
 }
 
 grep_test 'epoch,shortterm,midterm,longterm' /var/lib/collectd/csv/localhost/loadrust/load*
