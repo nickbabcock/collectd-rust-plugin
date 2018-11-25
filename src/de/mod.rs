@@ -364,7 +364,9 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
             // in a row (first "level" and then "INFO"). Since we don't want to re-read the "level"
             // identifier we simulate sequence. Not the most elegant solution, but it works.
             self.push_seq(0);
-            visitor.visit_enum(UnitVariantAccess::new(self))
+            let res = visitor.visit_enum(UnitVariantAccess::new(self))?;
+            self.pop();
+            Ok(res)
         } else {
             return Err(Error(DeError::ExpectStruct));
         }
@@ -986,18 +988,24 @@ mod tests {
         use log::Level;
 
         #[derive(Deserialize, PartialEq, Eq, Debug)]
+        #[serde(deny_unknown_fields)]
         struct MyStruct {
             it: Level,
+            sentinel: i32,
         };
 
         let items = vec![ConfigItem {
             key: "it",
             values: vec![ConfigValue::String("INFO")],
             children: vec![],
+        }, ConfigItem {
+            key: "sentinel",
+            values: vec![ConfigValue::Number(2003.0)],
+            children: vec![],
         }];
 
         let actual = from_collectd(&items).unwrap();
-        assert_eq!(MyStruct { it: Level::Info }, actual);
+        assert_eq!(MyStruct { it: Level::Info, sentinel: 2003 }, actual);
     }
 
     #[test]
@@ -1023,17 +1031,23 @@ mod tests {
         }
 
         #[derive(Deserialize, PartialEq, Eq, Debug)]
+        #[serde(deny_unknown_fields)]
         struct MyStruct {
             it: MyEnum,
+            sentinel: i32,
         };
 
         let items = vec![ConfigItem {
             key: "it",
             values: vec![ConfigValue::String("Foo")],
             children: vec![],
+        }, ConfigItem {
+            key: "sentinel",
+            values: vec![ConfigValue::Number(2003.0)],
+            children: vec![],
         }];
 
         let actual = from_collectd(&items).unwrap();
-        assert_eq!(MyStruct { it: MyEnum::Foo }, actual);
+        assert_eq!(MyStruct { it: MyEnum::Foo, sentinel: 2003 }, actual);
     }
 }
