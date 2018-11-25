@@ -1,3 +1,11 @@
+## Unreleased - TBA
+
+* Add: serde config deserialize newtype structs
+* Add: serde config deserialize unit variant enums (like `log` crate `LogLevel`)
+* Improve error message on build failure to suggest providing the `COLLECTD_VERSION` environment variable if missing
+* Simplify rust logging delegation by cutting out `Cursor` in preference of writing a `Vec<u8>` directly. Could yield a small performance increase for log heavy workloads.
+* Update env_logger from 0.5 to 0.6 (no behavioral changes)
+
 ## 0.8.3 - 2018-11-05
 
 * Fix double free segfault on shutdown for plugins that register more than on callback (often times write + flush). `collectd-rust-plugin` delegates to a plugin's drop implementation on shutdown to make sure all resources are cleaned up. The previous behavior would have collectd calling a plugin's drop implementation for each callback register. Dropping the same plugin twice is undefined behavior and would often segfault. Collectd [recommends](https://collectd.org/wiki/index.php/User_data_t) only registering the drop function once to avoid a double free scenario. `collectd-rust-plugin` now understands that when multiple callbacks are desired, to only execute drop on one of them.
