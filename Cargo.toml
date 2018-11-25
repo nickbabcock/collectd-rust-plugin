@@ -54,7 +54,7 @@ path = "examples/load.rs"
 crate-type = ["cdylib"]
 
 [[example]]
-name = "write_log"
+name = "write_logrs"
 crate-type = ["cdylib"]
 
 [[example]]

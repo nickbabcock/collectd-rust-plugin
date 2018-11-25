@@ -25,20 +25,20 @@ fn true_default() -> bool {
 }
 
 #[derive(Debug, Deserialize)]
-struct TestWritePlugin {
+struct LogWritePlugin {
     #[serde(default = "true_default", rename = "StoreRates")]
     store_rates: bool,
 }
 
-impl Drop for TestWritePlugin {
+impl Drop for LogWritePlugin {
     fn drop(&mut self) {
         info!("yes drop is called");
     }
 }
 
-impl PluginManager for TestWritePlugin {
+impl PluginManager for LogWritePlugin {
     fn name() -> &'static str {
-        "testwriteplugin"
+        "write_logrs"
     }
 
     fn plugins(config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Error> {
@@ -50,16 +50,17 @@ impl PluginManager for TestWritePlugin {
             .try_init()
             .expect("really the only thing that should create a logger");
 
+        collectd_log_raw!(LogLevel::Info, b"A raw log with argument: %d\0", 10);
         let line = format!("collectd logging configuration: {:?}", config);
         collectd_log(LogLevel::Info, &line);
         info!("rust logging configuration: {:?}", config);
-        let plugin: TestWritePlugin =
+        let plugin: LogWritePlugin =
             collectd_plugin::de::from_collectd(config.unwrap_or_else(Default::default))?;
         Ok(PluginRegistration::Single(Box::new(plugin)))
     }
 }
 
-impl Plugin for TestWritePlugin {
+impl Plugin for LogWritePlugin {
     fn capabilities(&self) -> PluginCapabilities {
         PluginCapabilities::WRITE | PluginCapabilities::FLUSH
     }
@@ -88,7 +89,6 @@ impl Plugin for TestWritePlugin {
             values,
         );
 
-        collectd_log_raw!(LogLevel::Info, b"I'm a raw log with arguments: %d\0", 10);
         Ok(())
     }
 
@@ -106,4 +106,4 @@ impl Plugin for TestWritePlugin {
     }
 }
 
-collectd_plugin!(TestWritePlugin);
+collectd_plugin!(LogWritePlugin);

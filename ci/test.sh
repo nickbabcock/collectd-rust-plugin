@@ -8,16 +8,16 @@ cargo test --all --no-default-features
 cargo test --all --features "bindgen"
 
 cp target/debug/examples/libloadrust.so /usr/lib/collectd/loadrust.so
-cp target/debug/examples/libwrite_log.so /usr/lib/collectd/write_log.so
+cp target/debug/examples/libwrite_logrs.so /usr/lib/collectd/write_logrs.so
 
 cat <<EOF | tee /etc/collectd/collectd.conf
 Hostname "localhost"
 LoadPlugin loadrust
-LoadPlugin write_log
+LoadPlugin write_logrs
 LoadPlugin csv
 LoadPlugin logfile
 
-<Plugin write_log>
+<Plugin write_logrs>
     LogTimings "INFO"
 </Plugin>
 <Plugin logfile>
@@ -55,8 +55,9 @@ grep_test() {
 }
 
 grep_test 'epoch,shortterm,midterm,longterm' /var/lib/collectd/csv/localhost/loadrust/load*
+grep_test 'A raw log with argument: 10' /var/lib/collectd/log
 grep_test 'collectd logging configuration: Some' /var/lib/collectd/log
-grep_test 'testwriteplugin: write_log: rust logging configuration: Some' /var/lib/collectd/log
-grep_test 'testwriteplugin: write_log: flushing: timeout: no timeout, identifier: no identifier' /var/lib/collectd/log
-grep_test 'testwriteplugin: write_log: yes drop is called' /var/lib/collectd/log
+grep_test 'write_logrs: write_logrs: rust logging configuration: Some' /var/lib/collectd/log
+grep_test 'write_logrs: write_logrs: flushing: timeout: no timeout, identifier: no identifier' /var/lib/collectd/log
+grep_test 'write_logrs: write_logrs: yes drop is called' /var/lib/collectd/log
 exit $?
