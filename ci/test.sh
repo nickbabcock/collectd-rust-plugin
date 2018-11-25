@@ -40,14 +40,13 @@ service collectd status
 service collectd stop
 
 grep_test() {
+    echo grep "$1" "$2"
     grep "$1" "$2" || EXIT_CODE=$? && true
-    PREFIX="F"
-    if [[ $EXIT_CODE -ne 0 ]];
-        PREFIX="Not f"
+    if [[ $EXIT_CODE -ne 0 ]]; then
+        echo "Not found: $1 in $2"
+        echo "contents of $2:"
+        cat "$2"
     fi
-    echo "${PREFIX}ound: $1 in $2"
-    echo "contents of $2:"
-    cat "$2"
     return $EXIT_CODE
 }
 
