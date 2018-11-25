@@ -41,6 +41,12 @@ service collectd stop
 
 grep_test() {
     echo grep "$1" "$2"
+    EXIT_CODE=0
+
+    # With set -e, we don't want to exit immediately, but instead add context
+    # of what grep failed, so we force the command to succeed while capturing
+    # the failing command's exit status:
+    # https://stackoverflow.com/a/45729843/433785
     grep "$1" "$2" || EXIT_CODE=$? && true
     if [[ $EXIT_CODE -ne 0 ]]; then
         echo "Not found: $1 in $2"
