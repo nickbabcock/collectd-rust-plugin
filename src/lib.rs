@@ -7,9 +7,10 @@
 //!
 //! - No unnecessary allocations when submitting / receiving values, logging
 //! - Register multiple plugin instances
-//! - Automatic deserialization of plugin configs via [Serde](https://github.com/serde-rs/serde) (optional) feature
+//! - Automatic deserialization of plugin configs via [Serde](https://github.com/serde-rs/serde) (can opt-out)
 //! - Deployment: compile against collectd version and scp to server
 //! - Referenced Rust libraries are statically linked
+//! - Help writing thread safe plugins thanks to the Rust compiler
 //!
 //! ## Usage
 //!
