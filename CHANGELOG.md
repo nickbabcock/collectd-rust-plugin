@@ -1,4 +1,4 @@
-## Unreleased - TBA
+## 0.8.4 - 2018-11-25
 
 * Add: serde config deserialize newtype structs
 * Add: serde config deserialize unit variant enums (like `log` crate `LogLevel`)
