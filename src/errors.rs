@@ -1,3 +1,6 @@
+use failure::Error;
+use std::error;
+
 /// Errors that occur when converting Rust's text data to a format collectd expects
 #[derive(Fail, Debug)]
 pub enum ArrayError {
@@ -29,3 +32,17 @@ pub struct NotImplemented;
 #[derive(Fail, Debug)]
 #[fail(display = "Unable to retrieve rate (see collectd logs for additional details)")]
 pub struct CacheRateError;
+
+/// Errors that occur on the boundary between collectd and a plugin
+pub enum FfiError {
+    /// Represents a plugin that panicked. A plugin that panics has a logic bug that should be
+    /// fixed so that the plugin can better log and recover, else collectd decides
+    Panic,
+
+    /// An error from the plugin. This is a "normal" error that the plugin has caught. Like if the
+    /// database is down and the plugin has the proper error mechanisms
+    Plugin(Error),
+
+    /// An error ocurred outside the path of a plugin
+    Collectd(Box<error::Error>),
+}
