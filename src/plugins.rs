@@ -205,6 +205,9 @@ macro_rules! collectd_plugin {
                 return;
             }
 
+            // Here we allow the potential allocation of a string that contains replacement
+            // characters as it wouldn't be right if collectd-plugin stopped the logging of an
+            // important message when a small portion of the message may be illegible.
             let msg = unsafe { CStr::from_ptr(message).to_string_lossy() };
             let log_level = $crate::LogLevel::try_from(severity as u32);
             if let Some(lvl) = log_level {
