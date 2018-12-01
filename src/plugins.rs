@@ -197,38 +197,34 @@ macro_rules! collectd_plugin {
             message: *const ::std::os::raw::c_char,
             dt: *mut $crate::bindings::user_data_t,
         ) {
+            use std::ffi::CStr;
             let mut plugin = unsafe { &mut *((*dt).data as *mut Box<$crate::Plugin>) };
 
             // Guard against potential null messages even if they are not supposed to happen.
             if message.is_null() {
-                return;
+                return 0;
             }
 
-            fn plugin_log(
-                severity: ::std::os::raw::c_int,
-                message: *const ::std::os::raw::c_char,
-                plugin: &mut std::boxed::Box<$crate::Plugin>,
-            ) -> Result<(), $crate::FfiError> {
-                use std::ffi::CStr;
-                let lvl = $crate::LogLevel::try_from(severity as u32).ok_or_else(|| {
-                    $crate::FfiError::Collectd(Box::new(
-                        ::failure::err_msg(format!(
-                            "Unrecognized severity log level: {}",
-                            severity
-                        )).compat(),
-                    ))
-                })?;
+            let msg = unsafe { CStr::from_ptr(message).to_string_lossy() };
+            let log_level = $crate::LogLevel::try_from(severity as u32);
+            if let Some(lvl) = log_level {
+                let res =
+                    ::std::panic::catch_unwind(|| plugin.log(lvl, ::std::ops::Deref::deref(&msg)))
+                        .map_err(|_| $crate::FfiError::Panic)
+                        .and_then(|x| x.map_err($crate::FfiError::Plugin));
 
-                let msg = unsafe { CStr::from_ptr(message).to_str() }
-                    .map_err(|e| $crate::FfiError::Collectd(Box::new(e)))?;
-
-                ::std::panic::catch_unwind(|| plugin.log(lvl, msg))
-                    .map_err(|_| $crate::FfiError::Panic)
-                    .and_then(|x| x.map_err($crate::FfiError::Plugin))
-            }
-
-            if let Err(ref e) = plugin_log(severity, message, plugin) {
-                collectd_log_err("logging", e);
+                if let Err(ref e) = res {
+                    collectd_log_err("logging", e);
+                }
+            } else {
+                $crate::collectd_log(
+                    $crate::LogLevel::Error,
+                    &format!(
+                        "Unrecognized severity log level: {} for {}",
+                        severity,
+                        <$type as $crate::PluginManager>::name()
+                    ),
+                );
             }
         }
 
@@ -269,10 +265,9 @@ macro_rules! collectd_plugin {
 
             let capabilities = <$type as $crate::PluginManager>::capabilities();
             if capabilities.intersects($crate::PluginManagerCapabilities::INIT) {
-                let res =
-                    ::std::panic::catch_unwind(|| <$type as $crate::PluginManager>::initialize())
-                        .map_err(|e| $crate::FfiError::Panic)
-                        .and_then(|init| init.map_err($crate::FfiError::Plugin));
+                let res = ::std::panic::catch_unwind(|| <$type as $crate::PluginManager>::initialize())
+                    .map_err(|e| $crate::FfiError::Panic)
+                    .and_then(|init| init.map_err($crate::FfiError::Plugin));
 
                 if let Err(ref e) = res {
                     result = -1;
