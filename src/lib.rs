@@ -133,7 +133,7 @@ pub use api::{
     CollectdLoggerBuilder, ConfigItem, ConfigValue, LogLevel, Value, ValueList, ValueListBuilder,
     ValueReport,
 };
-pub use errors::{ArrayError, SubmitError};
+pub use errors::{ArrayError, FfiError, SubmitError};
 pub use plugins::{
     Plugin, PluginCapabilities, PluginManager, PluginManagerCapabilities, PluginRegistration,
 };

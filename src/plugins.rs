@@ -2,6 +2,7 @@ use api::{ConfigItem, LogLevel, ValueList};
 use chrono::Duration;
 use errors::NotImplemented;
 use failure::Error;
+use std::panic::{RefUnwindSafe, UnwindSafe};
 
 bitflags! {
     /// Bitflags of capabilities that a plugin advertises to collectd.
@@ -52,10 +53,10 @@ impl PluginCapabilities {
 /// Defines the entry point for a collectd plugin. Based on collectd's configuration, a
 /// `PluginManager` will register any number of plugins (or return an error)
 pub trait PluginManager {
-    /// Name of the plugin.
+    /// Name of the plugin. Must not contain null characters or panic.
     fn name() -> &'static str;
 
-    /// Defines the capabilities of the plugin manager.
+    /// Defines the capabilities of the plugin manager. Must not panic.
     fn capabilities() -> PluginManagerCapabilities {
         PluginManagerCapabilities::default()
     }
@@ -77,7 +78,7 @@ pub trait PluginManager {
 /// other plugins, or logging messages. A plugin must implement `Sync + Send` as collectd could be sending
 /// values to be written or logged concurrently. The Rust compiler will ensure that everything
 /// not thread safe is wrapped in a Mutex (or another compatible datastructure)
-pub trait Plugin: Send + Sync {
+pub trait Plugin: Send + Sync + UnwindSafe + RefUnwindSafe {
     /// A plugin's capabilities. By default a plugin does nothing, but can advertise that it can
     /// configure itself and / or report values.
     fn capabilities(&self) -> PluginCapabilities {
@@ -140,41 +141,50 @@ macro_rules! collectd_plugin {
         }
 
         // Logs an error with a description and all the causes
-        fn collectd_log_err(desc: &str, err: &::failure::Error) {
-            // We join all the causes into a single string. Some thoughts
-            //  - This is not the most efficient way (that would belong to itertool crate), but
-            //    collecting into a vector then joining is not terribly more expensive.
-            //  - When an error occurs, one should expect there is some performance price to pay
-            //    for additional, and much needed, context
-            //  - Adding a new dependency to this library for a single function to save one line
-            //    seems to be a heavy handed solution
-            //  - While nearly all languages will display each cause on a separate line for a
-            //    stacktrace, I'm not aware of any collectd plugin doing the same. So to keep
-            //    convention, all causes are logged on the same line, semicolon delimited.
-            let joined = err
-                .iter_chain()
-                .map(|x| format!("{}", x))
-                .collect::<Vec<String>>()
-                .join("; ");
+        fn collectd_log_err(desc: &str, err: &$crate::FfiError) {
+            let msg = match err {
+                &$crate::FfiError::Collectd(ref e) => {
+                    format!("unexpected collectd behavior: {}", e)
+                }
+                &$crate::FfiError::Panic => {
+                    format!("plugin has panicked, so a logic oversight exists")
+                }
+                &$crate::FfiError::Plugin(ref e) => {
+                    // We join all the causes into a single string. Some thoughts
+                    //  - This is not the most efficient way (that would belong to itertool crate), but
+                    //    collecting into a vector then joining is not terribly more expensive.
+                    //  - When an error occurs, one should expect there is some performance price to pay
+                    //    for additional, and much needed, context
+                    //  - Adding a new dependency to this library for a single function to save one line
+                    //    seems to be a heavy handed solution
+                    //  - While nearly all languages will display each cause on a separate line for a
+                    //    stacktrace, I'm not aware of any collectd plugin doing the same. So to keep
+                    //    convention, all causes are logged on the same line, semicolon delimited.
+                    let joined = e
+                        .iter_chain()
+                        .map(|x| format!("{}", x))
+                        .collect::<Vec<String>>()
+                        .join("; ");
+                    format!("{} error: {}", desc, joined)
+                }
+            };
 
-            $crate::collectd_log(
-                $crate::LogLevel::Error,
-                &format!("{} error: {}", desc, joined),
-            );
+            $crate::collectd_log($crate::LogLevel::Error, &msg);
         }
 
         extern "C" fn collectd_plugin_read(
             dt: *mut $crate::bindings::user_data_t,
         ) -> ::std::os::raw::c_int {
             let mut plugin = unsafe { &mut *((*dt).data as *mut Box<$crate::Plugin>) };
-            let result = if let Err(ref e) = plugin.read_values() {
-                collectd_log_err("read", e);
-                -1
-            } else {
-                0
-            };
+            let res = ::std::panic::catch_unwind(|| plugin.read_values())
+                .map_err(|_| $crate::FfiError::Panic)
+                .and_then(|x| x.map_err(|ie| $crate::FfiError::Plugin(ie)));
 
-            result
+            if let Err(ref e) = res {
+                collectd_log_err("read", e);
+            }
+
+            res.map(|_| 0).unwrap_or(-1)
         }
 
         unsafe extern "C" fn collectd_plugin_free_user_data(raw: *mut ::std::os::raw::c_void) {
@@ -192,7 +202,12 @@ macro_rules! collectd_plugin {
             let msg = unsafe { CStr::from_ptr(message).to_string_lossy() };
             let log_level = $crate::LogLevel::try_from(severity as u32);
             if let Some(lvl) = log_level {
-                if let Err(ref e) = plugin.log(lvl, ::std::ops::Deref::deref(&msg)) {
+                let res =
+                    ::std::panic::catch_unwind(|| plugin.log(lvl, ::std::ops::Deref::deref(&msg)))
+                        .map_err(|_| $crate::FfiError::Panic)
+                        .and_then(|x| x.map_err($crate::FfiError::Plugin));
+
+                if let Err(ref e) = res {
                     collectd_log_err("logging", e);
                 }
             } else {
@@ -213,17 +228,25 @@ macro_rules! collectd_plugin {
             dt: *mut $crate::bindings::user_data_t,
         ) -> ::std::os::raw::c_int {
             let mut plugin = unsafe { &mut *((*dt).data as *mut Box<$crate::Plugin>) };
-            let list = unsafe { $crate::ValueList::from(&*ds, &*vl) };
-            if let Err(ref e) = list {
-                collectd_log_err("unable to decode collectd data", e);
-                return -1;
-            }
+            match unsafe { $crate::ValueList::from(&*ds, &*vl) } {
+                Ok(list) => {
+                    let res = ::std::panic::catch_unwind(|| plugin.write_values(list))
+                        .map_err(|_| $crate::FfiError::Panic)
+                        .and_then(|x| x.map_err(|ie| $crate::FfiError::Plugin(ie)));
 
-            if let Err(ref e) = plugin.write_values(list.unwrap()) {
-                collectd_log_err("writing", e);
-                -1
-            } else {
-                0
+                    if let Err(ref e) = res {
+                        collectd_log_err("writing", e);
+                    }
+
+                    res.map(|_| 0).unwrap_or(-1)
+                }
+                Err(e) => {
+                    collectd_log_err(
+                        "unable to decode collectd data",
+                        &$crate::FfiError::Collectd(Box::new(e.compat())),
+                    );
+                    return -1;
+                }
             }
         }
 
@@ -236,7 +259,11 @@ macro_rules! collectd_plugin {
 
             let capabilities = <$type as $crate::PluginManager>::capabilities();
             if capabilities.intersects($crate::PluginManagerCapabilities::INIT) {
-                if let Err(ref e) = <$type as $crate::PluginManager>::initialize() {
+                let res = ::std::panic::catch_unwind(|| <$type as $crate::PluginManager>::initialize())
+                    .map_err(|e| $crate::FfiError::Panic)
+                    .and_then(|init| init.map_err($crate::FfiError::Plugin));
+
+                if let Err(ref e) = res {
                     result = -1;
                     collectd_log_err("init", e);
                 }
@@ -250,7 +277,7 @@ macro_rules! collectd_plugin {
             identifier: *const ::std::os::raw::c_char,
             dt: *mut $crate::bindings::user_data_t,
         ) -> ::std::os::raw::c_int {
-            use failure::err_msg;
+            use failure::{Fail, ResultExt};
             use std::ffi::CStr;
             let mut plugin = unsafe { &mut *((*dt).data as *mut Box<$crate::Plugin>) };
 
@@ -263,18 +290,25 @@ macro_rules! collectd_plugin {
             let ident = if identifier.is_null() {
                 Ok(None)
             } else {
-                let cs = unsafe { CStr::from_ptr(identifier) };
-                cs.to_str()
+                unsafe { CStr::from_ptr(identifier) }
+                    .to_str()
                     .map($crate::empty_to_none)
-                    .map_err(|_e| err_msg("could not convert flush identifier to utf-8"))
+                    .context("could not convert flush identifier to utf-8")
             };
 
-            if let Err(ref e) = ident.and_then(|id| plugin.flush(dur, id)) {
+            let res = ident
+                .map_err(|e| $crate::FfiError::Collectd(Box::new(e.compat())))
+                .and_then(|id| {
+                    ::std::panic::catch_unwind(|| plugin.flush(dur, id))
+                        .map_err(|_| $crate::FfiError::Panic)
+                        .and_then(|x| x.map_err(|ie| $crate::FfiError::Plugin(ie)))
+                });
+
+            if let Err(ref e) = res {
                 collectd_log_err("flush", e);
-                -1
-            } else {
-                0
             }
+
+            res.map(|_| 0).unwrap_or(-1)
         }
 
         extern "C" fn collectd_plugin_complex_config(
@@ -295,8 +329,11 @@ macro_rules! collectd_plugin {
 
             match unsafe { $crate::ConfigItem::from(&*config) } {
                 Ok(config) => collectd_register_all_plugins(Some(&config.children)),
-                Err(ref e) => {
-                    collectd_log_err("collectd config conversion", e);
+                Err(e) => {
+                    collectd_log_err(
+                        "collectd config conversion",
+                        &$crate::FfiError::Collectd(Box::new(e.compat())),
+                    );
                     -1
                 }
             }
@@ -305,31 +342,39 @@ macro_rules! collectd_plugin {
         fn collectd_register_all_plugins(
             config: Option<&[$crate::ConfigItem]>,
         ) -> ::std::os::raw::c_int {
-            match <$type as $crate::PluginManager>::plugins(config) {
-                Ok(registration) => {
-                    match registration {
-                        $crate::PluginRegistration::Single(pl) => {
-                            collectd_plugin_registration(
-                                <$type as $crate::PluginManager>::name(),
-                                pl,
-                            );
-                        }
-                        $crate::PluginRegistration::Multiple(v) => {
-                            for (id, pl) in v {
-                                let name =
-                                    format!("{}/{}", <$type as $crate::PluginManager>::name(), id);
+            let res =
+                ::std::panic::catch_unwind(|| <$type as $crate::PluginManager>::plugins(config))
+                    .map_err(|_| $crate::FfiError::Panic)
+                    .and_then(|reged| reged.map_err($crate::FfiError::Plugin))
+                    .and_then(|registration| {
+                        match registration {
+                            $crate::PluginRegistration::Single(pl) => {
+                                collectd_plugin_registration(
+                                    <$type as $crate::PluginManager>::name(),
+                                    pl,
+                                );
+                            }
+                            $crate::PluginRegistration::Multiple(v) => {
+                                for (id, pl) in v {
+                                    let name = format!(
+                                        "{}/{}",
+                                        <$type as $crate::PluginManager>::name(),
+                                        id
+                                    );
 
-                                collectd_plugin_registration(name.as_str(), pl);
+                                    collectd_plugin_registration(name.as_str(), pl);
+                                }
                             }
                         }
-                    }
-                    0
-                }
-                Err(ref e) => {
-                    collectd_log_err("collectd config", e);
-                    -1
-                }
+
+                        // TODO: remove this ok
+                        Ok(())
+                    });
+
+            if let Err(ref e) = res {
+                collectd_log_err("collectd config", e);
             }
+            res.map(|_| 0).unwrap_or(-1)
         }
 
         fn collectd_plugin_registration(name: &str, plugin: Box<$crate::Plugin>) {
