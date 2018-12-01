@@ -199,6 +199,12 @@ macro_rules! collectd_plugin {
         ) {
             use std::ffi::CStr;
             let mut plugin = unsafe { &mut *((*dt).data as *mut Box<$crate::Plugin>) };
+
+            // Guard against potential null messages even if they are not supposed to happen.
+            if message.is_null() {
+                return 0;
+            }
+
             let msg = unsafe { CStr::from_ptr(message).to_string_lossy() };
             let log_level = $crate::LogLevel::try_from(severity as u32);
             if let Some(lvl) = log_level {
