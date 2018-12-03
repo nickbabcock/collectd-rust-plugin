@@ -14,6 +14,7 @@ use collectd_plugin::{
     ValueListBuilder,
 };
 use failure::Error;
+use std::error;
 
 /// Our plugin will look for a ReportRelative True / False in the collectd config. Unknown
 /// properties will cause a collectd failure as that means there is probably a typo.
@@ -43,7 +44,7 @@ impl PluginManager for LoadManager {
         "loadrust"
     }
 
-    fn plugins(config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Error> {
+    fn plugins(config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Box<error::Error>> {
         // Deserialize the collectd configuration into our configuration struct
         let config: LoadConfig =
             collectd_plugin::de::from_collectd(config.unwrap_or_else(Default::default))?;
@@ -86,7 +87,7 @@ impl Plugin for AbsoluteLoadPlugin {
         PluginCapabilities::READ
     }
 
-    fn read_values(&self) -> Result<(), Error> {
+    fn read_values(&self) -> Result<(), Box<error::Error>> {
         // Create a list of values to submit to collectd. We'll be sending in a vector representing the
         // "load" type. Short-term load is first followed by mid-term and long-term. The number of
         // values that you submit at a time depends on types.db in collectd configurations
@@ -95,7 +96,9 @@ impl Plugin for AbsoluteLoadPlugin {
         // Submit our values to collectd. A plugin can submit any number of times.
         ValueListBuilder::new(LoadManager::name(), "load")
             .values(&values)
-            .submit()
+            .submit()?;
+
+        Ok(())
     }
 }
 
@@ -104,17 +107,20 @@ impl Plugin for RelativeLoadPlugin {
         PluginCapabilities::READ
     }
 
-    fn read_values(&self) -> Result<(), Error> {
+    fn read_values(&self) -> Result<(), Box<error::Error>> {
         // Essentially the same as `AbsoluteLoadPlugin`, but divides each load value by the number
         // of cpus and submits the values as the type of "relative"
         let values: Vec<Value> = get_load()?
             .iter()
             .map(|&x| Value::Gauge(x / self.num_cpus))
             .collect();
+
         ValueListBuilder::new(LoadManager::name(), "load")
             .values(&values)
             .type_instance("relative")
-            .submit()
+            .submit()?;
+
+        Ok(())
     }
 }
 

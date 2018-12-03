@@ -1,30 +1,18 @@
 use serde::de;
+use std::error;
 use std::fmt::{self, Display};
 
-#[derive(Fail, Debug)]
+#[derive(Clone, Debug)]
 pub enum DeError {
-    #[fail(display = "No more values left, this should never happen")]
     NoMoreValuesLeft,
-    #[fail(display = "Error from deserialization: {}", _0)]
     SerdeError(String),
-    #[fail(display = "Expecting values to contain a single entry")]
     ExpectSingleValue,
-    #[fail(display = "Expecting string")]
     ExpectString,
-    #[fail(
-        display = "Expecting string of length one, received `{}`",
-        _0
-    )]
     ExpectChar(String),
-    #[fail(display = "Expecting boolean")]
     ExpectBoolean,
-    #[fail(display = "Expecting number")]
     ExpectNumber,
-    #[fail(display = "Expecting struct")]
     ExpectStruct,
-    #[fail(display = "Needs an object to deserialize a struct")]
     ExpectObject,
-    #[fail(display = "Could not deserialize as datatype not supported")]
     DataTypeNotSupported,
 }
 
@@ -40,14 +28,29 @@ impl de::Error for Error {
     }
 }
 
-impl ::std::error::Error for Error {
+impl error::Error for Error {
     fn description(&self) -> &str {
         "an with deserialization error"
     }
 }
 
 impl Display for Error {
-    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        self.0.fmt(formatter)
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self.0 {
+            DeError::NoMoreValuesLeft => write!(f, "no more values left, this should never happen"),
+            DeError::SerdeError(ref s) => write!(f, "error from deserialization: {}", s),
+            DeError::ExpectSingleValue => write!(f, "expecting values to contain a single entry"),
+            DeError::ExpectString => write!(f, "expecting string"),
+            DeError::ExpectChar(ref s) => {
+                write!(f, "expecting string of length one, received `{}`", s)
+            }
+            DeError::ExpectBoolean => write!(f, "expecting boolean"),
+            DeError::ExpectNumber => write!(f, "expecting number"),
+            DeError::ExpectStruct => write!(f, "expecting struct"),
+            DeError::ExpectObject => write!(f, "needs an object to deserialize a struct"),
+            DeError::DataTypeNotSupported => {
+                write!(f, "could not deserialize as datatype not supported")
+            }
+        }
     }
 }

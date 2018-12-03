@@ -2,7 +2,7 @@ use bindings::{
     oconfig_item_t, oconfig_value_s__bindgen_ty_1, oconfig_value_t, OCONFIG_TYPE_BOOLEAN,
     OCONFIG_TYPE_NUMBER, OCONFIG_TYPE_STRING,
 };
-use failure::{Error, ResultExt};
+use errors::ConfigError;
 use std::ffi::CStr;
 use std::slice;
 
@@ -33,7 +33,7 @@ pub struct ConfigItem<'a> {
 }
 
 impl<'a> ConfigValue<'a> {
-    pub unsafe fn from(value: &oconfig_value_t) -> Result<ConfigValue, Error> {
+    pub unsafe fn from(value: &oconfig_value_t) -> Result<ConfigValue, ConfigError> {
         match value.value {
             oconfig_value_s__bindgen_ty_1 { string }
                 if value.type_ == OCONFIG_TYPE_STRING as i32 =>
@@ -41,7 +41,7 @@ impl<'a> ConfigValue<'a> {
                 Ok(ConfigValue::String(
                     CStr::from_ptr(string)
                         .to_str()
-                        .context("failed to decode config value string")?,
+                        .map_err(ConfigError::StringDecode)?,
                 ))
             }
             oconfig_value_s__bindgen_ty_1 { number }
@@ -54,24 +54,24 @@ impl<'a> ConfigValue<'a> {
             {
                 Ok(ConfigValue::Boolean(boolean != 0))
             }
-            _ => Err(format_err!("Unrecognized value: {}", value.type_)),
+            _ => Err(ConfigError::UnknownType(value.type_)),
         }
     }
 }
 
 impl<'a> ConfigItem<'a> {
-    pub unsafe fn from<'b>(item: &'b oconfig_item_t) -> Result<ConfigItem<'b>, Error> {
+    pub unsafe fn from<'b>(item: &'b oconfig_item_t) -> Result<ConfigItem<'b>, ConfigError> {
         let key = CStr::from_ptr(item.key)
             .to_str()
-            .context("failed to decode config item key")?;
+            .map_err(ConfigError::StringDecode)?;
 
-        let values: Result<Vec<ConfigValue<'b>>, Error> =
+        let values: Result<Vec<ConfigValue<'b>>, ConfigError> =
             slice::from_raw_parts(item.values, item.values_num as usize)
                 .iter()
                 .map(|x| ConfigValue::from(x))
                 .collect();
 
-        let children: Result<Vec<ConfigItem<'b>>, Error> =
+        let children: Result<Vec<ConfigItem<'b>>, ConfigError> =
             slice::from_raw_parts(item.children, item.children_num as usize)
                 .iter()
                 .map(|x| ConfigItem::from(x))
