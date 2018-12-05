@@ -4,8 +4,7 @@ use bindings::{
 };
 use chrono::prelude::*;
 use chrono::Duration;
-use errors::{ArrayError, CacheRateError, SubmitError};
-use failure::{Error, ResultExt};
+use errors::{ArrayError, CacheRateError, ReceiveError, SubmitError};
 use memchr::memchr;
 use std::borrow::Cow;
 use std::ffi::CStr;
@@ -162,7 +161,7 @@ impl<'a> ValueList<'a> {
     /// the `values` field that contains the rate of all non-gauge values. Values that are gauges
     /// remain unchanged, so one doesn't need to resort back to `values` field as this function
     /// will return everything prepped for submission.
-    pub fn rates(&self) -> Result<Cow<Vec<ValueReport<'a>>>, Error> {
+    pub fn rates(&self) -> Result<Cow<Vec<ValueReport<'a>>>, CacheRateError> {
         // As an optimization step, if we know all values are gauges there is no need to call out
         // to uc_get_rate as no values will be changed
         let all_gauges = self.values.iter().all(|x| match x.value {
@@ -188,16 +187,20 @@ impl<'a> ValueList<'a> {
                 }).collect();
             Ok(Cow::Owned(nv))
         } else {
-            Err(CacheRateError.into())
+            Err(CacheRateError)
         }
     }
 
-    pub fn from<'b>(set: &'b data_set_t, list: &'b value_list_t) -> Result<ValueList<'b>, Error> {
-        let p = from_array(&list.plugin).context("Plugin could not be parsed")?;
+    pub fn from<'b>(
+        set: &'b data_set_t,
+        list: &'b value_list_t,
+    ) -> Result<ValueList<'b>, ReceiveError> {
+        let p = from_array(&list.plugin)
+            .map_err(|e| ReceiveError::Utf8(String::from(""), "plugin name", e))?;
         let ds_len = length(set.ds_num);
         let list_len = length(list.values_len);
 
-        let values: Result<Vec<ValueReport>, Error> =
+        let values: Result<Vec<ValueReport>, ReceiveError> =
             unsafe { slice::from_raw_parts(list.values, list_len) }
                 .iter()
                 .zip(unsafe { slice::from_raw_parts(set.ds, ds_len) })
@@ -209,9 +212,8 @@ impl<'a> ValueList<'a> {
                         ValueType::Absolute => Value::Absolute(val.absolute),
                     };
 
-                    let name = from_array(&source.name).with_context(|_e| {
-                        format!("For plugin: {}, data source name could not be decoded", p)
-                    })?;
+                    let name = from_array(&source.name)
+                        .map_err(|e| ReceiveError::Utf8(String::from(p), "data source name", e))?;
 
                     Ok(ValueReport {
                         name,
@@ -224,19 +226,27 @@ impl<'a> ValueList<'a> {
         assert!(list.time > 0);
         assert!(list.interval > 0);
 
+        let plugin_instance = from_array(&list.plugin_instance)
+            .map_err(|e| ReceiveError::Utf8(String::from(p), "plugin_instance", e))
+            .map(empty_to_none)?;
+
+        let type_ =
+            from_array(&list.type_).map_err(|e| ReceiveError::Utf8(String::from(p), "type", e))?;
+
+        let type_instance = from_array(&list.type_instance)
+            .map_err(|e| ReceiveError::Utf8(String::from(p), "type instance", e))
+            .map(empty_to_none)?;
+
+        let host =
+            from_array(&list.host).map_err(|e| ReceiveError::Utf8(String::from(p), "host", e))?;
+
         Ok(ValueList {
             values: values?,
-            plugin_instance: empty_to_none(from_array(&list.plugin_instance).with_context(
-                |_e| format!("For plugin: {}, plugin instance could not be decoded", p),
-            )?),
+            plugin_instance,
             plugin: p,
-            type_: from_array(&list.type_)
-                .with_context(|_e| format!("For plugin: {}, type could not be decoded", p))?,
-            type_instance: empty_to_none(from_array(&list.type_instance).with_context(|_e| {
-                format!("For plugin: {}, type instance could not be decoded", p)
-            })?),
-            host: from_array(&list.host)
-                .with_context(|_e| format!("For plugin: {}, host could not be decoded", p))?,
+            type_,
+            type_instance,
+            host,
             time: CdTime::from(list.time).into(),
             interval: CdTime::from(list.interval).into(),
             original_list: list,
@@ -325,24 +335,24 @@ impl<'a> ValueListBuilder<'a> {
     }
 
     /// Submits the observed values to collectd and returns errors if encountered
-    pub fn submit(self) -> Result<(), Error> {
+    pub fn submit(self) -> Result<(), SubmitError> {
         let mut v: Vec<value_t> = self.list.values.into_iter().map(|&x| x.into()).collect();
         let plugin_instance = self
             .list
             .plugin_instance
-            .map(|x| to_array_res(x).context("plugin_instance"))
+            .map(|x| to_array_res(x).map_err(|e| SubmitError::Field("plugin_instance", e)))
             .unwrap_or_else(|| Ok([0i8; ARR_LENGTH]))?;
 
         let type_instance = self
             .list
             .type_instance
-            .map(|x| to_array_res(x).context("type_instance"))
+            .map(|x| to_array_res(x).map_err(|e| SubmitError::Field("type_instance", e)))
             .unwrap_or_else(|| Ok([0i8; ARR_LENGTH]))?;
 
         let host = self
             .list
             .host
-            .map(|x| to_array_res(x).context("host"))
+            .map(|x| to_array_res(x).map_err(|e| SubmitError::Field("host", e)))
             .unwrap_or_else(|| {
                 // If a custom host is not provided by the plugin, we default to the global
                 // hostname. In versions prior to collectd 5.7, it was required to propagate the
@@ -364,12 +374,16 @@ impl<'a> ValueListBuilder<'a> {
         #[cfg(not(collectd57))]
         let len = v.len() as i32;
 
+        let plugin = to_array_res(self.list.plugin).map_err(|e| SubmitError::Field("plugin", e))?;
+
+        let type_ = to_array_res(self.list.type_).map_err(|e| SubmitError::Field("type", e))?;
+
         let list = value_list_t {
             values: v.as_mut_ptr(),
             values_len: len,
             plugin_instance,
-            plugin: to_array_res(self.list.plugin)?,
-            type_: to_array_res(self.list.type_)?,
+            plugin,
+            type_,
             type_instance,
             host,
             time: self.list.time.map(CdTime::from).unwrap_or(CdTime(0)).into(),
@@ -384,7 +398,7 @@ impl<'a> ValueListBuilder<'a> {
 
         match unsafe { plugin_dispatch_values(&list) } {
             0 => Ok(()),
-            i => Err(SubmitError::DispatchError(i).into()),
+            i => Err(SubmitError::Dispatch(i)),
         }
     }
 }

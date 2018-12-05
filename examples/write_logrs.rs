@@ -16,9 +16,9 @@ use collectd_plugin::{
     collectd_log, CollectdLoggerBuilder, ConfigItem, LogLevel, Plugin, PluginCapabilities,
     PluginManager, PluginRegistration, ValueList,
 };
-use failure::Error;
 use itertools::Itertools;
 use log::LevelFilter;
+use std::error;
 
 fn true_default() -> bool {
     true
@@ -41,7 +41,7 @@ impl PluginManager for LogWritePlugin {
         "write_logrs"
     }
 
-    fn plugins(config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Error> {
+    fn plugins(config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Box<error::Error>> {
         // Register a logging hook so that any usage of the `log` crate will be forwarded to
         // collectd's logging facilities
         CollectdLoggerBuilder::new()
@@ -65,7 +65,7 @@ impl Plugin for LogWritePlugin {
         PluginCapabilities::WRITE | PluginCapabilities::FLUSH
     }
 
-    fn write_values(&self, list: ValueList) -> Result<(), Error> {
+    fn write_values(&self, list: ValueList) -> Result<(), Box<error::Error>> {
         let values = if self.store_rates {
             list.rates()
         } else {
@@ -92,7 +92,11 @@ impl Plugin for LogWritePlugin {
         Ok(())
     }
 
-    fn flush(&self, timeout: Option<Duration>, identifier: Option<&str>) -> Result<(), Error> {
+    fn flush(
+        &self,
+        timeout: Option<Duration>,
+        identifier: Option<&str>,
+    ) -> Result<(), Box<error::Error>> {
         info!(
             "flushing: timeout: {}, identifier: {}",
             timeout

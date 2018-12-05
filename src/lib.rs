@@ -44,13 +44,12 @@
 //! ```rust
 //! #[macro_use]
 //! extern crate collectd_plugin;
-//! extern crate failure;
 //!
 //! use collectd_plugin::{
 //!     ConfigItem, Plugin, PluginCapabilities, PluginManager, PluginRegistration, Value,
 //!     ValueListBuilder,
 //! };
-//! use failure::Error;
+//! use std::error;
 //!
 //! #[derive(Default)]
 //! struct MyPlugin;
@@ -66,7 +65,7 @@
 //!     // Our plugin might have configuration section in collectd.conf, which will be passed here if
 //!     // present. Our contrived plugin doesn't care about configuration so it returns only a single
 //!     // plugin (itself).
-//!     fn plugins(_config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Error> {
+//!     fn plugins(_config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Box<error::Error>> {
 //!         Ok(PluginRegistration::Single(Box::new(MyPlugin)))
 //!     }
 //! }
@@ -77,7 +76,7 @@
 //!         PluginCapabilities::READ
 //!     }
 //!
-//!     fn read_values(&self) -> Result<(), Error> {
+//!     fn read_values(&self) -> Result<(), Box<error::Error>> {
 //!         // Create a list of values to submit to collectd. We'll be sending in a vector representing the
 //!         // "load" type. Short-term load is first (15.0) followed by mid-term and long-term. The number
 //!         // of values that you submit at a time depends on types.db in collectd configurations
@@ -86,7 +85,9 @@
 //!         // Submit our values to collectd. A plugin can submit any number of times.
 //!         ValueListBuilder::new(Self::name(), "load")
 //!             .values(&values)
-//!             .submit()
+//!             .submit()?;
+//!
+//!         Ok(())
 //!     }
 //! }
 //!
@@ -100,8 +101,6 @@
 #[macro_use]
 extern crate bitflags;
 extern crate chrono;
-#[macro_use]
-extern crate failure;
 extern crate memchr;
 
 #[cfg(feature = "serde")]
@@ -133,7 +132,7 @@ pub use api::{
     CollectdLoggerBuilder, ConfigItem, ConfigValue, LogLevel, Value, ValueList, ValueListBuilder,
     ValueReport,
 };
-pub use errors::{ArrayError, FfiError, SubmitError};
+pub use errors::{ArrayError, CollectdUtf8Error, ConfigError, FfiError, ReceiveError, SubmitError};
 pub use plugins::{
     Plugin, PluginCapabilities, PluginManager, PluginManagerCapabilities, PluginRegistration,
 };

@@ -20,12 +20,11 @@ use std::mem;
 ///
 /// ```
 /// # extern crate collectd_plugin;
-/// # extern crate failure;
 /// # extern crate log;
 /// # fn main() {
 /// use collectd_plugin::{ConfigItem, PluginManager, PluginRegistration, CollectdLoggerBuilder};
-/// use failure::Error;
 /// use log::LevelFilter;
+/// use std::error;
 ///
 /// #[derive(Default)]
 /// struct MyPlugin;
@@ -34,7 +33,7 @@ use std::mem;
 ///         "myplugin"
 ///     }
 ///
-///     fn plugins(_config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Error> {
+///     fn plugins(_config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Box<error::Error>> {
 ///        CollectdLoggerBuilder::new()
 ///            .prefix_plugin::<Self>()
 ///            .filter_level(LevelFilter::Info)

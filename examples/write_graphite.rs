@@ -16,6 +16,7 @@ use collectd_plugin::{
 use failure::Error;
 use log::LevelFilter;
 use std::borrow::Cow;
+use std::error;
 use std::io::Write;
 use std::net::TcpStream;
 use std::ops::Deref;
@@ -66,7 +67,7 @@ impl PluginManager for GraphiteManager {
         "write_graphite_rust"
     }
 
-    fn plugins(config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Error> {
+    fn plugins(config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Box<error::Error>> {
         // Register a logging hook so that any usage of the `log` crate will be forwarded to
         // collectd's logging facilities
         CollectdLoggerBuilder::new()
@@ -139,7 +140,7 @@ impl<W: Write + Send> Plugin for GraphitePlugin<W> {
         PluginCapabilities::WRITE
     }
 
-    fn write_values(&self, list: ValueList) -> Result<(), Error> {
+    fn write_values(&self, list: ValueList) -> Result<(), Box<error::Error>> {
         // We use a heap allocated string to construct data to send to graphite. Collectd doesn't
         // use the heap (preferring fixed size arrays). We could get the same behavior using the
         // ArrayString type from the arrayvec crate.

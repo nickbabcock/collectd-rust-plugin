@@ -6,7 +6,7 @@ use collectd_plugin::{
     ConfigItem, Plugin, PluginCapabilities, PluginManager, PluginRegistration, Value,
     ValueListBuilder,
 };
-use failure::Error;
+use std::error;
 
 #[derive(Default)]
 struct MyPlugin;
@@ -22,7 +22,7 @@ impl PluginManager for MyPlugin {
     // Our plugin might have configuration section in collectd.conf, which will be passed here if
     // present. Our contrived plugin doesn't care about configuration so it returns only a single
     // plugin (itself).
-    fn plugins(_config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Error> {
+    fn plugins(_config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Box<error::Error>> {
         Ok(PluginRegistration::Single(Box::new(MyPlugin)))
     }
 }
@@ -33,7 +33,7 @@ impl Plugin for MyPlugin {
         PluginCapabilities::READ
     }
 
-    fn read_values(&self) -> Result<(), Error> {
+    fn read_values(&self) -> Result<(), Box<error::Error>> {
         // Create a list of values to submit to collectd. We'll be sending in a vector representing the
         // "load" type. Short-term load is first (15.0) followed by mid-term and long-term. The number
         // of values that you submit at a time depends on types.db in collectd configurations
@@ -42,7 +42,9 @@ impl Plugin for MyPlugin {
         // Submit our values to collectd. A plugin can submit any number of times.
         ValueListBuilder::new(Self::name(), "load")
             .values(&values)
-            .submit()
+            .submit()?;
+
+        Ok(())
     }
 }
 

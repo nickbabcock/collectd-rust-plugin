@@ -1,7 +1,7 @@
 use api::{ConfigItem, LogLevel, ValueList};
 use chrono::Duration;
 use errors::NotImplemented;
-use failure::Error;
+use std::error;
 use std::panic::{RefUnwindSafe, UnwindSafe};
 
 bitflags! {
@@ -64,13 +64,13 @@ pub trait PluginManager {
     /// Returns one or many instances of a plugin that is configured from collectd's configuration
     /// file. If parameter is `None`, a configuration section for the plugin was not found, so
     /// default values should be used.
-    fn plugins(_config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Error>;
+    fn plugins(_config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Box<error::Error>>;
 
     /// Initialize any socket, files, or expensive resources that may have been parsed from the
     /// configuration. If an error is reported, all hooks registered will be unregistered. This is
     /// really only useful for `PluginRegistration::Single` modules who want global data.
-    fn initialize() -> Result<(), Error> {
-        Err(Error::from(NotImplemented))
+    fn initialize() -> Result<(), Box<error::Error>> {
+        Err(NotImplemented)?
     }
 }
 
@@ -87,8 +87,8 @@ pub trait Plugin: Send + Sync + UnwindSafe + RefUnwindSafe {
 
     /// Customizes how a message of a given level is logged. If the message isn't valid UTF-8, an
     /// allocation is done to replace all invalid characters with the UTF-8 replacement character
-    fn log(&self, _lvl: LogLevel, _msg: &str) -> Result<(), Error> {
-        Err(Error::from(NotImplemented))
+    fn log(&self, _lvl: LogLevel, _msg: &str) -> Result<(), Box<error::Error>> {
+        Err(NotImplemented)?
     }
 
     /// This function is called when collectd expects the plugin to report values, which will occur
@@ -96,20 +96,24 @@ pub trait Plugin: Send + Sync + UnwindSafe + RefUnwindSafe {
     /// that expect to report values need to have at least have a capability of `READ`. An error in
     /// reporting values will cause collectd to backoff exponentially until a delay of a day is
     /// reached.
-    fn read_values(&self) -> Result<(), Error> {
-        Err(Error::from(NotImplemented))
+    fn read_values(&self) -> Result<(), Box<error::Error>> {
+        Err(NotImplemented)?
     }
 
     /// Collectd is giving you reported values, do with them as you please. If writing values is
     /// expensive, prefer to buffer them in some way and register a `flush` callback to write.
-    fn write_values(&self, _list: ValueList) -> Result<(), Error> {
-        Err(Error::from(NotImplemented))
+    fn write_values(&self, _list: ValueList) -> Result<(), Box<error::Error>> {
+        Err(NotImplemented)?
     }
 
     /// Flush values to be written that are older than given duration. If an identifier is given,
     /// then only those buffered values should be flushed.
-    fn flush(&self, _timeout: Option<Duration>, _identifier: Option<&str>) -> Result<(), Error> {
-        Err(Error::from(NotImplemented))
+    fn flush(
+        &self,
+        _timeout: Option<Duration>,
+        _identifier: Option<&str>,
+    ) -> Result<(), Box<error::Error>> {
+        Err(NotImplemented)?
     }
 }
 
@@ -142,30 +146,29 @@ macro_rules! collectd_plugin {
 
         // Logs an error with a description and all the causes
         fn collectd_log_err(desc: &str, err: &$crate::FfiError) {
+            use std::fmt::Write;
+
             let msg = match err {
                 &$crate::FfiError::Collectd(ref e) => {
                     format!("unexpected collectd behavior: {}", e)
                 }
-                &$crate::FfiError::Panic => {
-                    format!("plugin has panicked, so a logic oversight exists")
-                }
                 &$crate::FfiError::Plugin(ref e) => {
                     // We join all the causes into a single string. Some thoughts
-                    //  - This is not the most efficient way (that would belong to itertool crate), but
-                    //    collecting into a vector then joining is not terribly more expensive.
                     //  - When an error occurs, one should expect there is some performance price to pay
                     //    for additional, and much needed, context
-                    //  - Adding a new dependency to this library for a single function to save one line
-                    //    seems to be a heavy handed solution
                     //  - While nearly all languages will display each cause on a separate line for a
                     //    stacktrace, I'm not aware of any collectd plugin doing the same. So to keep
                     //    convention, all causes are logged on the same line, semicolon delimited.
-                    let joined = e
-                        .iter_chain()
-                        .map(|x| format!("{}", x))
-                        .collect::<Vec<String>>()
-                        .join("; ");
-                    format!("{} error: {}", desc, joined)
+                    let mut msg = format!("{} error:", desc);
+                    let mut ie = Some(e.as_ref());
+                    while let Some(cause) = ie {
+                        let _ = write!(msg, " {};", e);
+                        ie = cause.cause();
+                    }
+                    msg
+                }
+                &$crate::FfiError::Panic => {
+                    format!("plugin has panicked, so a logic oversight exists")
                 }
             };
 
@@ -178,7 +181,7 @@ macro_rules! collectd_plugin {
             let mut plugin = unsafe { &mut *((*dt).data as *mut Box<$crate::Plugin>) };
             let res = ::std::panic::catch_unwind(|| plugin.read_values())
                 .map_err(|_| $crate::FfiError::Panic)
-                .and_then(|x| x.map_err(|ie| $crate::FfiError::Plugin(ie)));
+                .and_then(|x| x.map_err($crate::FfiError::Plugin));
 
             if let Err(ref e) = res {
                 collectd_log_err("read", e);
@@ -241,7 +244,7 @@ macro_rules! collectd_plugin {
                 Ok(list) => {
                     let res = ::std::panic::catch_unwind(|| plugin.write_values(list))
                         .map_err(|_| $crate::FfiError::Panic)
-                        .and_then(|x| x.map_err(|ie| $crate::FfiError::Plugin(ie)));
+                        .and_then(|x| x.map_err($crate::FfiError::Plugin));
 
                     if let Err(ref e) = res {
                         collectd_log_err("writing", e);
@@ -252,7 +255,7 @@ macro_rules! collectd_plugin {
                 Err(e) => {
                     collectd_log_err(
                         "unable to decode collectd data",
-                        &$crate::FfiError::Collectd(Box::new(e.compat())),
+                        &$crate::FfiError::Collectd(Box::new(e)),
                     );
                     return -1;
                 }
@@ -268,9 +271,10 @@ macro_rules! collectd_plugin {
 
             let capabilities = <$type as $crate::PluginManager>::capabilities();
             if capabilities.intersects($crate::PluginManagerCapabilities::INIT) {
-                let res = ::std::panic::catch_unwind(|| <$type as $crate::PluginManager>::initialize())
-                    .map_err(|e| $crate::FfiError::Panic)
-                    .and_then(|init| init.map_err($crate::FfiError::Plugin));
+                let res =
+                    ::std::panic::catch_unwind(|| <$type as $crate::PluginManager>::initialize())
+                        .map_err(|e| $crate::FfiError::Panic)
+                        .and_then(|init| init.map_err($crate::FfiError::Plugin));
 
                 if let Err(ref e) = res {
                     result = -1;
@@ -286,7 +290,6 @@ macro_rules! collectd_plugin {
             identifier: *const ::std::os::raw::c_char,
             dt: *mut $crate::bindings::user_data_t,
         ) -> ::std::os::raw::c_int {
-            use failure::{Fail, ResultExt};
             use std::ffi::CStr;
             let mut plugin = unsafe { &mut *((*dt).data as *mut Box<$crate::Plugin>) };
 
@@ -302,16 +305,15 @@ macro_rules! collectd_plugin {
                 unsafe { CStr::from_ptr(identifier) }
                     .to_str()
                     .map($crate::empty_to_none)
-                    .context("could not convert flush identifier to utf-8")
+                    .map_err(|e| $crate::CollectdUtf8Error("flush identifier", e))
+                    .map_err(|e| $crate::FfiError::Collectd(Box::new(e)))
             };
 
-            let res = ident
-                .map_err(|e| $crate::FfiError::Collectd(Box::new(e.compat())))
-                .and_then(|id| {
-                    ::std::panic::catch_unwind(|| plugin.flush(dur, id))
-                        .map_err(|_| $crate::FfiError::Panic)
-                        .and_then(|x| x.map_err(|ie| $crate::FfiError::Plugin(ie)))
-                });
+            let res = ident.and_then(|id| {
+                ::std::panic::catch_unwind(|| plugin.flush(dur, id))
+                    .map_err(|_| $crate::FfiError::Panic)
+                    .and_then(|x| x.map_err($crate::FfiError::Plugin))
+            });
 
             if let Err(ref e) = res {
                 collectd_log_err("flush", e);
@@ -341,7 +343,7 @@ macro_rules! collectd_plugin {
                 Err(e) => {
                     collectd_log_err(
                         "collectd config conversion",
-                        &$crate::FfiError::Collectd(Box::new(e.compat())),
+                        &$crate::FfiError::Collectd(Box::new(e)),
                     );
                     -1
                 }
