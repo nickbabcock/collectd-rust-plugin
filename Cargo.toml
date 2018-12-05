@@ -45,6 +45,10 @@ default = ["serde"]
 unstable = ["compiletest_rs"]
 
 [[example]]
+name = "myerror"
+crate-type = ["cdylib"]
+
+[[example]]
 name = "readme"
 crate-type = ["cdylib"]
 
