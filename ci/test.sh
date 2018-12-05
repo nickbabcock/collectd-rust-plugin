@@ -9,6 +9,7 @@ cargo test --all --features "bindgen"
 
 cp target/debug/examples/libloadrust.so /usr/lib/collectd/loadrust.so
 cp target/debug/examples/libwrite_logrs.so /usr/lib/collectd/write_logrs.so
+cp target/debug/examples/libmyerror.so /usr/lib/collectd/myerror.so
 
 cat <<EOF | tee /etc/collectd/collectd.conf
 Hostname "localhost"
@@ -16,6 +17,7 @@ LoadPlugin loadrust
 LoadPlugin write_logrs
 LoadPlugin csv
 LoadPlugin logfile
+LoadPlugin myerror
 
 <Plugin logfile>
     LogLevel info
@@ -33,7 +35,7 @@ LoadPlugin logfile
 EOF
 
 service collectd start
-sleep 15
+sleep 25
 service collectd status
 service collectd stop
 
@@ -60,4 +62,8 @@ grep_test 'collectd logging configuration: Some' /var/lib/collectd/log
 grep_test 'write_logrs: write_logrs: rust logging configuration: Some' /var/lib/collectd/log
 grep_test 'write_logrs: write_logrs: flushing: timeout: no timeout, identifier: no identifier' /var/lib/collectd/log
 grep_test 'write_logrs: write_logrs: yes drop is called' /var/lib/collectd/log
+grep_test 'read error: bailing;' /var/lib/collectd/log
+grep_test 'read-function of plugin `myerror'"'"' failed.' /var/lib/collectd/log
+grep_test 'plugin has panicked, so a logic oversight exists' /var/lib/collectd/log
+
 exit $?
