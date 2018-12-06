@@ -1,19 +1,22 @@
 #[macro_use]
 extern crate collectd_plugin;
 extern crate failure;
+extern crate log;
 
 use collectd_plugin::{
-    ConfigItem, Plugin, PluginCapabilities, PluginManager, PluginRegistration
+    CollectdLoggerBuilder, ConfigItem, Plugin, PluginCapabilities, PluginManager,
+    PluginRegistration,
 };
-use std::sync::atomic::{AtomicBool, Ordering};
+use log::LevelFilter;
 use std::error;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 #[derive(Default)]
 struct MyErrorManager;
 
 #[derive(Default)]
 struct MyErrorPlugin {
-    state: AtomicBool
+    state: AtomicBool,
 }
 
 impl PluginManager for MyErrorPlugin {
@@ -22,7 +25,15 @@ impl PluginManager for MyErrorPlugin {
     }
 
     fn plugins(_config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Box<error::Error>> {
-        Ok(PluginRegistration::Single(Box::new(MyErrorPlugin::default())))
+        CollectdLoggerBuilder::new()
+            .prefix_plugin::<Self>()
+            .filter_level(LevelFilter::Info)
+            .try_init()
+            .expect("really the only thing that should create a logger");
+
+        Ok(PluginRegistration::Single(Box::new(
+            MyErrorPlugin::default(),
+        )))
     }
 }
 

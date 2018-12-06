@@ -12,7 +12,9 @@ mod tt {
             "myplugin"
         }
 
-        fn plugins(_config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Box<error::Error>> {
+        fn plugins(
+            _config: Option<&[ConfigItem]>,
+        ) -> Result<PluginRegistration, Box<error::Error>> {
             collectd_log_raw!(LogLevel::Info, b"test %d\0", 10);
             Ok(PluginRegistration::Multiple(vec![]))
         }

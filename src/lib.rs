@@ -112,6 +112,7 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 extern crate env_logger;
+#[macro_use]
 extern crate log;
 
 #[cfg(feature = "serde")]
@@ -128,9 +129,9 @@ mod errors;
 mod plugins;
 
 pub use api::{
-    collectd_log, empty_to_none, from_array, get_default_interval, nanos_to_collectd, CdTime,
-    CollectdLoggerBuilder, ConfigItem, ConfigValue, LogLevel, Value, ValueList, ValueListBuilder,
-    ValueReport,
+    collectd_log, delegate_log, empty_to_none, from_array, get_default_interval, nanos_to_collectd,
+    CdTime, CollectdLoggerBuilder, ConfigItem, ConfigValue, LogLevel, Value, ValueList,
+    ValueListBuilder, ValueReport,
 };
 pub use errors::{ArrayError, CollectdUtf8Error, ConfigError, FfiError, ReceiveError, SubmitError};
 pub use plugins::{

@@ -152,6 +152,10 @@ macro_rules! collectd_plugin {
                 &$crate::FfiError::Collectd(ref e) => {
                     format!("unexpected collectd behavior: {}", e)
                 }
+                &$crate::FfiError::UnknownSeverity(severity) => {
+                    format!("unrecognized severity level: {}", severity)
+                }
+                &$crate::FfiError::MultipleConfig => String::from("duplicate config section"),
                 &$crate::FfiError::Plugin(ref e) => {
                     // We join all the causes into a single string. Some thoughts
                     //  - When an error occurs, one should expect there is some performance price to pay
@@ -172,7 +176,7 @@ macro_rules! collectd_plugin {
                 }
             };
 
-            $crate::collectd_log($crate::LogLevel::Error, &msg);
+            $crate::delegate_log(&msg);
         }
 
         extern "C" fn collectd_plugin_read(
@@ -223,14 +227,7 @@ macro_rules! collectd_plugin {
                     collectd_log_err("logging", e);
                 }
             } else {
-                $crate::collectd_log(
-                    $crate::LogLevel::Error,
-                    &format!(
-                        "Unrecognized severity log level: {} for {}",
-                        severity,
-                        <$type as $crate::PluginManager>::name()
-                    ),
-                );
+                collectd_log_err("logging", &$crate::FfiError::UnknownSeverity(severity));
             }
         }
 
@@ -328,13 +325,7 @@ macro_rules! collectd_plugin {
             // If we've already seen the config, let's error out as one shouldn't use multiple
             // sections of configuration (group them under nodes like write_graphite)
             if CONFIG_SEEN.swap(true, ::std::sync::atomic::Ordering::Relaxed) {
-                $crate::collectd_log(
-                    $crate::LogLevel::Error,
-                    &format!(
-                        "already seen a config section for {}",
-                        <$type as $crate::PluginManager>::name()
-                    ),
-                );
+                collectd_log_err("config", &$crate::FfiError::MultipleConfig);
                 return -1;
             }
 
