@@ -15,7 +15,7 @@ use std::slice;
 use std::str::Utf8Error;
 
 pub use self::cdtime::{nanos_to_collectd, CdTime};
-pub use self::logger::{collectd_log, CollectdLoggerBuilder, LogLevel};
+pub use self::logger::{collectd_log, delegate_log, CollectdLoggerBuilder, LogLevel};
 pub use self::oconfig::{ConfigItem, ConfigValue};
 
 mod cdtime;

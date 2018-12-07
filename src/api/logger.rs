@@ -200,6 +200,17 @@ impl CollectdLogger {
     }
 }
 
+/// Given an error message that must be logged, we first see if rust's logging mechanism has been
+/// setup, as that will contain user preferences in regards to output's format. If rust won't log
+/// it, delegate to directly collectd.
+pub fn delegate_log(msg: &str) {
+    if log_enabled!(Level::Error) {
+        error!("{}", msg);
+    } else {
+        collectd_log(LogLevel::Error, msg);
+    }
+}
+
 /// Sends message and log level to collectd. This bypasses any configuration setup via
 /// [`CollectdLoggerBuilder`], so collectd configuration soley determines if a level is logged
 /// and where it is delivered. Messages that are too long are truncated (1024 was the max length as

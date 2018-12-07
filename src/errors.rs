@@ -14,7 +14,9 @@ impl fmt::Display for ConfigError {
             ConfigError::UnknownType(type_) => {
                 write!(f, "unknown value ({}) for config enum", type_)
             }
-            ConfigError::StringDecode(ref _e) => write!(f, "unable to convert config string to utf8"),
+            ConfigError::StringDecode(ref _e) => {
+                write!(f, "unable to convert config string to utf8")
+            }
         }
     }
 }
@@ -194,4 +196,8 @@ pub enum FfiError {
 
     /// An error ocurred outside the path of a plugin
     Collectd(Box<error::Error>),
+
+    UnknownSeverity(i32),
+
+    MultipleConfig,
 }
