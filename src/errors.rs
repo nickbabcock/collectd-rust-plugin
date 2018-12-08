@@ -185,6 +185,7 @@ impl error::Error for CacheRateError {
 }
 
 /// Errors that occur on the boundary between collectd and a plugin
+#[derive(Debug)]
 pub enum FfiError {
     /// Represents a plugin that panicked. A plugin that panics has a logic bug that should be
     /// fixed so that the plugin can better log and recover, else collectd decides
@@ -200,4 +201,30 @@ pub enum FfiError {
     UnknownSeverity(i32),
 
     MultipleConfig,
+}
+
+impl fmt::Display for FfiError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            FfiError::Collectd(_) => write!(f, "unexpected collectd behavior"),
+            FfiError::UnknownSeverity(severity) => write!(f, "unrecognized severity level: {}", severity),
+            FfiError::MultipleConfig => write!(f, "duplicate config section"),
+            FfiError::Panic => write!(f, "plugin panicked"),
+            FfiError::Plugin(_) => write!(f, "plugin errored out")
+        }
+    }
+}
+
+impl error::Error for FfiError {
+    fn description(&self) -> &str {
+        "collectd plugin error"
+    }
+
+    fn cause(&self) -> Option<&error::Error> {
+        match *self {
+            FfiError::Collectd(ref e) => Some(e.as_ref()),
+            FfiError::Plugin(ref e) => Some(e.as_ref()),
+            _ => None,
+        }
+    }
 }

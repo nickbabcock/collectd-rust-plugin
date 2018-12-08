@@ -147,34 +147,21 @@ macro_rules! collectd_plugin {
         // Logs an error with a description and all the causes
         fn collectd_log_err(desc: &str, err: &$crate::FfiError) {
             use std::fmt::Write;
+            use std::error::Error;
 
-            let msg = match err {
-                &$crate::FfiError::Collectd(ref e) => {
-                    format!("unexpected collectd behavior: {}", e)
-                }
-                &$crate::FfiError::UnknownSeverity(severity) => {
-                    format!("unrecognized severity level: {}", severity)
-                }
-                &$crate::FfiError::MultipleConfig => String::from("duplicate config section"),
-                &$crate::FfiError::Plugin(ref e) => {
-                    // We join all the causes into a single string. Some thoughts
-                    //  - When an error occurs, one should expect there is some performance price to pay
-                    //    for additional, and much needed, context
-                    //  - While nearly all languages will display each cause on a separate line for a
-                    //    stacktrace, I'm not aware of any collectd plugin doing the same. So to keep
-                    //    convention, all causes are logged on the same line, semicolon delimited.
-                    let mut msg = format!("{} error:", desc);
-                    let mut ie = Some(e.as_ref());
-                    while let Some(cause) = ie {
-                        let _ = write!(msg, " {};", e);
-                        ie = cause.cause();
-                    }
-                    msg
-                }
-                &$crate::FfiError::Panic => {
-                    format!("plugin has panicked, so a logic oversight exists")
-                }
-            };
+            let mut msg = format!("{} error: {}", desc, err);
+
+            // We join all the causes into a single string. Some thoughts
+            //  - When an error occurs, one should expect there is some performance price to pay
+            //    for additional, and much needed, context
+            //  - While nearly all languages will display each cause on a separate line for a
+            //    stacktrace, I'm not aware of any collectd plugin doing the same. So to keep
+            //    convention, all causes are logged on the same line, semicolon delimited.
+            let mut ie = err.cause();
+            while let Some(cause) = ie {
+                let _ = write!(msg, "; {}", cause);
+                ie = cause.cause();
+            }
 
             $crate::delegate_log(&msg);
         }
@@ -216,18 +203,16 @@ macro_rules! collectd_plugin {
             // characters as it wouldn't be right if collectd-plugin stopped the logging of an
             // important message when a small portion of the message may be illegible.
             let msg = unsafe { CStr::from_ptr(message).to_string_lossy() };
-            let log_level = $crate::LogLevel::try_from(severity as u32);
-            if let Some(lvl) = log_level {
-                let res =
+            let res = $crate::LogLevel::try_from(severity as u32)
+                .ok_or_else(|| $crate::FfiError::UnknownSeverity(severity))
+                .and_then(|lvl|
                     ::std::panic::catch_unwind(|| plugin.log(lvl, ::std::ops::Deref::deref(&msg)))
                         .map_err(|_| $crate::FfiError::Panic)
-                        .and_then(|x| x.map_err($crate::FfiError::Plugin));
+                        .and_then(|x| x.map_err($crate::FfiError::Plugin))
+                );
 
-                if let Err(ref e) = res {
-                    collectd_log_err("logging", e);
-                }
-            } else {
-                collectd_log_err("logging", &$crate::FfiError::UnknownSeverity(severity));
+            if let Err(ref e) = res {
+                collectd_log_err("logging", e);
             }
         }
 
