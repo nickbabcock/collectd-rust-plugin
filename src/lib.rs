@@ -122,6 +122,7 @@ pub mod de;
 pub mod ser;
 
 pub mod bindings;
+pub mod internal;
 #[macro_use]
 mod api;
 mod errors;
@@ -129,7 +130,7 @@ mod errors;
 mod plugins;
 
 pub use api::{
-    collectd_log, delegate_log, empty_to_none, from_array, get_default_interval, nanos_to_collectd,
+    collectd_log, empty_to_none, from_array, get_default_interval, log_err, nanos_to_collectd,
     CdTime, CollectdLoggerBuilder, ConfigItem, ConfigValue, LogLevel, Value, ValueList,
     ValueListBuilder, ValueReport,
 };

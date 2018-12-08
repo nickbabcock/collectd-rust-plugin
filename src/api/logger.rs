@@ -3,7 +3,9 @@ use env_logger::filter;
 use log::{self, Level, LevelFilter, Metadata, Record, SetLoggerError};
 use plugins::PluginManager;
 use std::cell::Cell;
+use std::error::Error;
 use std::ffi::{CStr, CString};
+use std::fmt::Write as FmtWrite;
 use std::io::{self, Write};
 use std::mem;
 
@@ -200,14 +202,28 @@ impl CollectdLogger {
     }
 }
 
-/// Given an error message that must be logged, we first see if rust's logging mechanism has been
-/// setup, as that will contain user preferences in regards to output's format. If rust won't log
-/// it, delegate to directly collectd.
-pub fn delegate_log(msg: &str) {
+/// Logs an error with a description and all the causes. If rust's logging mechanism has been
+/// registered, it is the preferred mechanism. If the Rust logging is not configured (and
+/// considering that an error message should be logged) we log it directly to collectd
+pub fn log_err(desc: &str, err: &::FfiError) {
+    let mut msg = format!("{} error: {}", desc, err);
+
+    // We join all the causes into a single string. Some thoughts
+    //  - When an error occurs, one should expect there is some performance price to pay
+    //    for additional, and much needed, context
+    //  - While nearly all languages will display each cause on a separate line for a
+    //    stacktrace, I'm not aware of any collectd plugin doing the same. So to keep
+    //    convention, all causes are logged on the same line, semicolon delimited.
+    let mut ie = err.cause();
+    while let Some(cause) = ie {
+        let _ = write!(msg, "; {}", cause);
+        ie = cause.cause();
+    }
+
     if log_enabled!(Level::Error) {
         error!("{}", msg);
     } else {
-        collectd_log(LogLevel::Error, msg);
+        collectd_log(LogLevel::Error, &msg);
     }
 }
 
