@@ -206,7 +206,6 @@ fn register_all_plugins<T: PluginManager>(config: Option<&[ConfigItem]>) -> c_in
                 }
             }
 
-            // TODO: remove this ok
             Ok(())
         });
 
