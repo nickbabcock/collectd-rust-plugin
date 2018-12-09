@@ -207,10 +207,12 @@ impl fmt::Display for FfiError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             FfiError::Collectd(_) => write!(f, "unexpected collectd behavior"),
-            FfiError::UnknownSeverity(severity) => write!(f, "unrecognized severity level: {}", severity),
+            FfiError::UnknownSeverity(severity) => {
+                write!(f, "unrecognized severity level: {}", severity)
+            }
             FfiError::MultipleConfig => write!(f, "duplicate config section"),
             FfiError::Panic => write!(f, "plugin panicked"),
-            FfiError::Plugin(_) => write!(f, "plugin errored out")
+            FfiError::Plugin(_) => write!(f, "plugin errored out"),
         }
     }
 }
