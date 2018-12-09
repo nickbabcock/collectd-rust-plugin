@@ -62,7 +62,7 @@ grep_test 'collectd logging configuration: Some' /var/lib/collectd/log
 grep_test 'write_logrs: write_logrs: rust logging configuration: Some' /var/lib/collectd/log
 grep_test 'write_logrs: write_logrs: flushing: timeout: no timeout, identifier: no identifier' /var/lib/collectd/log
 grep_test 'write_logrs: write_logrs: yes drop is called' /var/lib/collectd/log
-grep_test 'myerror: collectd_plugin::api::logger: read error: plugin errored out; bailing' /var/lib/collectd/log
+grep_test 'myerror: collectd_plugin::api::logger: read error: plugin encountered an error; bailing' /var/lib/collectd/log
 grep_test 'read-function of plugin `myerror'"'"' failed.' /var/lib/collectd/log
 grep_test 'myerror: collectd_plugin::api::logger: read error: plugin panicked' /var/lib/collectd/log
 
