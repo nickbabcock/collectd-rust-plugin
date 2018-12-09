@@ -127,7 +127,7 @@ macro_rules! collectd_plugin {
 
         // This is the main entry point that collectd looks for. Our plugin manager will register
         // callbacks for configuration related to our name. It also registers a callback for
-        // initialization for when configuratio is absent or a single plugin wants to hold global
+        // initialization for when configuration is absent or a single plugin wants to hold global
         // data
         #[no_mangle]
         pub extern "C" fn module_register() {

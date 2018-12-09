@@ -56,26 +56,19 @@ extern "C" fn plugin_write(
     dt: *mut user_data_t,
 ) -> c_int {
     let plugin = unsafe { &mut *((*dt).data as *mut Box<Plugin>) };
-    match unsafe { ValueList::from(&*ds, &*vl) } {
-        Ok(list) => {
-            let res = catch_unwind(|| plugin.write_values(list))
+    let res = unsafe { ValueList::from(&*ds, &*vl) }
+        .map_err(|e| FfiError::Collectd(Box::new(e)))
+        .and_then(|list| {
+            catch_unwind(|| plugin.write_values(list))
                 .map_err(|_| FfiError::Panic)
-                .and_then(|x| x.map_err(FfiError::Plugin));
+                .and_then(|x| x.map_err(FfiError::Plugin))
+        });
 
-            if let Err(ref e) = res {
-                log_err("writing", e);
-            }
-
-            res.map(|_| 0).unwrap_or(-1)
-        }
-        Err(e) => {
-            log_err(
-                "unable to decode collectd data",
-                &FfiError::Collectd(Box::new(e)),
-            );
-            -1
-        }
+    if let Err(ref e) = res {
+        log_err("writing", e);
     }
+
+    res.map(|_| 0).unwrap_or(-1)
 }
 
 extern "C" fn plugin_flush(
