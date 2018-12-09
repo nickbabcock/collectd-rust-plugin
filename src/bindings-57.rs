@@ -938,8 +938,10 @@ pub type plugin_flush_cb = ::std::option::Option<
     ) -> ::std::os::raw::c_int,
 >;
 pub type plugin_missing_cb = ::std::option::Option<
-    unsafe extern "C" fn(arg1: *const value_list_t, arg2: *mut user_data_t)
-        -> ::std::os::raw::c_int,
+    unsafe extern "C" fn(
+        arg1: *const value_list_t,
+        arg2: *mut user_data_t,
+    ) -> ::std::os::raw::c_int,
 >;
 pub type plugin_log_cb = ::std::option::Option<
     unsafe extern "C" fn(
@@ -951,8 +953,10 @@ pub type plugin_log_cb = ::std::option::Option<
 pub type plugin_shutdown_cb =
     ::std::option::Option<unsafe extern "C" fn() -> ::std::os::raw::c_int>;
 pub type plugin_notification_cb = ::std::option::Option<
-    unsafe extern "C" fn(arg1: *const notification_t, arg2: *mut user_data_t)
-        -> ::std::os::raw::c_int,
+    unsafe extern "C" fn(
+        arg1: *const notification_t,
+        arg2: *mut user_data_t,
+    ) -> ::std::os::raw::c_int,
 >;
 extern "C" {
     pub fn plugin_set_dir(dir: *const ::std::os::raw::c_char);
