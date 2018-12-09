@@ -3,7 +3,6 @@
 #[macro_use]
 extern crate collectd_plugin;
 extern crate chrono;
-extern crate failure;
 extern crate itertools;
 #[macro_use]
 extern crate log;

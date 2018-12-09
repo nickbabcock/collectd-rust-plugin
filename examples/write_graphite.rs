@@ -2,7 +2,6 @@
 
 #[macro_use]
 extern crate collectd_plugin;
-extern crate failure;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
@@ -13,7 +12,6 @@ use collectd_plugin::{
     CollectdLoggerBuilder, ConfigItem, Plugin, PluginCapabilities, PluginManager,
     PluginRegistration, Value, ValueList,
 };
-use failure::Error;
 use log::LevelFilter;
 use std::borrow::Cow;
 use std::error;
@@ -80,7 +78,7 @@ impl PluginManager for GraphiteManager {
         let config: GraphiteConfig =
             collectd_plugin::de::from_collectd(config.unwrap_or_else(Default::default))?;
 
-        let config: Result<Vec<(String, Box<Plugin>)>, Error> = config
+        let config: Result<Vec<(String, Box<Plugin>)>, Box<error::Error>> = config
             .nodes
             .into_iter()
             .map(|x| {

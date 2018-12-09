@@ -1,6 +1,5 @@
 #[macro_use]
 extern crate collectd_plugin;
-extern crate failure;
 
 use collectd_plugin::{
     ConfigItem, Plugin, PluginCapabilities, PluginManager, PluginRegistration, Value,
