@@ -2,9 +2,13 @@ use std::error;
 use std::fmt;
 use std::str::Utf8Error;
 
+/// Error that occurred while translating the collectd config to rust structures.
 #[derive(Debug, Clone)]
 pub enum ConfigError {
+    /// The config type (eg: string, number, etc) denoted is unrecognized
     UnknownType(i32),
+
+    /// The config string contains invalid UTF-8 characters
     StringDecode(Utf8Error),
 }
 
@@ -23,7 +27,7 @@ impl fmt::Display for ConfigError {
 
 impl error::Error for ConfigError {
     fn description(&self) -> &str {
-        "error interpretting configuration values"
+        "error interpreting configuration values"
     }
 
     fn cause(&self) -> Option<&error::Error> {
@@ -34,9 +38,14 @@ impl error::Error for ConfigError {
     }
 }
 
+/// Error that occurred when converting a rust UTF-8 string to an array of `c_char` for collectd
+/// ingestion.
 #[derive(Debug, Clone)]
 pub enum ArrayError {
+    /// The UTF-8 string contained a null character
     NullPresent(usize, String),
+
+    /// The UTF-8 string is too long to be ingested
     TooLong(usize),
 }
 
@@ -61,8 +70,10 @@ impl error::Error for ArrayError {
     }
 }
 
+/// Error that occurred while receiving values from collectd to write
 #[derive(Debug, Clone)]
 pub enum ReceiveError {
+    /// A plugin submitted a field that contained invalid UTF-8 characters
     Utf8(String, &'static str, Utf8Error),
 }
 
@@ -176,13 +187,16 @@ pub enum FfiError {
     /// database is down and the plugin has the proper error mechanisms
     Plugin(Box<error::Error>),
 
-    /// An error ocurred outside the path of a plugin
+    /// An error occurred outside the path of a plugin
     Collectd(Box<error::Error>),
 
+    /// When logging, collectd handed us a log level that was outside the known range
     UnknownSeverity(i32),
 
+    /// Collectd gave us multiple configs to deserialize
     MultipleConfig,
 
+    /// Collectd gave us field that contains invalid UTF-8 characters
     Utf8(&'static str, Utf8Error),
 }
 
@@ -195,8 +209,8 @@ impl fmt::Display for FfiError {
             }
             FfiError::MultipleConfig => write!(f, "duplicate config section"),
             FfiError::Panic => write!(f, "plugin panicked"),
-            FfiError::Plugin(_) => write!(f, "plugin errored out"),
-            FfiError::Utf8(field, ref _e) => write!(f, "utf8 error for field: {}", field),
+            FfiError::Plugin(_) => write!(f, "plugin encountered an error"),
+            FfiError::Utf8(field, ref _e) => write!(f, "UTF-8 error for field: {}", field),
         }
     }
 }

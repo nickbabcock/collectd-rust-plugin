@@ -1,3 +1,5 @@
+//! Module used exclusively to setup the `collectd_plugin!` macro. No public functions from here
+//! should be used.
 use api::{empty_to_none, get_default_interval, log_err, CdTime, ConfigItem, LogLevel, ValueList};
 use bindings::{
     cdtime_t, data_set_t, oconfig_item_t, plugin_register_complex_read, plugin_register_flush,
