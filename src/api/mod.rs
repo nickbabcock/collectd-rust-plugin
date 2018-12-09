@@ -427,19 +427,6 @@ fn to_array_res(s: &str) -> Result<[c_char; ARR_LENGTH], ArrayError> {
 }
 
 /// Turns a fixed size character array into string slice, if possible
-///
-/// # Examples
-///
-/// ```
-/// use collectd_plugin::from_array;
-/// use collectd_plugin::bindings::ARR_LENGTH;
-/// use std::os::raw::c_char;
-///
-/// let mut name: [c_char; ARR_LENGTH] = [0; ARR_LENGTH];
-/// name[0] = b'h' as c_char;
-/// name[1] = b'i' as c_char;
-/// assert_eq!(Ok("hi"), from_array(&name));
-/// ```
 pub fn from_array(s: &[c_char; ARR_LENGTH]) -> Result<&str, Utf8Error> {
     unsafe {
         let a = s as *const [i8; ARR_LENGTH] as *const i8;
@@ -448,17 +435,6 @@ pub fn from_array(s: &[c_char; ARR_LENGTH]) -> Result<&str, Utf8Error> {
 }
 
 /// Returns if the string is empty or not
-///
-/// # Examples
-///
-/// ```
-/// use collectd_plugin::empty_to_none;
-///
-/// assert_eq!(None, empty_to_none(""));
-///
-/// let s = "hi";
-/// assert_eq!(Some("hi"), empty_to_none(s));
-/// ```
 pub fn empty_to_none(s: &str) -> Option<&str> {
     if s.is_empty() {
         None
@@ -494,6 +470,22 @@ mod tests {
     use super::*;
     use bindings::data_source_t;
     use std::os::raw::c_char;
+
+    #[test]
+    fn test_empty_to_none() {
+        assert_eq!(None, empty_to_none(""));
+
+        let s = "hi";
+        assert_eq!(Some("hi"), empty_to_none(s));
+    }
+
+    #[test]
+    fn test_from_array() {
+        let mut name: [c_char; ARR_LENGTH] = [0; ARR_LENGTH];
+        name[0] = b'h' as c_char;
+        name[1] = b'i' as c_char;
+        assert_eq!(Ok("hi"), from_array(&name));
+    }
 
     #[test]
     fn test_to_array() {

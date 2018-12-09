@@ -1,5 +1,6 @@
 use bindings::{plugin_log, LOG_DEBUG, LOG_ERR, LOG_INFO, LOG_NOTICE, LOG_WARNING};
 use env_logger::filter;
+use errors::FfiError;
 use log::{self, Level, LevelFilter, Metadata, Record, SetLoggerError};
 use plugins::PluginManager;
 use std::cell::Cell;
@@ -205,7 +206,7 @@ impl CollectdLogger {
 /// Logs an error with a description and all the causes. If rust's logging mechanism has been
 /// registered, it is the preferred mechanism. If the Rust logging is not configured (and
 /// considering that an error message should be logged) we log it directly to collectd
-pub fn log_err(desc: &str, err: &::FfiError) {
+pub fn log_err(desc: &str, err: &FfiError) {
     let mut msg = format!("{} error: {}", desc, err);
 
     // We join all the causes into a single string. Some thoughts
