@@ -134,7 +134,7 @@ pub use api::{
     CdTime, CollectdLoggerBuilder, ConfigItem, ConfigValue, LogLevel, Value, ValueList,
     ValueListBuilder, ValueReport,
 };
-pub use errors::{ArrayError, CollectdUtf8Error, ConfigError, FfiError, ReceiveError, SubmitError};
+pub use errors::{ArrayError, ConfigError, FfiError, ReceiveError, SubmitError};
 pub use plugins::{
     Plugin, PluginCapabilities, PluginManager, PluginManagerCapabilities, PluginRegistration,
 };

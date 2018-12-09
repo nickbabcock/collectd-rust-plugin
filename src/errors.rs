@@ -62,25 +62,6 @@ impl error::Error for ArrayError {
 }
 
 #[derive(Debug, Clone)]
-pub struct CollectdUtf8Error(pub &'static str, pub Utf8Error);
-
-impl fmt::Display for CollectdUtf8Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "utf8 error for field: {}", self.0)
-    }
-}
-
-impl error::Error for CollectdUtf8Error {
-    fn description(&self) -> &str {
-        "collectd sent invalid utf8"
-    }
-
-    fn cause(&self) -> Option<&error::Error> {
-        None
-    }
-}
-
-#[derive(Debug, Clone)]
 pub enum ReceiveError {
     Utf8(String, &'static str, Utf8Error),
 }
@@ -201,6 +182,8 @@ pub enum FfiError {
     UnknownSeverity(i32),
 
     MultipleConfig,
+
+    Utf8(&'static str, Utf8Error),
 }
 
 impl fmt::Display for FfiError {
@@ -213,6 +196,7 @@ impl fmt::Display for FfiError {
             FfiError::MultipleConfig => write!(f, "duplicate config section"),
             FfiError::Panic => write!(f, "plugin panicked"),
             FfiError::Plugin(_) => write!(f, "plugin errored out"),
+            FfiError::Utf8(field, ref _e) => write!(f, "utf8 error for field: {}", field),
         }
     }
 }
@@ -226,6 +210,7 @@ impl error::Error for FfiError {
         match *self {
             FfiError::Collectd(ref e) => Some(e.as_ref()),
             FfiError::Plugin(ref e) => Some(e.as_ref()),
+            FfiError::Utf8(_field, ref e) => Some(e),
             _ => None,
         }
     }

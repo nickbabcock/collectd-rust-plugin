@@ -3,7 +3,7 @@ use bindings::{
     cdtime_t, data_set_t, oconfig_item_t, plugin_register_complex_read, plugin_register_flush,
     plugin_register_log, plugin_register_write, user_data_t, value_list_t,
 };
-use errors::{CollectdUtf8Error, FfiError};
+use errors::FfiError;
 use plugins::{Plugin, PluginManager, PluginManagerCapabilities, PluginRegistration};
 use std::ffi::{CStr, CString};
 use std::ops::Deref;
@@ -97,8 +97,7 @@ extern "C" fn plugin_flush(
         unsafe { CStr::from_ptr(identifier) }
             .to_str()
             .map(empty_to_none)
-            .map_err(|e| CollectdUtf8Error("flush identifier", e))
-            .map_err(|e| FfiError::Collectd(Box::new(e)))
+            .map_err(|e| FfiError::Utf8("flush identifier", e))
     };
 
     let res = ident.and_then(|id| {
