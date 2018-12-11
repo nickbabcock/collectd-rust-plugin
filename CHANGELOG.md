@@ -1,3 +1,124 @@
+## Unreleased - TBA
+
+Big release with a couple backwards incompatible changes. Let's break it down.
+
+### Removing the `failure` crate
+
+#### The why
+
+While initially promising, `failure` seems to be too heavy-handed of a requirement to force onto the user. There seems to be some sort of consensus that failure should be used for libraries.
+
+References:
+
+- [Do I really need failure/error-chain?](https://www.reddit.com/r/rust/comments/8lt8k6/do_i_really_need_failureerrorchain/)
+- [Current state of error handling in Rust?](https://www.reddit.com/r/rust/comments/9m5w9a/current_state_of_error_handling_in_rust/)
+- [Redefining Failure](https://epage.github.io/blog/2018/03/redefining-failure/)
+- [Goodbye failure](https://paulkernfeld.com/2018/10/27/improving-ndarray-csv.html)
+
+#### The fix
+
+All `failure::Error` should be replaced with `Box<error::Error>`. A change in the type signature may seem scary but the work entailed to migrate should be minimal. For instance, here is the (condensed) diff for migrating the readme example to the new format.
+
+```diff
+- extern crate failure;
+- use failure::Error;
++ use std::error;
+
+-   fn plugins(_config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Error> {
++   fn plugins(_config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Box<error::Error>> {
+
+-   fn read_values(&self) -> Result<(), Error> {
++   fn read_values(&self) -> Result<(), Box<error::Error>> {
+```
+
+Removing the `failure` crate cut compile times and the dependency tree in half.
+
+### Plugins implement `UnwindSafe + RefUnwindSafe`
+
+#### The why
+
+> It is currently undefined behavior to unwind from Rust code into foreign code, so [catching panics] is useful when Rust is called from another language (normally C). This can run arbitrary Rust code, capturing a panic and allowing a graceful handling of the error. [[source]](https://doc.rust-lang.org/std/panic/fn.catch_unwind.html)
+
+Panics can be caused by silly mistakes like
+
+```rust
+let a = Instant::now();
+// ...
+a.duration_since(Instant::now()); // will panic!
+```
+
+This would cause a SIGABRT in collectd, and no one likes a crashing program.
+
+#### The fix
+
+By forcing `Plugin` to be `UnwindSafe + RefUnwindSafe`, we can catch panics before they cross the ffi border. Instead of crashing, collectd will log an error. Most plugins should already be `UnwindSafe + RefUnwindSafe`.
+
+### Error Messages
+
+Collectd plugin is doubling down on Rust's native logging. Now, if registered, all errors (even if they originated in between collectd and the plugin), will use prefer Rust's logging. If not registered, errors are instead sent directly to collectd and may lack context.
+
+Given the following plugin that alternates between panicking and returning an error:
+
+```rust
+#[derive(Default)]
+struct MyErrorManager;
+
+#[derive(Default)]
+struct MyErrorPlugin {
+    state: AtomicBool,
+}
+
+impl PluginManager for MyErrorPlugin {
+    fn name() -> &'static str {
+        "myerror"
+    }
+
+    fn plugins(_config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Box<error::Error>> {
+        CollectdLoggerBuilder::new()
+            .prefix_plugin::<Self>()
+            .filter_level(LevelFilter::Info)
+            .try_init()
+            .expect("really the only thing that should create a logger");
+
+        Ok(PluginRegistration::Single(Box::new(
+            MyErrorPlugin::default(),
+        )))
+    }
+}
+
+impl Plugin for MyErrorPlugin {
+    fn capabilities(&self) -> PluginCapabilities {
+        PluginCapabilities::READ
+    }
+
+    fn read_values(&self) -> Result<(), Box<error::Error>> {
+        if self.state.fetch_xor(true, Ordering::Relaxed) {
+            panic!("Oh dear what is wrong!?")
+        } else {
+            Err(failure::err_msg("bailing"))?
+        }
+    }
+}
+```
+
+One will find the following lines in the log:
+
+```
+myerror: collectd_plugin::api::logger: read error: plugin encountered an error; bailing
+read-function of plugin `myerror' failed
+myerror: collectd_plugin::api::logger: read error: plugin panicked
+```
+
+Nested causes will be semi-colon joined to be printed on a single line.
+
+Collectd will back off exponentially on failing plugins.
+
+### Other changes
+
+* Migrate most of `collectd_plugin!` macro internally. This reduces the number lines in the macro from 300 to 30
+* All of the internal logic used in `collectd_plugin!` is no longer exposed as a public API, so this drastically curtails the public API. If part of the API was removed that you depended upon, open an issue to discuss. Do not depend on anything in the `internal` module
+* Guard against null messages panicking logging plugins (though null messages should never happen)
+
 ## 0.8.4 - 2018-11-25
 
 * Add: serde config deserialize newtype structs
