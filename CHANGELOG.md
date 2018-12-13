@@ -1,4 +1,4 @@
-## Unreleased - TBA
+## 0.9.0 - 2018-12-12
 
 Big release with a couple backwards incompatible changes. Let's break it down.
 
