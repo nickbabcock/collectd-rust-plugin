@@ -6,7 +6,7 @@ extern crate memchr;
 use collectd_plugin::bindings::{
     data_set_t, data_source_t, value_list_t, value_t, ARR_LENGTH, DS_TYPE_GAUGE,
 };
-use collectd_plugin::{nanos_to_collectd, Value, ValueList, ValueListBuilder};
+use collectd_plugin::{Value, ValueList, ValueListBuilder};
 use criterion::{Benchmark, Criterion};
 use std::ffi::CString;
 use std::os::raw::c_char;
@@ -43,8 +43,8 @@ fn convert_to_value_list(c: &mut Criterion) {
         let list_t = value_list_t {
             values: vs.as_mut_ptr(),
             values_len: 1,
-            time: nanos_to_collectd(1_000_000_000),
-            interval: nanos_to_collectd(1_000_000_000),
+            time: 1_000_000_000,
+            interval: 1_000_000_000,
             host: metric,
             plugin: name,
             plugin_instance: metric,
