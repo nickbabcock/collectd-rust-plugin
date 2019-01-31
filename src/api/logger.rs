@@ -284,14 +284,14 @@ macro_rules! collectd_log_raw {
         let level: $crate::LogLevel = $lvl;
         let level = level as i32;
         unsafe {
-            $crate::bindings::plugin_log(level, ($fmt).as_ptr() as *const i8);
+            $crate::bindings::plugin_log(level, ($fmt).as_ptr() as *const ::std::os::raw::c_char);
         }
     });
     ($lvl:expr, $fmt:expr, $($arg:expr),*) => ({
         let level: $crate::LogLevel = $lvl;
         let level = level as i32;
         unsafe {
-            $crate::bindings::plugin_log(level, ($fmt).as_ptr() as *const i8, $($arg)*);
+            $crate::bindings::plugin_log(level, ($fmt).as_ptr() as *const ::std::os::raw::c_char, $($arg)*);
         }
     });
 }
