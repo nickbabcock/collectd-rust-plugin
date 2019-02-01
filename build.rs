@@ -40,8 +40,32 @@ fn detect_collectd_version() -> String {
 
 #[cfg(not(collectd_docs_rs))]
 fn detect_collectd_version() -> String {
-    let re = Regex::new(r"collectd (\d+\.\d+)\.\d+").expect("Valid collectd regex");
     println!("cargo:rerun-if-env-changed=COLLECTD_VERSION");
+    println!("cargo:rerun-if-env-changed=COLLECTD_PATH");
+
+    if let Some(path) = env::var_os("COLLECTD_PATH") {
+        let re = Regex::new(r"^(\d+\.\d+).\d+").expect("Valid collectd regex");
+        let mut script = PathBuf::from(path.clone());
+        script.push("version-gen.sh");
+        return script
+            .as_path()
+            .canonicalize()
+            .and_then(|p| Command::new(p).current_dir(path).output())
+            .map(|x| String::from_utf8(x.stdout).expect("Collectd output to be utf8"))
+            .map(|x| {
+                re.captures(&x)
+                    .expect("Version info to be present in version-gen.sh")
+                    .get(1)
+                    .map(|x| String::from(x.as_str()))
+                    .unwrap()
+            })
+            .expect(
+                "version-gen.sh did not execute successfully. \
+                 Ensure that COLLECTD_PATH points to a collectd source directory",
+            );
+    }
+
+    let re = Regex::new(r"collectd (\d+\.\d+)\.\d+").expect("Valid collectd regex");
 
     env::var_os("COLLECTD_VERSION")
         .map(|x| {
@@ -67,16 +91,25 @@ fn detect_collectd_version() -> String {
 #[cfg(feature = "bindgen")]
 fn bindings(loc: PathBuf, version: CollectdVersion) {
     extern crate bindgen;
-    let arg = match version {
-        CollectdVersion::Collectd54 => "-DCOLLECTD_54",
-        CollectdVersion::Collectd55 => "-DCOLLECTD_55",
-        CollectdVersion::Collectd57 => "-DCOLLECTD_57",
-    };
 
-    bindgen::Builder::default()
-        .header("wrapper.h")
-        .clang_arg("-DHAVE_CONFIG_H")
-        .clang_arg(arg)
+    let mut builder = bindgen::Builder::default().header("wrapper.h");
+
+    if let Some(path) = env::var_os("COLLECTD_PATH") {
+        let mut linker = String::from("-I");
+        linker.push_str(&path.to_string_lossy());
+        linker.push_str("/src");
+        builder = builder.clang_arg(linker).clang_arg("-DCOLLECTD_PATH");
+    } else {
+        let arg = match version {
+            CollectdVersion::Collectd54 => "-DCOLLECTD_54",
+            CollectdVersion::Collectd55 => "-DCOLLECTD_55",
+            CollectdVersion::Collectd57 => "-DCOLLECTD_57",
+        };
+
+        builder = builder.clang_arg("-DHAVE_CONFIG_H").clang_arg(arg);
+    }
+
+    builder
         .rust_target(bindgen::RustTarget::Stable_1_21)
         .whitelist_type("cdtime_t")
         .whitelist_type("data_set_t")
