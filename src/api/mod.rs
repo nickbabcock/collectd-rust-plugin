@@ -341,13 +341,13 @@ impl<'a> ValueListBuilder<'a> {
             .list
             .plugin_instance
             .map(|x| to_array_res(x).map_err(|e| SubmitError::Field("plugin_instance", e)))
-            .unwrap_or_else(|| Ok([0i8; ARR_LENGTH]))?;
+            .unwrap_or_else(|| Ok([0 as c_char; ARR_LENGTH]))?;
 
         let type_instance = self
             .list
             .type_instance
             .map(|x| to_array_res(x).map_err(|e| SubmitError::Field("type_instance", e)))
-            .unwrap_or_else(|| Ok([0i8; ARR_LENGTH]))?;
+            .unwrap_or_else(|| Ok([0 as c_char; ARR_LENGTH]))?;
 
         let host = self
             .list
@@ -362,7 +362,7 @@ impl<'a> ValueListBuilder<'a> {
                 // submitted and would cause garbage to be read (and thus could have very much
                 // unintended side effects)
                 if cfg!(collectd57) {
-                    Ok([0i8; ARR_LENGTH])
+                    Ok([0 as c_char; ARR_LENGTH])
                 } else {
                     unsafe { Ok(hostname_g) }
                 }
@@ -429,7 +429,7 @@ fn to_array_res(s: &str) -> Result<[c_char; ARR_LENGTH], ArrayError> {
 /// Turns a fixed size character array into string slice, if possible
 pub fn from_array(s: &[c_char; ARR_LENGTH]) -> Result<&str, Utf8Error> {
     unsafe {
-        let a = s as *const [i8; ARR_LENGTH] as *const i8;
+        let a = s as *const [c_char; ARR_LENGTH] as *const c_char;
         CStr::from_ptr(a).to_str()
     }
 }
