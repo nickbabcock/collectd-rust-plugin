@@ -13,6 +13,18 @@ matrix:
     - rust: beta
     - rust: nightly
 
+    - rust: stable
+      env: COLLECTD_PATH=./collectd
+      compiler: clang
+      addons:
+        apt:
+          sources:
+            - llvm-toolchain-trusty-5.0
+          packages:
+            - llvm-5.0-dev
+            - clang-5.0
+            - libclang-5.0-dev
+
     # On aarch64 machines, c_char = u8 instead of i8
     - rust: stable
       env: CROSS_TARGET=aarch64-unknown-linux-gnu COLLECTD_VERSION=5.5
@@ -27,9 +39,13 @@ matrix:
     - rust: stable
       env: UBUNTU_VERSION=18.10 COLLECTD_VERSION=5.7
 
+before_install:
+  - if [ ! -z $COLLECTD_PATH ]; then sudo apt-get update && sudo apt-get install -qq --no-install-recommends autotools-dev libltdl-dev && git clone https://github.com/collectd/collectd.git $COLLECTD_PATH; fi
+
 script:
   - COLLECTD_VERSION=5.5 cargo build --all
   - if [ ! $TRAVIS_RUST_VERSION = "1.24.1" ]; then COLLECTD_VERSION=5.5 cargo test --all; fi;
+  - if [ ! -z $COLLECTD_PATH ]; then cargo test --features bindgen --all; fi;
   - if [ ! -z $CROSS_TARGET ]; then cargo install cross && cross test --target aarch64-unknown-linux-gnu; fi;
   - if [ ! -z $UBUNTU_VERSION ]; then docker build -t collectd-rust-plugin --build-arg UBUNTU_VERSION=${UBUNTU_VERSION} --build-arg COLLECTD_VERSION=${COLLECTD_VERSION} .; fi;
   - if [ ! -z $UBUNTU_VERSION ]; then docker run -ti collectd-rust-plugin bash -c "cd /tmp && COLLECTD_VERSION=${COLLECTD_VERSION} ci/test.sh"; fi;

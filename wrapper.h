@@ -1,4 +1,8 @@
-#ifdef COLLECTD_54
+#ifdef COLLECTD_PATH
+    #include <liboconfig/oconfig.h>
+    #include <daemon/plugin.h>
+    #include <daemon/utils_cache.h>
+#elif COLLECTD_54
     #include <collectd/core/plugin.h>
     #include <collectd/core/utils_cache.h>
 #else
