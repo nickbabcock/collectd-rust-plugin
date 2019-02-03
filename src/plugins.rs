@@ -134,6 +134,8 @@ macro_rules! collectd_plugin {
             use std::ffi::CString;
             use $crate::bindings::{plugin_register_complex_config, plugin_register_init};
 
+            $crate::internal::register_panic_handler();
+
             let s = CString::new(<$type as $crate::PluginManager>::name())
                 .expect("Plugin name to not contain nulls");
 

@@ -10,7 +10,7 @@ use plugins::{Plugin, PluginManager, PluginManagerCapabilities, PluginRegistrati
 use std::ffi::{CStr, CString};
 use std::ops::Deref;
 use std::os::raw::{c_char, c_int, c_void};
-use std::panic::catch_unwind;
+use std::panic::{self, catch_unwind};
 use std::ptr;
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -260,4 +260,10 @@ pub unsafe fn plugin_complex_config<T: PluginManager>(
             -1
         }
     }
+}
+
+pub fn register_panic_handler() {
+    panic::set_hook(Box::new(|info| {
+        log_err("panic hook", &FfiError::PanicHook(info));
+    }));
 }

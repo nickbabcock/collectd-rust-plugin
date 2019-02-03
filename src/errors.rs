@@ -1,5 +1,6 @@
 use std::error;
 use std::fmt;
+use std::panic::PanicInfo;
 use std::str::Utf8Error;
 
 /// Error that occurred while translating the collectd config to rust structures.
@@ -178,7 +179,10 @@ impl error::Error for CacheRateError {
 
 /// Errors that occur on the boundary between collectd and a plugin
 #[derive(Debug)]
-pub enum FfiError {
+pub enum FfiError<'a> {
+    /// Error for implementing Rust's panic hook
+    PanicHook(&'a PanicInfo<'a>),
+
     /// Represents a plugin that panicked. A plugin that panics has a logic bug that should be
     /// fixed so that the plugin can better log and recover, else collectd decides
     Panic,
@@ -200,7 +204,7 @@ pub enum FfiError {
     Utf8(&'static str, Utf8Error),
 }
 
-impl fmt::Display for FfiError {
+impl<'a> fmt::Display for FfiError<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             FfiError::Collectd(_) => write!(f, "unexpected collectd behavior"),
@@ -209,13 +213,30 @@ impl fmt::Display for FfiError {
             }
             FfiError::MultipleConfig => write!(f, "duplicate config section"),
             FfiError::Panic => write!(f, "plugin panicked"),
+            FfiError::PanicHook(info) => {
+                write!(f, "plugin panicked: ")?;
+                if let Some(location) = info.location() {
+                    write!(
+                        f,
+                        "({}: {}): ",
+                        location.file(),
+                        location.line(),
+                    )?;
+                }
+
+                if let Some(payload) = info.payload().downcast_ref::<&str>() {
+                    write!(f, "{}", payload)?;
+                }
+
+                Ok(())
+            }
             FfiError::Plugin(_) => write!(f, "plugin encountered an error"),
             FfiError::Utf8(field, ref _e) => write!(f, "UTF-8 error for field: {}", field),
         }
     }
 }
 
-impl error::Error for FfiError {
+impl<'a> error::Error for FfiError<'a> {
     fn description(&self) -> &str {
         "collectd plugin error"
     }
