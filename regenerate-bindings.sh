@@ -6,7 +6,7 @@ generate () {
     docker build -t collectd-rust-plugin --build-arg UBUNTU_VERSION=$1 --build-arg COLLECTD_VERSION=$2 .
     docker run --rm collectd-rust-plugin bash -c "
         source ~/.cargo/env &&
-        rustup component add rustfmt-preview 2>/dev/null &&
+        rustup component add rustfmt 2>/dev/null &&
         cargo --quiet install bindgen &&
         cd /tmp &&
         bindgen --rust-target 1.21 \
