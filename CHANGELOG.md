@@ -1,3 +1,9 @@
+## 0.9.1 - 2019-02-04
+
+- Compile on non-x86 platforms
+- Add `COLLECTD_PATH` environment variable for detecting collectd version from collectd's source directory (most useful with the `bindgen` feature).
+- Output panic info into collectd logs
+
 ## 0.9.0 - 2018-12-12
 
 Big release with a couple backwards incompatible changes. Let's break it down.
