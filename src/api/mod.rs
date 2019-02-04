@@ -338,7 +338,7 @@ impl<'a> ValueListBuilder<'a> {
 
     /// Submits the observed values to collectd and returns errors if encountered
     pub fn submit(self) -> Result<(), SubmitError> {
-        let mut v: Vec<value_t> = self.list.values.into_iter().map(|&x| x.into()).collect();
+        let mut v: Vec<value_t> = self.list.values.iter().map(|&x| x.into()).collect();
         let plugin_instance = self
             .list
             .plugin_instance
