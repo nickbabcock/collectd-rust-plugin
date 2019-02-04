@@ -184,7 +184,8 @@ impl<'a> ValueList<'a> {
                         value: Value::Gauge(*rate),
                         ..*report
                     },
-                }).collect();
+                })
+                .collect();
             Ok(Cow::Owned(nv))
         } else {
             Err(CacheRateError)
@@ -221,7 +222,8 @@ impl<'a> ValueList<'a> {
                         min: source.min,
                         max: source.max,
                     })
-                }).collect();
+                })
+                .collect();
 
         assert!(list.time > 0);
         assert!(list.interval > 0);

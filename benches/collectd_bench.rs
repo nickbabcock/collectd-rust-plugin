@@ -78,7 +78,8 @@ fn gen_nul_string(c: &mut Criterion) {
                 let c = CString::new(&"Hello world"[..]).unwrap();
                 let _d = c.as_bytes_with_nul();
             })
-        }).with_function("memchr", |b| {
+        })
+        .with_function("memchr", |b| {
             b.iter(|| memchr::memchr(0, &"Hello world"[..].as_bytes()))
         }),
     );

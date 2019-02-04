@@ -88,7 +88,8 @@ impl PluginManager for GraphiteManager {
                 };
                 let bx: Box<Plugin> = Box::new(plugin);
                 Ok((x.name.clone(), bx))
-            }).collect();
+            })
+            .collect();
 
         Ok(PluginRegistration::Multiple(config?))
     }
@@ -110,7 +111,8 @@ fn graphitize(s: &str) -> Cow<str> {
                 } else {
                     x
                 }
-            }).collect();
+            })
+            .collect();
         Cow::Owned(new_s)
     }
 }

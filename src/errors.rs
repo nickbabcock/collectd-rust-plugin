@@ -216,12 +216,7 @@ impl<'a> fmt::Display for FfiError<'a> {
             FfiError::PanicHook(info) => {
                 write!(f, "plugin panicked: ")?;
                 if let Some(location) = info.location() {
-                    write!(
-                        f,
-                        "({}: {}): ",
-                        location.file(),
-                        location.line(),
-                    )?;
+                    write!(f, "({}: {}): ", location.file(), location.line(),)?;
                 }
 
                 if let Some(payload) = info.payload().downcast_ref::<&str>() {
