@@ -18,7 +18,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! collectd-plugin = "0.9.0"
+//! collectd-plugin = "0.9.1"
 //! ```
 //!
 //! [Serde](https://github.com/serde-rs/serde) support is enabled by default for configuration parsing.
