@@ -98,7 +98,16 @@ fn bindings(loc: PathBuf, version: CollectdVersion) {
         let mut linker = String::from("-I");
         linker.push_str(&path.to_string_lossy());
         linker.push_str("/src");
-        builder = builder.clang_arg(linker).clang_arg("-DCOLLECTD_PATH");
+
+        // collectd loves to reference "collectd.h" when they are in very different directories so
+        // we add another path
+        let mut linker2 = String::from("-I");
+        linker2.push_str(&path.to_string_lossy());
+        linker2.push_str("/src/daemon");
+        builder = builder
+            .clang_arg(linker)
+            .clang_arg(linker2)
+            .clang_arg("-DCOLLECTD_PATH");
     } else {
         let arg = match version {
             CollectdVersion::Collectd54 => "-DCOLLECTD_54",
