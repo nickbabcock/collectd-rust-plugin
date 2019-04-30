@@ -167,7 +167,7 @@ If you'd like to use the timings on my machine:
 - 60ns to create and submit a `ValueListBuilder`
 - 130ns to create a `ValueList` for plugins that write values
 
-Unless you are reporting or writing millions of metrics every interval (in which case you'll most likely hit an earlier snap), you'll be fine.
+Unless you are reporting or writing millions of metrics every interval (in which case you'll most likely hit an earlier bottleneck), you'll be fine.
 
 ## Plugins
 
