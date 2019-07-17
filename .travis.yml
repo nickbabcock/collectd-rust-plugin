@@ -22,6 +22,7 @@ matrix:
             - llvm-toolchain-trusty-5.0
             - ubuntu-toolchain-r-test
           packages:
+            - cmake
             - llvm-5.0-dev
             - clang-5.0
             - libclang-5.0-dev
