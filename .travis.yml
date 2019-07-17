@@ -19,7 +19,7 @@ matrix:
       addons:
         apt:
           sources:
-            - llvm-toolchain-trusty-5.0
+            - llvm-toolchain-xenial-5.0
             - ubuntu-toolchain-r-test
           packages:
             - cmake
