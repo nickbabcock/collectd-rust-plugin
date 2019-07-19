@@ -462,7 +462,6 @@ pub fn get_default_interval() -> u64 {
 
 #[cfg(not(collectd57))]
 pub fn get_default_interval<T>() -> *const T {
-    use std::ptr;
     ptr::null()
 }
 
