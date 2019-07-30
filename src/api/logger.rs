@@ -1,8 +1,8 @@
 use crate::bindings::{plugin_log, LOG_DEBUG, LOG_ERR, LOG_INFO, LOG_NOTICE, LOG_WARNING};
-use env_logger::filter;
 use crate::errors::FfiError;
-use log::{self, Level, LevelFilter, Metadata, Record, SetLoggerError, error, log_enabled};
 use crate::plugins::PluginManager;
+use env_logger::filter;
+use log::{self, error, log_enabled, Level, LevelFilter, Metadata, Record, SetLoggerError};
 use std::cell::Cell;
 use std::error::Error;
 use std::ffi::{CStr, CString};

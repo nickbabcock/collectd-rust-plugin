@@ -42,7 +42,9 @@ impl PluginManager for LoadManager {
         "loadrust"
     }
 
-    fn plugins(config: Option<&[ConfigItem<'_>]>) -> Result<PluginRegistration, Box<dyn error::Error>> {
+    fn plugins(
+        config: Option<&[ConfigItem<'_>]>,
+    ) -> Result<PluginRegistration, Box<dyn error::Error>> {
         // Deserialize the collectd configuration into our configuration struct
         let config: LoadConfig =
             collectd_plugin::de::from_collectd(config.unwrap_or_else(Default::default))?;

@@ -1,8 +1,8 @@
-use failure;
 use collectd_plugin::{
-    CollectdLoggerBuilder, ConfigItem, Plugin, PluginCapabilities, PluginManager,
-    PluginRegistration, collectd_plugin
+    collectd_plugin, CollectdLoggerBuilder, ConfigItem, Plugin, PluginCapabilities, PluginManager,
+    PluginRegistration,
 };
+use failure;
 use log::LevelFilter;
 use std::error;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -20,7 +20,9 @@ impl PluginManager for MyErrorPlugin {
         "myerror"
     }
 
-    fn plugins(_config: Option<&[ConfigItem<'_>]>) -> Result<PluginRegistration, Box<dyn error::Error>> {
+    fn plugins(
+        _config: Option<&[ConfigItem<'_>]>,
+    ) -> Result<PluginRegistration, Box<dyn error::Error>> {
         CollectdLoggerBuilder::new()
             .prefix_plugin::<Self>()
             .filter_level(LevelFilter::Info)

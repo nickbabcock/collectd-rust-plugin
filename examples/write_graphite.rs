@@ -1,18 +1,18 @@
 #![cfg(feature = "serde")]
 
 use collectd_plugin::{
-    CollectdLoggerBuilder, ConfigItem, Plugin, PluginCapabilities, PluginManager,
-    PluginRegistration, Value, ValueList, collectd_plugin
+    collectd_plugin, CollectdLoggerBuilder, ConfigItem, Plugin, PluginCapabilities, PluginManager,
+    PluginRegistration, Value, ValueList,
 };
+use log::error;
 use log::LevelFilter;
+use serde::Deserialize;
 use std::borrow::Cow;
 use std::error;
 use std::io::Write;
 use std::net::TcpStream;
 use std::ops::Deref;
 use std::sync::Mutex;
-use log::error;
-use serde::Deserialize;
 
 /// Here is what our collectd config can look like:
 ///
@@ -59,7 +59,9 @@ impl PluginManager for GraphiteManager {
         "write_graphite_rust"
     }
 
-    fn plugins(config: Option<&[ConfigItem<'_>]>) -> Result<PluginRegistration, Box<dyn error::Error>> {
+    fn plugins(
+        config: Option<&[ConfigItem<'_>]>,
+    ) -> Result<PluginRegistration, Box<dyn error::Error>> {
         // Register a logging hook so that any usage of the `log` crate will be forwarded to
         // collectd's logging facilities
         CollectdLoggerBuilder::new()

@@ -1,6 +1,8 @@
 //! Module used exclusively to setup the `collectd_plugin!` macro. No public functions from here
 //! should be used.
-use crate::api::{empty_to_none, get_default_interval, log_err, CdTime, ConfigItem, LogLevel, ValueList};
+use crate::api::{
+    empty_to_none, get_default_interval, log_err, CdTime, ConfigItem, LogLevel, ValueList,
+};
 use crate::bindings::{
     cdtime_t, data_set_t, oconfig_item_t, plugin_register_complex_read, plugin_register_flush,
     plugin_register_log, plugin_register_write, user_data_t, value_list_t,

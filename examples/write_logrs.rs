@@ -2,14 +2,14 @@
 
 use chrono::Duration;
 use collectd_plugin::{
-    collectd_log, CollectdLoggerBuilder, ConfigItem, LogLevel, Plugin, PluginCapabilities,
-    PluginManager, PluginRegistration, ValueList, collectd_plugin, collectd_log_raw
+    collectd_log, collectd_log_raw, collectd_plugin, CollectdLoggerBuilder, ConfigItem, LogLevel,
+    Plugin, PluginCapabilities, PluginManager, PluginRegistration, ValueList,
 };
 use itertools::Itertools;
-use log::LevelFilter;
-use std::error;
 use log::info;
+use log::LevelFilter;
 use serde::Deserialize;
+use std::error;
 
 fn true_default() -> bool {
     true
@@ -32,7 +32,9 @@ impl PluginManager for LogWritePlugin {
         "write_logrs"
     }
 
-    fn plugins(config: Option<&[ConfigItem<'_>]>) -> Result<PluginRegistration, Box<dyn error::Error>> {
+    fn plugins(
+        config: Option<&[ConfigItem<'_>]>,
+    ) -> Result<PluginRegistration, Box<dyn error::Error>> {
         // Register a logging hook so that any usage of the `log` crate will be forwarded to
         // collectd's logging facilities
         CollectdLoggerBuilder::new()

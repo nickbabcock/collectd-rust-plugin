@@ -2,9 +2,9 @@ use crate::bindings::{
     data_set_t, hostname_g, plugin_dispatch_values, uc_get_rate, value_list_t, value_t, ARR_LENGTH,
     DS_TYPE_ABSOLUTE, DS_TYPE_COUNTER, DS_TYPE_DERIVE, DS_TYPE_GAUGE,
 };
+use crate::errors::{ArrayError, CacheRateError, ReceiveError, SubmitError};
 use chrono::prelude::*;
 use chrono::Duration;
-use crate::errors::{ArrayError, CacheRateError, ReceiveError, SubmitError};
 use memchr::memchr;
 use std::borrow::Cow;
 use std::ffi::CStr;

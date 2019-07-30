@@ -1,6 +1,6 @@
 use collectd_plugin::{
-    ConfigItem, Plugin, PluginCapabilities, PluginManager, PluginRegistration, Value,
-    ValueListBuilder, collectd_plugin
+    collectd_plugin, ConfigItem, Plugin, PluginCapabilities, PluginManager, PluginRegistration,
+    Value, ValueListBuilder,
 };
 use std::error;
 
@@ -18,7 +18,9 @@ impl PluginManager for MyPlugin {
     // Our plugin might have configuration section in collectd.conf, which will be passed here if
     // present. Our contrived plugin doesn't care about configuration so it returns only a single
     // plugin (itself).
-    fn plugins(_config: Option<&[ConfigItem<'_>]>) -> Result<PluginRegistration, Box<dyn error::Error>> {
+    fn plugins(
+        _config: Option<&[ConfigItem<'_>]>,
+    ) -> Result<PluginRegistration, Box<dyn error::Error>> {
         Ok(PluginRegistration::Single(Box::new(MyPlugin)))
     }
 }

@@ -1,9 +1,9 @@
 use crate::api::{ConfigItem, LogLevel, ValueList};
-use chrono::Duration;
 use crate::errors::NotImplemented;
+use bitflags::bitflags;
+use chrono::Duration;
 use std::error;
 use std::panic::{RefUnwindSafe, UnwindSafe};
-use bitflags::bitflags;
 
 bitflags! {
     /// Bitflags of capabilities that a plugin advertises to collectd.
@@ -65,7 +65,9 @@ pub trait PluginManager {
     /// Returns one or many instances of a plugin that is configured from collectd's configuration
     /// file. If parameter is `None`, a configuration section for the plugin was not found, so
     /// default values should be used.
-    fn plugins(_config: Option<&[ConfigItem<'_>]>) -> Result<PluginRegistration, Box<dyn error::Error>>;
+    fn plugins(
+        _config: Option<&[ConfigItem<'_>]>,
+    ) -> Result<PluginRegistration, Box<dyn error::Error>>;
 
     /// Initialize any socket, files, or expensive resources that may have been parsed from the
     /// configuration. If an error is reported, all hooks registered will be unregistered. This is
