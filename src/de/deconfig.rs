@@ -1,4 +1,4 @@
-use api::{ConfigItem, ConfigValue};
+use crate::api::{ConfigItem, ConfigValue};
 use std::collections::HashMap;
 
 /// This looks just like `ConfigValue` except it add in the `Object` association. While collectd

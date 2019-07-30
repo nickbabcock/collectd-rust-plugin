@@ -1,4 +1,4 @@
-use api::LogLevel;
+use crate::api::LogLevel;
 use serde::de::{self, Deserialize, Deserializer, Visitor};
 use std::fmt;
 

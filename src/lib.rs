@@ -129,10 +129,10 @@ mod errors;
 #[macro_use]
 mod plugins;
 
-pub use api::{
+pub use crate::api::{
     collectd_log, CdTime, CollectdLoggerBuilder, ConfigItem, ConfigValue, LogLevel, Value,
     ValueList, ValueListBuilder, ValueReport,
 };
-pub use plugins::{
+pub use crate::plugins::{
     Plugin, PluginCapabilities, PluginManager, PluginManagerCapabilities, PluginRegistration,
 };

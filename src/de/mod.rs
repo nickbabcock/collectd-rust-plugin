@@ -6,7 +6,7 @@ pub use self::level::*;
 
 use self::deconfig::*;
 use self::errors::Error;
-use api::ConfigItem;
+use crate::api::ConfigItem;
 use serde::de::{self, Deserialize, DeserializeSeed, MapAccess, SeqAccess, Visitor};
 
 /// Serde documentation shadows the std's Result type which can be really confusing for Rust
@@ -515,7 +515,7 @@ impl<'de, 'a> SeqAccess<'de> for SeqSeparated<'a, 'de> {
 mod tests {
     use super::super::ConfigValue;
     use super::*;
-    use api::LogLevel;
+    use crate::api::LogLevel;
 
     #[test]
     fn test_serde_simple_bool() {

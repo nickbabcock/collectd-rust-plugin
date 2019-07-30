@@ -1,8 +1,8 @@
-use bindings::{
+use crate::bindings::{
     oconfig_item_t, oconfig_value_s__bindgen_ty_1, oconfig_value_t, OCONFIG_TYPE_BOOLEAN,
     OCONFIG_TYPE_NUMBER, OCONFIG_TYPE_STRING,
 };
-use errors::ConfigError;
+use crate::errors::ConfigError;
 use std::ffi::CStr;
 use std::slice;
 

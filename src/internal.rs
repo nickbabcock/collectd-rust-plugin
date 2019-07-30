@@ -1,12 +1,12 @@
 //! Module used exclusively to setup the `collectd_plugin!` macro. No public functions from here
 //! should be used.
-use api::{empty_to_none, get_default_interval, log_err, CdTime, ConfigItem, LogLevel, ValueList};
-use bindings::{
+use crate::api::{empty_to_none, get_default_interval, log_err, CdTime, ConfigItem, LogLevel, ValueList};
+use crate::bindings::{
     cdtime_t, data_set_t, oconfig_item_t, plugin_register_complex_read, plugin_register_flush,
     plugin_register_log, plugin_register_write, user_data_t, value_list_t,
 };
-use errors::FfiError;
-use plugins::{Plugin, PluginManager, PluginManagerCapabilities, PluginRegistration};
+use crate::errors::FfiError;
+use crate::plugins::{Plugin, PluginManager, PluginManagerCapabilities, PluginRegistration};
 use std::ffi::{CStr, CString};
 use std::ops::Deref;
 use std::os::raw::{c_char, c_int, c_void};
@@ -78,7 +78,7 @@ extern "C" fn plugin_flush(
     identifier: *const c_char,
     dt: *mut user_data_t,
 ) -> c_int {
-    let plugin = unsafe { &mut *((*dt).data as *mut Box<::Plugin>) };
+    let plugin = unsafe { &mut *((*dt).data as *mut Box<crate::Plugin>) };
 
     let dur = if timeout == 0 {
         None

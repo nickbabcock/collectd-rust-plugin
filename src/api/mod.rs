@@ -1,10 +1,10 @@
-use bindings::{
+use crate::bindings::{
     data_set_t, hostname_g, plugin_dispatch_values, uc_get_rate, value_list_t, value_t, ARR_LENGTH,
     DS_TYPE_ABSOLUTE, DS_TYPE_COUNTER, DS_TYPE_DERIVE, DS_TYPE_GAUGE,
 };
 use chrono::prelude::*;
 use chrono::Duration;
-use errors::{ArrayError, CacheRateError, ReceiveError, SubmitError};
+use crate::errors::{ArrayError, CacheRateError, ReceiveError, SubmitError};
 use memchr::memchr;
 use std::borrow::Cow;
 use std::ffi::CStr;
@@ -469,7 +469,7 @@ pub fn get_default_interval<T>() -> *const T {
 mod tests {
     use self::cdtime::nanos_to_collectd;
     use super::*;
-    use bindings::data_source_t;
+    use crate::bindings::data_source_t;
     use std::os::raw::c_char;
 
     #[test]
