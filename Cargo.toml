@@ -8,6 +8,7 @@ readme = "README.md"
 keywords = ["collectd", "plugin"]
 categories = ["external-ffi-bindings"]
 license = "MIT"
+edition = "2018"
 
 [package.metadata.docs.rs]
 rustc-args = ["--cfg",  "collectd_docs_rs"]
