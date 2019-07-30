@@ -33,7 +33,7 @@ pub struct ConfigItem<'a> {
 }
 
 impl<'a> ConfigValue<'a> {
-    pub unsafe fn from(value: &oconfig_value_t) -> Result<ConfigValue, ConfigError> {
+    pub unsafe fn from(value: &oconfig_value_t) -> Result<ConfigValue<'_>, ConfigError> {
         match value.value {
             oconfig_value_s__bindgen_ty_1 { string }
                 if value.type_ == OCONFIG_TYPE_STRING as i32 =>

@@ -1,7 +1,7 @@
-extern crate collectd_plugin;
+
 #[macro_use]
 extern crate criterion;
-extern crate memchr;
+use memchr;
 
 use collectd_plugin::bindings::{
     data_set_t, data_source_t, value_list_t, value_t, ARR_LENGTH, DS_TYPE_GAUGE,

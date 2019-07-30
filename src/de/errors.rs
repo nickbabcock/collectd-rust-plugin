@@ -35,7 +35,7 @@ impl error::Error for Error {
 }
 
 impl Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.0 {
             DeError::NoMoreValuesLeft => write!(f, "no more values left, this should never happen"),
             DeError::SerdeError(ref s) => write!(f, "error from deserialization: {}", s),

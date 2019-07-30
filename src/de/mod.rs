@@ -8,6 +8,7 @@ use self::deconfig::*;
 use self::errors::Error;
 use crate::api::ConfigItem;
 use serde::de::{self, Deserialize, DeserializeSeed, MapAccess, SeqAccess, Visitor};
+use serde::forward_to_deserialize_any;
 
 /// Serde documentation shadows the std's Result type which can be really confusing for Rust
 /// newcomers, so we compromise by creating an alias but prefixing with "De" to make it standout.
@@ -516,6 +517,7 @@ mod tests {
     use super::super::ConfigValue;
     use super::*;
     use crate::api::LogLevel;
+    use serde::Deserialize;
 
     #[test]
     fn test_serde_simple_bool() {

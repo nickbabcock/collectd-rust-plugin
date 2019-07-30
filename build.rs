@@ -1,4 +1,4 @@
-extern crate regex;
+
 
 use regex::Regex;
 use std::env;

@@ -17,7 +17,7 @@ impl Serialize for Value {
 
 #[cfg(test)]
 mod tests {
-    extern crate serde_test;
+    use serde_test;
 
     use self::serde_test::{assert_ser_tokens, Token};
     use super::Value;

@@ -7,7 +7,7 @@ struct LogLevelVisitor;
 impl<'de> Visitor<'de> for LogLevelVisitor {
     type Value = LogLevel;
 
-    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter.write_str("ERROR | WARN | INFO | DEBUG | NOTICE")
     }
 

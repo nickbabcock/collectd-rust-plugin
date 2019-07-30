@@ -42,12 +42,9 @@
 //! Below is a complete plugin that dummy reports [load](https://en.wikipedia.org/wiki/Load_(computing)) values to collectd, as it registers a `READ` hook. For an implementation that reimplements Collectd's own load plugin, see [plugins/load](https://github.com/nickbabcock/collectd-rust-plugin/tree/master/plugins/load)
 //!
 //! ```rust
-//! #[macro_use]
-//! extern crate collectd_plugin;
-//!
 //! use collectd_plugin::{
 //!     ConfigItem, Plugin, PluginCapabilities, PluginManager, PluginRegistration, Value,
-//!     ValueListBuilder,
+//!     ValueListBuilder, collectd_plugin
 //! };
 //! use std::error;
 //!
@@ -97,23 +94,6 @@
 //! # fn main() {
 //! # }
 //! ```
-
-#[macro_use]
-extern crate bitflags;
-extern crate chrono;
-extern crate memchr;
-
-#[cfg(feature = "serde")]
-#[macro_use]
-extern crate serde;
-
-#[cfg(test)]
-#[cfg(feature = "serde")]
-#[macro_use]
-extern crate serde_derive;
-extern crate env_logger;
-#[macro_use]
-extern crate log;
 
 #[cfg(feature = "serde")]
 pub mod de;

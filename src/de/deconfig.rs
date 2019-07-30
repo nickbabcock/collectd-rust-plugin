@@ -39,7 +39,7 @@ fn de_config_item<'a>(s: &'a [ConfigItem<'a>]) -> DeConfig<'a> {
     DeConfig::Object(from_config(s))
 }
 
-fn value_to_config<'a>(v: &'a ConfigValue) -> DeConfig<'a> {
+fn value_to_config<'a>(v: &'a ConfigValue<'_>) -> DeConfig<'a> {
     match *v {
         ConfigValue::Number(x) => DeConfig::Number(x),
         ConfigValue::Boolean(x) => DeConfig::Boolean(x),

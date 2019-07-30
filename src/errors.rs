@@ -14,7 +14,7 @@ pub enum ConfigError {
 }
 
 impl fmt::Display for ConfigError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             ConfigError::UnknownType(type_) => {
                 write!(f, "unknown value ({}) for config enum", type_)
@@ -31,7 +31,7 @@ impl error::Error for ConfigError {
         "error interpreting configuration values"
     }
 
-    fn cause(&self) -> Option<&error::Error> {
+    fn cause(&self) -> Option<&dyn error::Error> {
         match *self {
             ConfigError::StringDecode(ref e) => Some(e),
             ConfigError::UnknownType(_) => None,
@@ -51,7 +51,7 @@ pub enum ArrayError {
 }
 
 impl fmt::Display for ArrayError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             ArrayError::NullPresent(pos, ref s) => {
                 write!(f, "null encountered (pos: {}) in string: {}", pos, s)
@@ -66,7 +66,7 @@ impl error::Error for ArrayError {
         "error generating array"
     }
 
-    fn cause(&self) -> Option<&error::Error> {
+    fn cause(&self) -> Option<&dyn error::Error> {
         None
     }
 }
@@ -79,7 +79,7 @@ pub enum ReceiveError {
 }
 
 impl fmt::Display for ReceiveError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             ReceiveError::Utf8(ref plugin, ref field, ref _err) => {
                 write!(f, "plugin: {} submitted bad field: {}", plugin, field)
@@ -93,7 +93,7 @@ impl error::Error for ReceiveError {
         "error generating a value list"
     }
 
-    fn cause(&self) -> Option<&error::Error> {
+    fn cause(&self) -> Option<&dyn error::Error> {
         match *self {
             ReceiveError::Utf8(ref _plugin, ref _field, ref err) => Some(err),
         }
@@ -110,7 +110,7 @@ pub enum SubmitError {
 }
 
 impl fmt::Display for SubmitError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             SubmitError::Dispatch(code) => {
                 write!(f, "plugin_dispatch_values returned an error: {}", code)
@@ -125,7 +125,7 @@ impl error::Error for SubmitError {
         "error generating array"
     }
 
-    fn cause(&self) -> Option<&error::Error> {
+    fn cause(&self) -> Option<&dyn error::Error> {
         match *self {
             SubmitError::Dispatch(_code) => None,
             SubmitError::Field(_field, ref err) => Some(err),
@@ -139,7 +139,7 @@ impl error::Error for SubmitError {
 pub struct NotImplemented;
 
 impl fmt::Display for NotImplemented {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "function is not implemented")
     }
 }
@@ -149,7 +149,7 @@ impl error::Error for NotImplemented {
         "function is not implemented"
     }
 
-    fn cause(&self) -> Option<&error::Error> {
+    fn cause(&self) -> Option<&dyn error::Error> {
         None
     }
 }
@@ -159,7 +159,7 @@ impl error::Error for NotImplemented {
 pub struct CacheRateError;
 
 impl fmt::Display for CacheRateError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
             "unable to retrieve rate (see collectd logs for additional details)"
@@ -172,7 +172,7 @@ impl error::Error for CacheRateError {
         "unable to retrieve rate (see collectd logs for additional details)"
     }
 
-    fn cause(&self) -> Option<&error::Error> {
+    fn cause(&self) -> Option<&dyn error::Error> {
         None
     }
 }
@@ -189,10 +189,10 @@ pub enum FfiError<'a> {
 
     /// An error from the plugin. This is a "normal" error that the plugin has caught. Like if the
     /// database is down and the plugin has the proper error mechanisms
-    Plugin(Box<error::Error>),
+    Plugin(Box<dyn error::Error>),
 
     /// An error occurred outside the path of a plugin
-    Collectd(Box<error::Error>),
+    Collectd(Box<dyn error::Error>),
 
     /// When logging, collectd handed us a log level that was outside the known range
     UnknownSeverity(i32),
@@ -205,7 +205,7 @@ pub enum FfiError<'a> {
 }
 
 impl<'a> fmt::Display for FfiError<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             FfiError::Collectd(_) => write!(f, "unexpected collectd behavior"),
             FfiError::UnknownSeverity(severity) => {
@@ -236,7 +236,7 @@ impl<'a> error::Error for FfiError<'a> {
         "collectd plugin error"
     }
 
-    fn cause(&self) -> Option<&error::Error> {
+    fn cause(&self) -> Option<&dyn error::Error> {
         match *self {
             FfiError::Collectd(ref e) => Some(e.as_ref()),
             FfiError::Plugin(ref e) => Some(e.as_ref()),

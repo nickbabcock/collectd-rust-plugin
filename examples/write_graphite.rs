@@ -1,16 +1,8 @@
 #![cfg(feature = "serde")]
 
-#[macro_use]
-extern crate collectd_plugin;
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
-#[macro_use]
-extern crate log;
-
 use collectd_plugin::{
     CollectdLoggerBuilder, ConfigItem, Plugin, PluginCapabilities, PluginManager,
-    PluginRegistration, Value, ValueList,
+    PluginRegistration, Value, ValueList, collectd_plugin
 };
 use log::LevelFilter;
 use std::borrow::Cow;
@@ -19,6 +11,8 @@ use std::io::Write;
 use std::net::TcpStream;
 use std::ops::Deref;
 use std::sync::Mutex;
+use log::error;
+use serde::Deserialize;
 
 /// Here is what our collectd config can look like:
 ///
@@ -65,7 +59,7 @@ impl PluginManager for GraphiteManager {
         "write_graphite_rust"
     }
 
-    fn plugins(config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Box<error::Error>> {
+    fn plugins(config: Option<&[ConfigItem<'_>]>) -> Result<PluginRegistration, Box<dyn error::Error>> {
         // Register a logging hook so that any usage of the `log` crate will be forwarded to
         // collectd's logging facilities
         CollectdLoggerBuilder::new()
@@ -78,7 +72,7 @@ impl PluginManager for GraphiteManager {
         let config: GraphiteConfig =
             collectd_plugin::de::from_collectd(config.unwrap_or_else(Default::default))?;
 
-        let config: Result<Vec<(String, Box<Plugin>)>, Box<error::Error>> = config
+        let config: Result<Vec<(String, Box<dyn Plugin>)>, Box<dyn error::Error>> = config
             .nodes
             .into_iter()
             .map(|x| {
@@ -86,7 +80,7 @@ impl PluginManager for GraphiteManager {
                     writer: Mutex::new(TcpStream::connect(x.address)?),
                     prefix: x.prefix,
                 };
-                let bx: Box<Plugin> = Box::new(plugin);
+                let bx: Box<dyn Plugin> = Box::new(plugin);
                 Ok((x.name.clone(), bx))
             })
             .collect();
@@ -96,7 +90,7 @@ impl PluginManager for GraphiteManager {
 }
 
 /// If necessary removes any characters from a string that have special meaning in graphite.
-fn graphitize(s: &str) -> Cow<str> {
+fn graphitize(s: &str) -> Cow<'_, str> {
     let needs_modifying = s
         .chars()
         .any(|x| x == '.' || x.is_whitespace() || x.is_control());
@@ -140,7 +134,7 @@ impl<W: Write + Send> Plugin for GraphitePlugin<W> {
         PluginCapabilities::WRITE
     }
 
-    fn write_values(&self, list: ValueList) -> Result<(), Box<error::Error>> {
+    fn write_values(&self, list: ValueList<'_>) -> Result<(), Box<dyn error::Error>> {
         // We use a heap allocated string to construct data to send to graphite. Collectd doesn't
         // use the heap (preferring fixed size arrays). We could get the same behavior using the
         // ArrayString type from the arrayvec crate.

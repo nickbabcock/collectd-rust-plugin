@@ -1,5 +1,4 @@
-#[macro_use]
-extern crate collectd_plugin;
+use collectd_plugin::collectd_plugin;
 
 mod tt {
     use collectd_plugin::*;
@@ -13,8 +12,8 @@ mod tt {
         }
 
         fn plugins(
-            _config: Option<&[ConfigItem]>,
-        ) -> Result<PluginRegistration, Box<error::Error>> {
+            _config: Option<&[ConfigItem<'_>]>,
+        ) -> Result<PluginRegistration, Box<dyn error::Error>> {
             collectd_log_raw!(LogLevel::Info, b"test %d\0", 10);
             Ok(PluginRegistration::Multiple(vec![]))
         }

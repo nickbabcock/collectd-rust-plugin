@@ -1,7 +1,7 @@
 use crate::bindings::{plugin_log, LOG_DEBUG, LOG_ERR, LOG_INFO, LOG_NOTICE, LOG_WARNING};
 use env_logger::filter;
 use crate::errors::FfiError;
-use log::{self, Level, LevelFilter, Metadata, Record, SetLoggerError};
+use log::{self, Level, LevelFilter, Metadata, Record, SetLoggerError, error, log_enabled};
 use crate::plugins::PluginManager;
 use std::cell::Cell;
 use std::error::Error;
@@ -54,7 +54,7 @@ pub struct CollectdLoggerBuilder {
     format: Format,
 }
 
-type FormatFn = Fn(&mut Write, &Record) -> io::Result<()> + Sync + Send;
+type FormatFn = dyn Fn(&mut dyn Write, &Record<'_>) -> io::Result<()> + Sync + Send;
 
 impl CollectdLoggerBuilder {
     /// Initializes the log builder with defaults
@@ -116,7 +116,7 @@ impl CollectdLoggerBuilder {
     /// Sets the format function for formatting the log output.
     pub fn format<F: 'static>(&mut self, format: F) -> &mut Self
     where
-        F: Fn(&mut Write, &Record) -> io::Result<()> + Sync + Send,
+        F: Fn(&mut dyn Write, &Record<'_>) -> io::Result<()> + Sync + Send,
     {
         self.format.custom_format = Some(Box::new(format));
         self
@@ -151,11 +151,11 @@ struct CollectdLogger {
 }
 
 impl log::Log for CollectdLogger {
-    fn enabled(&self, metadata: &Metadata) -> bool {
+    fn enabled(&self, metadata: &Metadata<'_>) -> bool {
         self.filter.enabled(metadata)
     }
 
-    fn log(&self, record: &Record) {
+    fn log(&self, record: &Record<'_>) {
         if self.matches(record) {
             // Log records are written to a thread local storage before being submitted to
             // collectd. The buffers are cleared afterwards
@@ -192,7 +192,7 @@ impl log::Log for CollectdLogger {
 
 impl CollectdLogger {
     /// Checks if this record matches the configured filter.
-    pub fn matches(&self, record: &Record) -> bool {
+    pub fn matches(&self, record: &Record<'_>) -> bool {
         self.filter.matches(record)
     }
 
@@ -215,10 +215,10 @@ pub fn log_err<'a>(desc: &str, err: &FfiError<'a>) {
     //  - While nearly all languages will display each cause on a separate line for a
     //    stacktrace, I'm not aware of any collectd plugin doing the same. So to keep
     //    convention, all causes are logged on the same line, semicolon delimited.
-    let mut ie = err.cause();
+    let mut ie = err.source();
     while let Some(cause) = ie {
         let _ = write!(msg, "; {}", cause);
-        ie = cause.cause();
+        ie = cause.source();
     }
 
     if log_enabled!(Level::Error) {

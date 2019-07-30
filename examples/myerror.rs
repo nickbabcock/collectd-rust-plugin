@@ -1,11 +1,7 @@
-#[macro_use]
-extern crate collectd_plugin;
-extern crate failure;
-extern crate log;
-
+use failure;
 use collectd_plugin::{
     CollectdLoggerBuilder, ConfigItem, Plugin, PluginCapabilities, PluginManager,
-    PluginRegistration,
+    PluginRegistration, collectd_plugin
 };
 use log::LevelFilter;
 use std::error;
@@ -24,7 +20,7 @@ impl PluginManager for MyErrorPlugin {
         "myerror"
     }
 
-    fn plugins(_config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Box<error::Error>> {
+    fn plugins(_config: Option<&[ConfigItem<'_>]>) -> Result<PluginRegistration, Box<dyn error::Error>> {
         CollectdLoggerBuilder::new()
             .prefix_plugin::<Self>()
             .filter_level(LevelFilter::Info)
@@ -42,7 +38,7 @@ impl Plugin for MyErrorPlugin {
         PluginCapabilities::READ
     }
 
-    fn read_values(&self) -> Result<(), Box<error::Error>> {
+    fn read_values(&self) -> Result<(), Box<dyn error::Error>> {
         if self.state.fetch_xor(true, Ordering::Relaxed) {
             panic!("Oh dear what is wrong!?")
         } else {

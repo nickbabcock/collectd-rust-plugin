@@ -3,6 +3,7 @@ use chrono::Duration;
 use crate::errors::NotImplemented;
 use std::error;
 use std::panic::{RefUnwindSafe, UnwindSafe};
+use bitflags::bitflags;
 
 bitflags! {
     /// Bitflags of capabilities that a plugin advertises to collectd.
@@ -26,10 +27,10 @@ bitflags! {
 /// How many instances of the plugin will be registered
 pub enum PluginRegistration {
     /// Our module will only register a single plugin
-    Single(Box<Plugin>),
+    Single(Box<dyn Plugin>),
 
     /// Our module registers several modules. The String in the tuple must be unique identifier
-    Multiple(Vec<(String, Box<Plugin>)>),
+    Multiple(Vec<(String, Box<dyn Plugin>)>),
 }
 
 impl PluginCapabilities {
@@ -64,12 +65,12 @@ pub trait PluginManager {
     /// Returns one or many instances of a plugin that is configured from collectd's configuration
     /// file. If parameter is `None`, a configuration section for the plugin was not found, so
     /// default values should be used.
-    fn plugins(_config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Box<error::Error>>;
+    fn plugins(_config: Option<&[ConfigItem<'_>]>) -> Result<PluginRegistration, Box<dyn error::Error>>;
 
     /// Initialize any socket, files, or expensive resources that may have been parsed from the
     /// configuration. If an error is reported, all hooks registered will be unregistered. This is
     /// really only useful for `PluginRegistration::Single` modules who want global data.
-    fn initialize() -> Result<(), Box<error::Error>> {
+    fn initialize() -> Result<(), Box<dyn error::Error>> {
         Err(NotImplemented)?
     }
 }
@@ -87,7 +88,7 @@ pub trait Plugin: Send + Sync + UnwindSafe + RefUnwindSafe {
 
     /// Customizes how a message of a given level is logged. If the message isn't valid UTF-8, an
     /// allocation is done to replace all invalid characters with the UTF-8 replacement character
-    fn log(&self, _lvl: LogLevel, _msg: &str) -> Result<(), Box<error::Error>> {
+    fn log(&self, _lvl: LogLevel, _msg: &str) -> Result<(), Box<dyn error::Error>> {
         Err(NotImplemented)?
     }
 
@@ -96,13 +97,13 @@ pub trait Plugin: Send + Sync + UnwindSafe + RefUnwindSafe {
     /// that expect to report values need to have at least have a capability of `READ`. An error in
     /// reporting values will cause collectd to backoff exponentially until a delay of a day is
     /// reached.
-    fn read_values(&self) -> Result<(), Box<error::Error>> {
+    fn read_values(&self) -> Result<(), Box<dyn error::Error>> {
         Err(NotImplemented)?
     }
 
     /// Collectd is giving you reported values, do with them as you please. If writing values is
     /// expensive, prefer to buffer them in some way and register a `flush` callback to write.
-    fn write_values(&self, _list: ValueList) -> Result<(), Box<error::Error>> {
+    fn write_values(&self, _list: ValueList<'_>) -> Result<(), Box<dyn error::Error>> {
         Err(NotImplemented)?
     }
 
@@ -112,7 +113,7 @@ pub trait Plugin: Send + Sync + UnwindSafe + RefUnwindSafe {
         &self,
         _timeout: Option<Duration>,
         _identifier: Option<&str>,
-    ) -> Result<(), Box<error::Error>> {
+    ) -> Result<(), Box<dyn error::Error>> {
         Err(NotImplemented)?
     }
 }
