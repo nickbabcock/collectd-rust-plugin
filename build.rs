@@ -88,8 +88,6 @@ fn detect_collectd_version() -> String {
 
 #[cfg(feature = "bindgen")]
 fn bindings(loc: PathBuf, version: CollectdVersion) {
-    extern crate bindgen;
-
     let mut builder = bindgen::Builder::default().header("wrapper.h");
 
     if let Some(path) = env::var_os("COLLECTD_PATH") {

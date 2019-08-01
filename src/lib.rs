@@ -21,15 +21,7 @@
 //! collectd-plugin = "0.9.1"
 //! ```
 //!
-//! [Serde](https://github.com/serde-rs/serde) support is enabled by default for configuration parsing.
-//!
-//! Then put this in your crate root:
-//!
-//! ```rust,ignore
-//! extern crate collectd_plugin;
-//! ```
-//!
-//! Rust 1.20 or later is needed to build.
+//! Rust 1.33 or later is needed to build.
 //!
 //! This repo is tested on the following:
 //!

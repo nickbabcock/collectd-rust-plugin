@@ -22,8 +22,6 @@ use std::mem;
 /// # Example
 ///
 /// ```
-/// # extern crate collectd_plugin;
-/// # extern crate log;
 /// # fn main() {
 /// use collectd_plugin::{ConfigItem, PluginManager, PluginRegistration, CollectdLoggerBuilder};
 /// use log::LevelFilter;

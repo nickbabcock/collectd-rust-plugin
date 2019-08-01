@@ -27,12 +27,6 @@ collectd-plugin = "0.9.1"
 
 [Serde](https://github.com/serde-rs/serde) support is enabled by default for configuration parsing.
 
-Then put this in your crate root:
-
-```rust
-extern crate collectd_plugin;
-```
-
 This repo is tested on the following:
 
 - collectd 5.4 (Ubuntu 14.04)
@@ -47,15 +41,11 @@ This repo is tested on the following:
 Below is a complete plugin that dummy reports [load](https://en.wikipedia.org/wiki/Load_(computing)) values to collectd, as it registers a `READ` hook. For an implementation that reimplements collectd's own load plugin, see [examples/load](https://github.com/nickbabcock/collectd-rust-plugin/tree/master/examples/load.rs)
 
 ```rust
-#[macro_use]
-extern crate collectd_plugin;
-extern crate failure;
-
 use collectd_plugin::{
-    ConfigItem, Plugin, PluginCapabilities, PluginManager, PluginRegistration, Value,
-    ValueListBuilder,
+    collectd_plugin, ConfigItem, Plugin, PluginCapabilities, PluginManager, PluginRegistration,
+    Value, ValueListBuilder,
 };
-use failure::Error;
+use std::error;
 
 #[derive(Default)]
 struct MyPlugin;
@@ -71,7 +61,9 @@ impl PluginManager for MyPlugin {
     // Our plugin might have configuration section in collectd.conf, which will be passed here if
     // present. Our contrived plugin doesn't care about configuration so it returns only a single
     // plugin (itself).
-    fn plugins(_config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Error> {
+    fn plugins(
+        _config: Option<&[ConfigItem<'_>]>,
+    ) -> Result<PluginRegistration, Box<dyn error::Error>> {
         Ok(PluginRegistration::Single(Box::new(MyPlugin)))
     }
 }
@@ -82,7 +74,7 @@ impl Plugin for MyPlugin {
         PluginCapabilities::READ
     }
 
-    fn read_values(&self) -> Result<(), Error> {
+    fn read_values(&self) -> Result<(), Box<dyn error::Error>> {
         // Create a list of values to submit to collectd. We'll be sending in a vector representing the
         // "load" type. Short-term load is first (15.0) followed by mid-term and long-term. The number
         // of values that you submit at a time depends on types.db in collectd configurations
@@ -91,7 +83,9 @@ impl Plugin for MyPlugin {
         // Submit our values to collectd. A plugin can submit any number of times.
         ValueListBuilder::new(Self::name(), "load")
             .values(&values)
-            .submit()
+            .submit()?;
+
+        Ok(())
     }
 }
 
