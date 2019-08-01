@@ -9,7 +9,7 @@ generate () {
         rustup component add rustfmt 2>/dev/null &&
         cargo --quiet install bindgen &&
         cd /tmp &&
-        bindgen --rust-target 1.21 \
+        bindgen --rust-target 1.33 \
             --whitelist-type cdtime_t \
             --whitelist-type data_set_t \
             --whitelist-function 'plugin_.*' \

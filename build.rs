@@ -117,7 +117,7 @@ fn bindings(loc: PathBuf, version: CollectdVersion) {
     }
 
     builder
-        .rust_target(bindgen::RustTarget::Stable_1_21)
+        .rust_target(bindgen::RustTarget::Stable_1_33)
         .whitelist_type("cdtime_t")
         .whitelist_type("data_set_t")
         .whitelist_function("plugin_.*")
