@@ -31,7 +31,7 @@ impl error::Error for ConfigError {
         "error interpreting configuration values"
     }
 
-    fn cause(&self) -> Option<&dyn error::Error> {
+    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match *self {
             ConfigError::StringDecode(ref e) => Some(e),
             ConfigError::UnknownType(_) => None,
@@ -65,10 +65,6 @@ impl error::Error for ArrayError {
     fn description(&self) -> &str {
         "error generating array"
     }
-
-    fn cause(&self) -> Option<&dyn error::Error> {
-        None
-    }
 }
 
 /// Error that occurred while receiving values from collectd to write
@@ -93,7 +89,7 @@ impl error::Error for ReceiveError {
         "error generating a value list"
     }
 
-    fn cause(&self) -> Option<&dyn error::Error> {
+    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match *self {
             ReceiveError::Utf8(ref _plugin, ref _field, ref err) => Some(err),
         }
@@ -125,7 +121,7 @@ impl error::Error for SubmitError {
         "error generating array"
     }
 
-    fn cause(&self) -> Option<&dyn error::Error> {
+    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match *self {
             SubmitError::Dispatch(_code) => None,
             SubmitError::Field(_field, ref err) => Some(err),
@@ -148,10 +144,6 @@ impl error::Error for NotImplemented {
     fn description(&self) -> &str {
         "function is not implemented"
     }
-
-    fn cause(&self) -> Option<&dyn error::Error> {
-        None
-    }
 }
 
 /// Errors that occur when retrieving rates
@@ -170,10 +162,6 @@ impl fmt::Display for CacheRateError {
 impl error::Error for CacheRateError {
     fn description(&self) -> &str {
         "unable to retrieve rate (see collectd logs for additional details)"
-    }
-
-    fn cause(&self) -> Option<&dyn error::Error> {
-        None
     }
 }
 
@@ -236,7 +224,7 @@ impl<'a> error::Error for FfiError<'a> {
         "collectd plugin error"
     }
 
-    fn cause(&self) -> Option<&dyn error::Error> {
+    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match *self {
             FfiError::Collectd(ref e) => Some(e.as_ref()),
             FfiError::Plugin(ref e) => Some(e.as_ref()),
