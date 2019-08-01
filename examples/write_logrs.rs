@@ -6,8 +6,7 @@ use collectd_plugin::{
     Plugin, PluginCapabilities, PluginManager, PluginRegistration, ValueList,
 };
 use itertools::Itertools;
-use log::info;
-use log::LevelFilter;
+use log::{info, LevelFilter};
 use serde::Deserialize;
 use std::error;
 

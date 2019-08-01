@@ -1,17 +1,11 @@
 #![cfg(feature = "serde")]
 
-#[macro_use]
-extern crate collectd_plugin;
-use failure;
-use libc;
-use num_cpus;
-use serde::Deserialize;
-
 use collectd_plugin::{
-    ConfigItem, Plugin, PluginCapabilities, PluginManager, PluginRegistration, Value,
-    ValueListBuilder,
+    collectd_plugin, ConfigItem, Plugin, PluginCapabilities, PluginManager, PluginRegistration,
+    Value, ValueListBuilder,
 };
 use failure::Error;
+use serde::Deserialize;
 use std::error;
 
 /// Our plugin will look for a ReportRelative True / False in the collectd config. Unknown
