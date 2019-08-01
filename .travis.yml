@@ -8,7 +8,7 @@ language: rust
 matrix:
   fast_finish: true
   include:
-    - rust: 1.24.1
+    - rust: 1.33.0
     - rust: stable
     - rust: beta
     - rust: nightly

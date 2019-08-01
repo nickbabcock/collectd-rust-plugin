@@ -8,6 +8,7 @@ readme = "README.md"
 keywords = ["collectd", "plugin"]
 categories = ["external-ffi-bindings"]
 license = "MIT"
+edition = "2018"
 
 [package.metadata.docs.rs]
 rustc-args = ["--cfg",  "collectd_docs_rs"]
@@ -26,11 +27,11 @@ bitflags = "1.0"
 memchr = "2"
 log = "0.4"
 env_logger = "0.6"
-serde = { version = "1", optional = true }
+serde = { version = "1", features = ["derive"], optional = true }
 compiletest_rs = { version =  "0.3.14", optional = true }
 
 [dev-dependencies]
-serde_derive = "1.0"
+serde = { version = "1", features = ["derive"] }
 serde_test = "1.0"
 criterion = "0.2"
 log = { version = "0.4", features = ["serde"] }

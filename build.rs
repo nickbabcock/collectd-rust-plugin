@@ -1,5 +1,3 @@
-extern crate regex;
-
 use regex::Regex;
 use std::env;
 use std::path::PathBuf;
@@ -90,8 +88,6 @@ fn detect_collectd_version() -> String {
 
 #[cfg(feature = "bindgen")]
 fn bindings(loc: PathBuf, version: CollectdVersion) {
-    extern crate bindgen;
-
     let mut builder = bindgen::Builder::default().header("wrapper.h");
 
     if let Some(path) = env::var_os("COLLECTD_PATH") {
@@ -119,7 +115,7 @@ fn bindings(loc: PathBuf, version: CollectdVersion) {
     }
 
     builder
-        .rust_target(bindgen::RustTarget::Stable_1_21)
+        .rust_target(bindgen::RustTarget::Stable_1_33)
         .whitelist_type("cdtime_t")
         .whitelist_type("data_set_t")
         .whitelist_function("plugin_.*")

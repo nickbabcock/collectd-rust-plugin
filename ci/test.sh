@@ -65,6 +65,6 @@ grep_test 'write_logrs: write_logrs: yes drop is called' /var/lib/collectd/log
 grep_test 'myerror: collectd_plugin::api::logger: read error: plugin encountered an error; bailing' /var/lib/collectd/log
 grep_test 'read-function of plugin `myerror'"'"' failed.' /var/lib/collectd/log
 grep_test 'myerror: collectd_plugin::api::logger: read error: plugin panicked' /var/lib/collectd/log
-grep_test 'myerror: collectd_plugin::api::logger: panic hook error: plugin panicked: (examples/myerror.rs: 47): Oh dear what is wrong!?' /var/lib/collectd/log
+grep_test 'myerror: collectd_plugin::api::logger: panic hook error: plugin panicked: (examples/myerror.rs: 45): Oh dear what is wrong!?' /var/lib/collectd/log
 
 exit $?

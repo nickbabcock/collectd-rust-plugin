@@ -1,19 +1,11 @@
 #![cfg(feature = "serde")]
 
-#[macro_use]
-extern crate collectd_plugin;
-extern crate failure;
-extern crate libc;
-extern crate num_cpus;
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
-
 use collectd_plugin::{
-    ConfigItem, Plugin, PluginCapabilities, PluginManager, PluginRegistration, Value,
-    ValueListBuilder,
+    collectd_plugin, ConfigItem, Plugin, PluginCapabilities, PluginManager, PluginRegistration,
+    Value, ValueListBuilder,
 };
 use failure::Error;
+use serde::Deserialize;
 use std::error;
 
 /// Our plugin will look for a ReportRelative True / False in the collectd config. Unknown
@@ -44,7 +36,9 @@ impl PluginManager for LoadManager {
         "loadrust"
     }
 
-    fn plugins(config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Box<error::Error>> {
+    fn plugins(
+        config: Option<&[ConfigItem<'_>]>,
+    ) -> Result<PluginRegistration, Box<dyn error::Error>> {
         // Deserialize the collectd configuration into our configuration struct
         let config: LoadConfig =
             collectd_plugin::de::from_collectd(config.unwrap_or_else(Default::default))?;
@@ -87,7 +81,7 @@ impl Plugin for AbsoluteLoadPlugin {
         PluginCapabilities::READ
     }
 
-    fn read_values(&self) -> Result<(), Box<error::Error>> {
+    fn read_values(&self) -> Result<(), Box<dyn error::Error>> {
         // Create a list of values to submit to collectd. We'll be sending in a vector representing the
         // "load" type. Short-term load is first followed by mid-term and long-term. The number of
         // values that you submit at a time depends on types.db in collectd configurations
@@ -107,7 +101,7 @@ impl Plugin for RelativeLoadPlugin {
         PluginCapabilities::READ
     }
 
-    fn read_values(&self) -> Result<(), Box<error::Error>> {
+    fn read_values(&self) -> Result<(), Box<dyn error::Error>> {
         // Essentially the same as `AbsoluteLoadPlugin`, but divides each load value by the number
         // of cpus and submits the values as the type of "relative"
         let values: Vec<Value> = get_load()?

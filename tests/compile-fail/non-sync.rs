@@ -1,5 +1,3 @@
-extern crate collectd_plugin;
-extern crate failure;
 use std::cell::RefCell;
 use std::collections::HashSet;
 use collectd_plugin::Plugin;

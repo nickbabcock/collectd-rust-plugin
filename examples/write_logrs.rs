@@ -1,22 +1,13 @@
 #![cfg(feature = "serde")]
 
-#[macro_use]
-extern crate collectd_plugin;
-extern crate chrono;
-extern crate itertools;
-#[macro_use]
-extern crate log;
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
-
 use chrono::Duration;
 use collectd_plugin::{
-    collectd_log, CollectdLoggerBuilder, ConfigItem, LogLevel, Plugin, PluginCapabilities,
-    PluginManager, PluginRegistration, ValueList,
+    collectd_log, collectd_log_raw, collectd_plugin, CollectdLoggerBuilder, ConfigItem, LogLevel,
+    Plugin, PluginCapabilities, PluginManager, PluginRegistration, ValueList,
 };
 use itertools::Itertools;
-use log::LevelFilter;
+use log::{info, LevelFilter};
+use serde::Deserialize;
 use std::error;
 
 fn true_default() -> bool {
@@ -40,7 +31,9 @@ impl PluginManager for LogWritePlugin {
         "write_logrs"
     }
 
-    fn plugins(config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Box<error::Error>> {
+    fn plugins(
+        config: Option<&[ConfigItem<'_>]>,
+    ) -> Result<PluginRegistration, Box<dyn error::Error>> {
         // Register a logging hook so that any usage of the `log` crate will be forwarded to
         // collectd's logging facilities
         CollectdLoggerBuilder::new()
@@ -64,7 +57,7 @@ impl Plugin for LogWritePlugin {
         PluginCapabilities::WRITE | PluginCapabilities::FLUSH
     }
 
-    fn write_values(&self, list: ValueList) -> Result<(), Box<error::Error>> {
+    fn write_values(&self, list: ValueList<'_>) -> Result<(), Box<dyn error::Error>> {
         let values = if self.store_rates {
             list.rates()
         } else {
@@ -95,7 +88,7 @@ impl Plugin for LogWritePlugin {
         &self,
         timeout: Option<Duration>,
         identifier: Option<&str>,
-    ) -> Result<(), Box<error::Error>> {
+    ) -> Result<(), Box<dyn error::Error>> {
         info!(
             "flushing: timeout: {}, identifier: {}",
             timeout

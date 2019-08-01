@@ -1,10 +1,10 @@
-use bindings::{
+use crate::bindings::{
     data_set_t, hostname_g, plugin_dispatch_values, uc_get_rate, value_list_t, value_t, ARR_LENGTH,
     DS_TYPE_ABSOLUTE, DS_TYPE_COUNTER, DS_TYPE_DERIVE, DS_TYPE_GAUGE,
 };
+use crate::errors::{ArrayError, CacheRateError, ReceiveError, SubmitError};
 use chrono::prelude::*;
 use chrono::Duration;
-use errors::{ArrayError, CacheRateError, ReceiveError, SubmitError};
 use memchr::memchr;
 use std::borrow::Cow;
 use std::ffi::CStr;
@@ -80,7 +80,7 @@ impl Value {
 }
 
 impl fmt::Display for Value {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             Value::Counter(x) | Value::Absolute(x) => write!(f, "{}", x),
             Value::Gauge(x) => write!(f, "{}", x),
@@ -161,7 +161,7 @@ impl<'a> ValueList<'a> {
     /// the `values` field that contains the rate of all non-gauge values. Values that are gauges
     /// remain unchanged, so one doesn't need to resort back to `values` field as this function
     /// will return everything prepped for submission.
-    pub fn rates(&self) -> Result<Cow<Vec<ValueReport<'a>>>, CacheRateError> {
+    pub fn rates(&self) -> Result<Cow<'_, Vec<ValueReport<'a>>>, CacheRateError> {
         // As an optimization step, if we know all values are gauges there is no need to call out
         // to uc_get_rate as no values will be changed
         let all_gauges = self.values.iter().all(|x| match x.value {
@@ -201,7 +201,7 @@ impl<'a> ValueList<'a> {
         let ds_len = length(set.ds_num);
         let list_len = length(list.values_len);
 
-        let values: Result<Vec<ValueReport>, ReceiveError> =
+        let values: Result<Vec<ValueReport<'_>>, ReceiveError> =
             unsafe { slice::from_raw_parts(list.values, list_len) }
                 .iter()
                 .zip(unsafe { slice::from_raw_parts(set.ds, ds_len) })
@@ -469,7 +469,7 @@ pub fn get_default_interval<T>() -> *const T {
 mod tests {
     use self::cdtime::nanos_to_collectd;
     use super::*;
-    use bindings::data_source_t;
+    use crate::bindings::data_source_t;
     use std::os::raw::c_char;
 
     #[test]

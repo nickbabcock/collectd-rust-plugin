@@ -9,7 +9,7 @@
 //! times and calculating differences is as simple as it is with `time_t`, i.e. a simple integer
 //! comparison / subtraction works.
 
-use bindings::cdtime_t;
+use crate::bindings::cdtime_t;
 use chrono::prelude::*;
 use chrono::Duration;
 

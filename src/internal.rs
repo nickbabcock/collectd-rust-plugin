@@ -1,12 +1,14 @@
 //! Module used exclusively to setup the `collectd_plugin!` macro. No public functions from here
 //! should be used.
-use api::{empty_to_none, get_default_interval, log_err, CdTime, ConfigItem, LogLevel, ValueList};
-use bindings::{
+use crate::api::{
+    empty_to_none, get_default_interval, log_err, CdTime, ConfigItem, LogLevel, ValueList,
+};
+use crate::bindings::{
     cdtime_t, data_set_t, oconfig_item_t, plugin_register_complex_read, plugin_register_flush,
     plugin_register_log, plugin_register_write, user_data_t, value_list_t,
 };
-use errors::FfiError;
-use plugins::{Plugin, PluginManager, PluginManagerCapabilities, PluginRegistration};
+use crate::errors::FfiError;
+use crate::plugins::{Plugin, PluginManager, PluginManagerCapabilities, PluginRegistration};
 use std::ffi::{CStr, CString};
 use std::ops::Deref;
 use std::os::raw::{c_char, c_int, c_void};
@@ -15,7 +17,7 @@ use std::ptr;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 extern "C" fn plugin_read(dt: *mut user_data_t) -> c_int {
-    let plugin = unsafe { &mut *((*dt).data as *mut Box<Plugin>) };
+    let plugin = unsafe { &mut *((*dt).data as *mut Box<dyn Plugin>) };
     let res = catch_unwind(|| plugin.read_values())
         .map_err(|_| FfiError::Panic)
         .and_then(|x| x.map_err(FfiError::Plugin));
@@ -28,7 +30,7 @@ extern "C" fn plugin_read(dt: *mut user_data_t) -> c_int {
 }
 
 extern "C" fn plugin_log(severity: c_int, message: *const c_char, dt: *mut user_data_t) {
-    let plugin = unsafe { &mut *((*dt).data as *mut Box<Plugin>) };
+    let plugin = unsafe { &mut *((*dt).data as *mut Box<dyn Plugin>) };
 
     // Guard against potential null messages even if they are not supposed to happen.
     if message.is_null() {
@@ -57,7 +59,7 @@ extern "C" fn plugin_write(
     vl: *const value_list_t,
     dt: *mut user_data_t,
 ) -> c_int {
-    let plugin = unsafe { &mut *((*dt).data as *mut Box<Plugin>) };
+    let plugin = unsafe { &mut *((*dt).data as *mut Box<dyn Plugin>) };
     let res = unsafe { ValueList::from(&*ds, &*vl) }
         .map_err(|e| FfiError::Collectd(Box::new(e)))
         .and_then(|list| {
@@ -78,7 +80,7 @@ extern "C" fn plugin_flush(
     identifier: *const c_char,
     dt: *mut user_data_t,
 ) -> c_int {
-    let plugin = unsafe { &mut *((*dt).data as *mut Box<::Plugin>) };
+    let plugin = unsafe { &mut *((*dt).data as *mut Box<dyn crate::Plugin>) };
 
     let dur = if timeout == 0 {
         None
@@ -109,12 +111,12 @@ extern "C" fn plugin_flush(
 }
 
 unsafe extern "C" fn plugin_free_user_data(raw: *mut c_void) {
-    let ptr = raw as *mut Box<Plugin>;
+    let ptr = raw as *mut Box<dyn Plugin>;
     drop(Box::from_raw(ptr));
 }
 
-fn plugin_registration(name: &str, plugin: Box<Plugin>) {
-    let pl: Box<Box<Plugin>> = Box::new(plugin);
+fn plugin_registration(name: &str, plugin: Box<dyn Plugin>) {
+    let pl: Box<Box<dyn Plugin>> = Box::new(plugin);
 
     // Grab all the properties we need until `into_raw` away
     let should_read = pl.capabilities().has_read();
@@ -190,7 +192,7 @@ fn plugin_registration(name: &str, plugin: Box<Plugin>) {
     }
 }
 
-fn register_all_plugins<T: PluginManager>(config: Option<&[ConfigItem]>) -> c_int {
+fn register_all_plugins<T: PluginManager>(config: Option<&[ConfigItem<'_>]>) -> c_int {
     let res = catch_unwind(|| T::plugins(config))
         .map_err(|_| FfiError::Panic)
         .and_then(|reged| reged.map_err(FfiError::Plugin))

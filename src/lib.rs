@@ -21,15 +21,7 @@
 //! collectd-plugin = "0.9.1"
 //! ```
 //!
-//! [Serde](https://github.com/serde-rs/serde) support is enabled by default for configuration parsing.
-//!
-//! Then put this in your crate root:
-//!
-//! ```rust,ignore
-//! extern crate collectd_plugin;
-//! ```
-//!
-//! Rust 1.20 or later is needed to build.
+//! Rust 1.33 or later is needed to build.
 //!
 //! This repo is tested on the following:
 //!
@@ -42,12 +34,9 @@
 //! Below is a complete plugin that dummy reports [load](https://en.wikipedia.org/wiki/Load_(computing)) values to collectd, as it registers a `READ` hook. For an implementation that reimplements Collectd's own load plugin, see [plugins/load](https://github.com/nickbabcock/collectd-rust-plugin/tree/master/plugins/load)
 //!
 //! ```rust
-//! #[macro_use]
-//! extern crate collectd_plugin;
-//!
 //! use collectd_plugin::{
 //!     ConfigItem, Plugin, PluginCapabilities, PluginManager, PluginRegistration, Value,
-//!     ValueListBuilder,
+//!     ValueListBuilder, collectd_plugin
 //! };
 //! use std::error;
 //!
@@ -98,23 +87,6 @@
 //! # }
 //! ```
 
-#[macro_use]
-extern crate bitflags;
-extern crate chrono;
-extern crate memchr;
-
-#[cfg(feature = "serde")]
-#[macro_use]
-extern crate serde;
-
-#[cfg(test)]
-#[cfg(feature = "serde")]
-#[macro_use]
-extern crate serde_derive;
-extern crate env_logger;
-#[macro_use]
-extern crate log;
-
 #[cfg(feature = "serde")]
 pub mod de;
 
@@ -129,10 +101,10 @@ mod errors;
 #[macro_use]
 mod plugins;
 
-pub use api::{
+pub use crate::api::{
     collectd_log, CdTime, CollectdLoggerBuilder, ConfigItem, ConfigValue, LogLevel, Value,
     ValueList, ValueListBuilder, ValueReport,
 };
-pub use plugins::{
+pub use crate::plugins::{
     Plugin, PluginCapabilities, PluginManager, PluginManagerCapabilities, PluginRegistration,
 };
