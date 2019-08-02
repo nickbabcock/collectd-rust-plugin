@@ -18,7 +18,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! collectd-plugin = "0.9.1"
+//! collectd-plugin = "0.10.0"
 //! ```
 //!
 //! Rust 1.33 or later is needed to build.
