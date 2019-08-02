@@ -1,3 +1,10 @@
+## 0.10.0 - 2019-08-02
+
+* Bump to 2018 edition of rust
+* Bump minimum required rust to 1.33
+* Add additional include path when linking against a custom collectd version
+* Bindgen updated from 0.47.0 to 0.51.0
+
 ## 0.9.1 - 2019-02-04
 
 - Compile on non-x86 platforms
