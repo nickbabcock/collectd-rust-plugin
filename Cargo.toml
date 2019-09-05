@@ -32,7 +32,7 @@ serde = { version = "1", features = ["derive"], optional = true }
 [dev-dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_test = "1.0"
-criterion = "0.2"
+criterion = "0.3"
 log = { version = "0.4", features = ["serde"] }
 itertools = "0.8"
 num_cpus = "1.0"
