@@ -46,7 +46,7 @@ before_install:
 
 script:
   - COLLECTD_VERSION=5.5 cargo build --all
-  - if [ ! $TRAVIS_RUST_VERSION = "1.24.1" ]; then COLLECTD_VERSION=5.5 cargo test --all; fi;
+  - if [ ! $TRAVIS_RUST_VERSION = "1.33.0" ]; then COLLECTD_VERSION=5.5 cargo test --all; fi;
   - if [ ! -z $COLLECTD_PATH ]; then cargo test --features bindgen --all; fi;
   - if [ ! -z $CROSS_TARGET ]; then cargo install cross && cross test --target aarch64-unknown-linux-gnu; fi;
   - if [ ! -z $UBUNTU_VERSION ]; then docker build -t collectd-rust-plugin --build-arg UBUNTU_VERSION=${UBUNTU_VERSION} --build-arg COLLECTD_VERSION=${COLLECTD_VERSION} .; fi;
