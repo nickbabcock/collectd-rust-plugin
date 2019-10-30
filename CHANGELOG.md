@@ -1,3 +1,8 @@
+## 0.11.0 - 2019-10-30
+
+* Support collectd-5.9 through 5.7 interface (so `COLLECTD_VERSION=5.7` can bind to collectd-5.9)
+* Upgrade to env_logger 0.7 from 0.6
+
 ## 0.10.0 - 2019-08-02
 
 * Bump to 2018 edition of rust
