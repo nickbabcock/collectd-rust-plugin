@@ -371,7 +371,7 @@ impl<'a> ValueListBuilder<'a> {
             })?;
 
         #[cfg(collectd57)]
-        let len = v.len();
+        let len = v.len() as u64;
 
         #[cfg(not(collectd57))]
         let len = v.len() as i32;
@@ -446,8 +446,8 @@ pub fn empty_to_none(s: &str) -> Option<&str> {
 }
 
 #[cfg(collectd57)]
-pub fn length(len: usize) -> usize {
-    len
+pub fn length(len: u64) -> usize {
+    len as usize
 }
 
 #[cfg(not(collectd57))]

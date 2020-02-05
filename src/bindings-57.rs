@@ -13,6 +13,7 @@ pub const LOG_WARNING: u32 = 4;
 pub const LOG_NOTICE: u32 = 5;
 pub const LOG_INFO: u32 = 6;
 pub const LOG_DEBUG: u32 = 7;
+pub type size_t = ::std::os::raw::c_ulong;
 pub type __uint32_t = ::std::os::raw::c_uint;
 pub type __int64_t = ::std::os::raw::c_long;
 pub type __uint64_t = ::std::os::raw::c_ulong;
@@ -316,7 +317,7 @@ pub type value_t = value_u;
 #[derive(Copy, Clone)]
 pub struct value_list_s {
     pub values: *mut value_t,
-    pub values_len: usize,
+    pub values_len: size_t,
     pub time: cdtime_t,
     pub interval: cdtime_t,
     pub host: [::std::os::raw::c_char; 128usize],
@@ -506,7 +507,7 @@ pub type data_source_t = data_source_s;
 #[derive(Copy, Clone)]
 pub struct data_set_s {
     pub type_: [::std::os::raw::c_char; 128usize],
-    pub ds_num: usize,
+    pub ds_num: size_t,
     pub ds: *mut data_source_t,
 }
 #[test]
