@@ -11,8 +11,7 @@ license = "MIT"
 edition = "2018"
 
 [package.metadata.docs.rs]
-rustc-args = ["--cfg",  "collectd_docs_rs"]
-rustdoc-args = ["--cfg",  "collectd_docs_rs"]
+features = ["stub"]
 
 [badges]
 travis-ci = { repository = "nickbabcock/collectd-rust-plugin" }
