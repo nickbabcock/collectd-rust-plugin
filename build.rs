@@ -1,7 +1,5 @@
-use regex::Regex;
 use std::env;
 use std::path::PathBuf;
-use std::process::Command;
 
 enum CollectdVersion {
     Collectd54,
@@ -31,13 +29,16 @@ fn main() {
     bindings(out_path.join("bindings.rs"), version);
 }
 
-#[cfg(collectd_docs_rs)]
+#[cfg(feature = "stub")]
 fn detect_collectd_version() -> String {
     String::from("5.5")
 }
 
-#[cfg(not(collectd_docs_rs))]
+#[cfg(not(feature = "stub"))]
 fn detect_collectd_version() -> String {
+    use std::process::Command;
+    use regex::Regex;
+
     println!("cargo:rerun-if-env-changed=COLLECTD_VERSION");
     println!("cargo:rerun-if-env-changed=COLLECTD_PATH");
 

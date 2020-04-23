@@ -18,6 +18,7 @@ extern "C" {
 }
 
 #[cfg(any(test, feature = "stub"))]
+#[doc(hidden)]
 #[allow(unused_variables)]
 pub mod overrides {
     use super::*;
