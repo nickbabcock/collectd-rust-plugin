@@ -40,6 +40,8 @@ matrix:
       env: UBUNTU_VERSION=18.04 COLLECTD_VERSION=5.7
     - rust: stable
       env: UBUNTU_VERSION=19.10 COLLECTD_VERSION=5.7
+    - rust: stable
+      env: UBUNTU_VERSION=20.04 COLLECTD_VERSION=5.7
 
 before_install:
   - if [ ! -z $COLLECTD_PATH ]; then sudo apt-get update && sudo apt-get install -qq --no-install-recommends autotools-dev libltdl-dev && git clone https://github.com/collectd/collectd.git $COLLECTD_PATH; fi

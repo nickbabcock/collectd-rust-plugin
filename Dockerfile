@@ -5,6 +5,9 @@ FROM ubuntu:${UBUNTU_VERSION}
 ARG UBUNTU_VERSION=16.04
 ARG COLLECTD_VERSION=5.5
 
+# So tzdata doesn't prompt
+ENV DEBIAN_FRONTEND=noninteractive
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
     collectd \
     collectd-dev \
