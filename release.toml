@@ -1,5 +1,5 @@
 tag-message = "Release {{version}}"
 dev-version-ext = "pre"
 pre-release-commit-message = "Release {{version}}"
-pre-release-replacements = [ {file="CHANGELOG.md", search="Unreleased - TBA", replace="{{version}} - {{date}}"}, {file="README.md", search="= \"\\d+\\.\\d+\\.\\d+\"", replace="= \"{{version}}\""}, {file="src/lib.rs", search="= \"\\d+\\.\\d+\\.\\d+\"", replace="= \"{{version}}\""}]
+pre-release-replacements = [{file="README.md", search="= \"\\d+\\.\\d+\\.\\d+\"", replace="= \"{{version}}\""}, {file="src/lib.rs", search="= \"\\d+\\.\\d+\\.\\d+\"", replace="= \"{{version}}\""}]
 post-release-commit-message = "Bump to {{next_version}}"
