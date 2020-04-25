@@ -3,9 +3,14 @@
 set -euo pipefail
 
 source $HOME/.cargo/env
-cargo test --all
 cargo test --all --no-default-features
-cargo test --all --features "bindgen"
+cargo test --all
+
+# 2020-04-25: collectd-dev package is broken on 20.04 as it references
+# non-existent utils directory
+if [ "$UBUNTU_VERSION" != "20.04" ]; then
+    cargo test --all --features "bindgen"
+fi
 
 cp target/debug/examples/libloadrust.so /usr/lib/collectd/loadrust.so
 cp target/debug/examples/libwrite_logrs.so /usr/lib/collectd/write_logrs.so

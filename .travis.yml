@@ -40,6 +40,8 @@ matrix:
       env: UBUNTU_VERSION=18.04 COLLECTD_VERSION=5.7
     - rust: stable
       env: UBUNTU_VERSION=19.10 COLLECTD_VERSION=5.7
+    - rust: stable
+      env: UBUNTU_VERSION=20.04 COLLECTD_VERSION=5.7
 
 before_install:
   - if [ ! -z $COLLECTD_PATH ]; then sudo apt-get update && sudo apt-get install -qq --no-install-recommends autotools-dev libltdl-dev && git clone https://github.com/collectd/collectd.git $COLLECTD_PATH; fi
@@ -50,4 +52,4 @@ script:
   - if [ ! -z $COLLECTD_PATH ]; then cargo test --features bindgen --all; fi;
   - if [ ! -z $CROSS_TARGET ]; then cargo install cross && cross test --target $CROSS_TARGET; fi;
   - if [ ! -z $UBUNTU_VERSION ]; then docker build -t collectd-rust-plugin --build-arg UBUNTU_VERSION=${UBUNTU_VERSION} --build-arg COLLECTD_VERSION=${COLLECTD_VERSION} .; fi;
-  - if [ ! -z $UBUNTU_VERSION ]; then docker run -ti collectd-rust-plugin bash -c "cd /tmp && COLLECTD_VERSION=${COLLECTD_VERSION} ci/test.sh"; fi;
+  - if [ ! -z $UBUNTU_VERSION ]; then docker run -e UBUNTU_VERSION=$UBUNTU_VERSION -ti collectd-rust-plugin bash -c "cd /tmp && COLLECTD_VERSION=${COLLECTD_VERSION} ci/test.sh"; fi;
