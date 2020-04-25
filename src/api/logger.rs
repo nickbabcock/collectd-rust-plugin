@@ -84,28 +84,25 @@ impl CollectdLoggerBuilder {
         self
     }
 
-    /// See
-    /// [`env_logger::Builder::filter_level`](https://docs.rs/env_logger/0.5.13/env_logger/struct.Builder.html#method.filter_level)
+    /// See [`env_logger::filter::Builder::filter_level`](https://docs.rs/env_logger/0.7.1/env_logger/filter/struct.Builder.html#method.filter_level)
     pub fn filter_level(&mut self, level: LevelFilter) -> &mut Self {
         self.filter.filter_level(level);
         self
     }
 
-    /// See:
-    /// [`env_logger::Builder::filter_module`](https://docs.rs/env_logger/0.5.13/env_logger/struct.Builder.html#method.filter_module)
+    /// See: [`env_logger::filter::Builder::filter_module`](https://docs.rs/env_logger/0.7.1/env_logger/filter/struct.Builder.html#method.filter_module)
     pub fn filter_module(&mut self, module: &str, level: LevelFilter) -> &mut Self {
         self.filter.filter_module(module, level);
         self
     }
 
-    /// See:
-    /// [`env_logger::Builder::filter`](https://docs.rs/env_logger/0.5.13/env_logger/struct.Builder.html#method.filter)
+    /// See: [`env_logger::filter::Builder::filter`](https://docs.rs/env_logger/0.7.1/env_logger/filter/struct.Builder.html#method.filter)
     pub fn filter(&mut self, module: Option<&str>, level: LevelFilter) -> &mut Self {
         self.filter.filter(module, level);
         self
     }
 
-    /// See: [`env_logger::Builder::parse`](https://docs.rs/env_logger/0.5.13/env_logger/struct.Builder.html#method.parse)
+    /// See: [`env_logger::filter::Builder::parse`](https://docs.rs/env_logger/0.7.1/env_logger/filter/struct.Builder.html#method.parse)
     pub fn parse(&mut self, filters: &str) -> &mut Self {
         self.filter.parse(filters);
         self
