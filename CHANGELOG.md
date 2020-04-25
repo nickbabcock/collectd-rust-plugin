@@ -1,3 +1,9 @@
+## 0.12.0 - 2020-04-25
+
+* Disable additional logging features by default. The only env_logger feature related to filtering (what collectd-plugin enables) is the regex feature, so that feature can be enabled through the `regex_log_filter` feature.  The rest of disabled to keep dependencies to a minimum
+* Allow autodetection of collectd version to work with 5.10 and 5.11
+* Update bindgen requirement from 0.51.0 to 0.53.1
+
 ## 0.11.0 - 2019-10-30
 
 * Support collectd-5.9 through 5.7 interface (so `COLLECTD_VERSION=5.7` can bind to collectd-5.9)
