@@ -23,11 +23,15 @@
 //!
 //! Rust 1.33 or later is needed to build.
 //!
-//! This repo is tested on the following:
+//! Works with any collectd version 5.4+, but all users will need to specify the collectd api
+//! version they want to target via the `COLLECTD_VERSION` environment variable (or rely on
+//! `$(collectd -h)` or `COLLECTD_PATH` variable).
 //!
-//! - Collectd 5.4 (Ubuntu 14.04)
-//! - Collectd 5.5 (Ubuntu 16.04)
-//! - Collectd 5.7 (and above) (Ubuntu 18.04)
+//! | `COLLECTED_VERSION` |  Compatible Range |
+//! |---------------------|-------------------|
+//! | 5.4                 | [5.4, 5.5)        |
+//! | 5.5                 | [5.5, 5.7)        |
+//! | 5.7                 | [5.7,)            |
 //!
 //! ## Quickstart
 //!
