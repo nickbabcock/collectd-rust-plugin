@@ -27,12 +27,13 @@ collectd-plugin = "0.11.0"
 
 [Serde](https://github.com/serde-rs/serde) support is enabled by default for configuration parsing.
 
-This repo is tested on the following:
+Works with any collectd version 5.4+, but all users will need to specify the collectd api version they want to target via the `COLLECTD_VERSION` environment variable (or rely on `$(collectd -h)` or `COLLECTD_PATH` variable).
 
-- collectd 5.4 (Ubuntu 14.04)
-- collectd 5.5 (Ubuntu 16.04)
-- collectd 5.7 (Ubuntu 18.04)
-- collectd 5.8 (Ubuntu 18.10) (can use package compiled for collectd 5.7)
+| `COLLECTED_VERSION` |  Compatible Range |
+|---------------------|-------------------|
+| 5.4                 | [5.4, 5.5)        |
+| 5.5                 | [5.5, 5.7)        |
+| 5.7                 | [5.7,)            |
 
 ## Quickstart
 
