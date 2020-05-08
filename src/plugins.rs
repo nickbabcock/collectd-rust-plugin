@@ -75,6 +75,11 @@ pub trait PluginManager {
     fn initialize() -> Result<(), Box<dyn error::Error>> {
         Err(NotImplemented)?
     }
+
+    /// Cleanup any resources or glodal data, allocated during initialize()
+    fn shutdown() -> Result<(), Box<dyn error::Error>> {
+        Ok(())
+    }
 }
 
 /// An individual plugin that is capable of reporting values to collectd, receiving values from
@@ -135,7 +140,7 @@ macro_rules! collectd_plugin {
         #[no_mangle]
         pub extern "C" fn module_register() {
             use std::ffi::CString;
-            use $crate::bindings::{plugin_register_complex_config, plugin_register_init};
+            use $crate::bindings::{plugin_register_complex_config, plugin_register_init, plugin_register_shutdown};
 
             $crate::internal::register_panic_handler();
 
@@ -146,11 +151,17 @@ macro_rules! collectd_plugin {
                 plugin_register_complex_config(s.as_ptr(), Some(collectd_plugin_complex_config));
 
                 plugin_register_init(s.as_ptr(), Some(collectd_plugin_init));
+
+                plugin_register_shutdown(s.as_ptr(), Some(collectd_plugin_shutdown));
             }
         }
 
         extern "C" fn collectd_plugin_init() -> ::std::os::raw::c_int {
             $crate::internal::plugin_init::<$type>(&CONFIG_SEEN)
+        }
+
+        extern "C" fn collectd_plugin_shutdown() -> ::std::os::raw::c_int {
+            $crate::internal::plugin_shutdown::<$type>()
         }
 
         unsafe extern "C" fn collectd_plugin_complex_config(
