@@ -69,9 +69,8 @@ pub trait PluginManager {
         _config: Option<&[ConfigItem<'_>]>,
     ) -> Result<PluginRegistration, Box<dyn error::Error>>;
 
-    /// Initialize any socket, files, or expensive resources that may have been parsed from the
-    /// configuration. If an error is reported, all hooks registered will be unregistered. This is
-    /// really only useful for `PluginRegistration::Single` modules who want global data.
+    /// Initialize any socket, files, event loops, or any other resources that will be shared
+    /// between multiple plugin instances.
     fn initialize() -> Result<(), Box<dyn error::Error>> {
         Err(NotImplemented)?
     }
