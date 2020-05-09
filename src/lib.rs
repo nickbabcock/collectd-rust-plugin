@@ -109,6 +109,7 @@ pub use crate::api::{
     collectd_log, CdTime, CollectdLoggerBuilder, ConfigItem, ConfigValue, LogLevel, Value,
     ValueList, ValueListBuilder, ValueReport,
 };
+pub use crate::errors::{CacheRateError, ConfigError, ReceiveError, SubmitError};
 pub use crate::plugins::{
     Plugin, PluginCapabilities, PluginManager, PluginManagerCapabilities, PluginRegistration,
 };
