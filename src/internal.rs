@@ -241,6 +241,24 @@ pub fn plugin_init<T: PluginManager>(config_seen: &AtomicBool) -> c_int {
     result
 }
 
+pub fn plugin_shutdown<T: PluginManager>() -> c_int {
+    let mut result = 0;
+
+    let capabilities = T::capabilities();
+    if capabilities.intersects(PluginManagerCapabilities::INIT) {
+        let res = catch_unwind(T::shutdown)
+            .map_err(|_e| FfiError::Panic)
+            .and_then(|r| r.map_err(FfiError::Plugin));
+
+        if let Err(ref e) = res {
+            result = -1;
+            log_err("shutdown", e);
+        }
+    }
+
+    result
+}
+
 pub unsafe fn plugin_complex_config<T: PluginManager>(
     config_seen: &AtomicBool,
     config: *mut oconfig_item_t,
