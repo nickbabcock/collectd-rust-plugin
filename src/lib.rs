@@ -112,3 +112,6 @@ pub use crate::api::{
 pub use crate::plugins::{
     Plugin, PluginCapabilities, PluginManager, PluginManagerCapabilities, PluginRegistration,
 };
+
+#[cfg(doctest)]
+doc_comment::doctest!("../README.md");
