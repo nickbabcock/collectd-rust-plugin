@@ -1,3 +1,12 @@
+## 0.13.0 - 2020-05-09
+
+- Add `PluginManager::shutdown` to clean up resources allocated in `PluginManager::initialize`
+- Expose additional public error types:
+  - ConfigError
+  - CacheRateError
+  - ReceiveError
+  - SubmitError
+
 ## 0.12.0 - 2020-04-25
 
 * Disable additional logging features by default. The only env_logger feature related to filtering (what collectd-plugin enables) is the regex feature, so that feature can be enabled through the `regex_log_filter` feature.  The rest of disabled to keep dependencies to a minimum
