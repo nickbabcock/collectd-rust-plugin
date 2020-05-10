@@ -36,8 +36,8 @@ fn detect_collectd_version() -> String {
 
 #[cfg(not(feature = "stub"))]
 fn detect_collectd_version() -> String {
-    use std::process::Command;
     use regex::Regex;
+    use std::process::Command;
 
     println!("cargo:rerun-if-env-changed=COLLECTD_VERSION");
     println!("cargo:rerun-if-env-changed=COLLECTD_PATH");

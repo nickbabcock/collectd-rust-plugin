@@ -139,7 +139,9 @@ macro_rules! collectd_plugin {
         #[no_mangle]
         pub extern "C" fn module_register() {
             use std::ffi::CString;
-            use $crate::bindings::{plugin_register_complex_config, plugin_register_init, plugin_register_shutdown};
+            use $crate::bindings::{
+                plugin_register_complex_config, plugin_register_init, plugin_register_shutdown,
+            };
 
             $crate::internal::register_panic_handler();
 
