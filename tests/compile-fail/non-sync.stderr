@@ -4,6 +4,11 @@ error[E0277]: `std::cell::RefCell<std::string::String>` cannot be shared between
 10 | impl Plugin for MyPlugin {
    |      ^^^^^^ `std::cell::RefCell<std::string::String>` cannot be shared between threads safely
    |
+  ::: $WORKSPACE/src/plugins.rs
+   |
+   | pub trait Plugin: Send + Sync + UnwindSafe + RefUnwindSafe {
+   |                          ---- required by this bound in `collectd_plugin::Plugin`
+   |
    = help: within `MyPlugin`, the trait `std::marker::Sync` is not implemented for `std::cell::RefCell<std::string::String>`
    = note: required because it appears within the type `MyPlugin`
 
@@ -12,6 +17,11 @@ error[E0277]: the type `std::cell::UnsafeCell<std::string::String>` may contain 
    |
 10 | impl Plugin for MyPlugin {
    |      ^^^^^^ `std::cell::UnsafeCell<std::string::String>` may contain interior mutability and a reference may not be safely transferrable across a catch_unwind boundary
+   |
+  ::: $WORKSPACE/src/plugins.rs
+   |
+   | pub trait Plugin: Send + Sync + UnwindSafe + RefUnwindSafe {
+   |                                              ------------- required by this bound in `collectd_plugin::Plugin`
    |
    = help: within `MyPlugin`, the trait `std::panic::RefUnwindSafe` is not implemented for `std::cell::UnsafeCell<std::string::String>`
    = note: required because it appears within the type `std::cell::RefCell<std::string::String>`
@@ -23,9 +33,12 @@ error[E0277]: the type `std::cell::UnsafeCell<isize>` may contain interior mutab
 10 | impl Plugin for MyPlugin {
    |      ^^^^^^ `std::cell::UnsafeCell<isize>` may contain interior mutability and a reference may not be safely transferrable across a catch_unwind boundary
    |
+  ::: $WORKSPACE/src/plugins.rs
+   |
+   | pub trait Plugin: Send + Sync + UnwindSafe + RefUnwindSafe {
+   |                                              ------------- required by this bound in `collectd_plugin::Plugin`
+   |
    = help: within `MyPlugin`, the trait `std::panic::RefUnwindSafe` is not implemented for `std::cell::UnsafeCell<isize>`
    = note: required because it appears within the type `std::cell::Cell<isize>`
    = note: required because it appears within the type `std::cell::RefCell<std::string::String>`
    = note: required because it appears within the type `MyPlugin`
-
-For more information about this error, try `rustc --explain E0277`.
