@@ -220,11 +220,7 @@ fn register_all_plugins<T: PluginManager>(config: Option<&[ConfigItem<'_>]>) -> 
 }
 
 pub fn plugin_init<T: PluginManager>(config_seen: &AtomicBool) -> c_int {
-    let mut result = if !config_seen.swap(true, Ordering::Relaxed) {
-        register_all_plugins::<T>(None)
-    } else {
-        0
-    };
+    let mut result = 0;
 
     let capabilities = T::capabilities();
     if capabilities.intersects(PluginManagerCapabilities::INIT) {
@@ -236,6 +232,10 @@ pub fn plugin_init<T: PluginManager>(config_seen: &AtomicBool) -> c_int {
             result = -1;
             log_err("init", e);
         }
+    }
+
+    if result == 0 && !config_seen.swap(true, Ordering::Relaxed) {
+        result = register_all_plugins::<T>(None);
     }
 
     result
