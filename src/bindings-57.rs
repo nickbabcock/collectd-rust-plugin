@@ -4,6 +4,11 @@ pub const OCONFIG_TYPE_STRING: u32 = 0;
 pub const OCONFIG_TYPE_NUMBER: u32 = 1;
 pub const OCONFIG_TYPE_BOOLEAN: u32 = 2;
 pub const DATA_MAX_NAME_LEN: u32 = 128;
+pub const MD_TYPE_STRING: u32 = 1;
+pub const MD_TYPE_SIGNED_INT: u32 = 2;
+pub const MD_TYPE_UNSIGNED_INT: u32 = 3;
+pub const MD_TYPE_DOUBLE: u32 = 4;
+pub const MD_TYPE_BOOLEAN: u32 = 5;
 pub const DS_TYPE_COUNTER: u32 = 0;
 pub const DS_TYPE_GAUGE: u32 = 1;
 pub const DS_TYPE_DERIVE: u32 = 2;
@@ -244,6 +249,122 @@ pub struct meta_data_s {
     _unused: [u8; 0],
 }
 pub type meta_data_t = meta_data_s;
+extern "C" {
+    pub fn meta_data_create() -> *mut meta_data_t;
+}
+extern "C" {
+    pub fn meta_data_clone(orig: *mut meta_data_t) -> *mut meta_data_t;
+}
+extern "C" {
+    pub fn meta_data_clone_merge(
+        dest: *mut *mut meta_data_t,
+        orig: *mut meta_data_t,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn meta_data_destroy(md: *mut meta_data_t);
+}
+extern "C" {
+    pub fn meta_data_exists(
+        md: *mut meta_data_t,
+        key: *const ::std::os::raw::c_char,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn meta_data_type(
+        md: *mut meta_data_t,
+        key: *const ::std::os::raw::c_char,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn meta_data_toc(
+        md: *mut meta_data_t,
+        toc: *mut *mut *mut ::std::os::raw::c_char,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn meta_data_delete(
+        md: *mut meta_data_t,
+        key: *const ::std::os::raw::c_char,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn meta_data_add_string(
+        md: *mut meta_data_t,
+        key: *const ::std::os::raw::c_char,
+        value: *const ::std::os::raw::c_char,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn meta_data_add_signed_int(
+        md: *mut meta_data_t,
+        key: *const ::std::os::raw::c_char,
+        value: i64,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn meta_data_add_unsigned_int(
+        md: *mut meta_data_t,
+        key: *const ::std::os::raw::c_char,
+        value: u64,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn meta_data_add_double(
+        md: *mut meta_data_t,
+        key: *const ::std::os::raw::c_char,
+        value: f64,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn meta_data_add_boolean(
+        md: *mut meta_data_t,
+        key: *const ::std::os::raw::c_char,
+        value: bool,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn meta_data_get_string(
+        md: *mut meta_data_t,
+        key: *const ::std::os::raw::c_char,
+        value: *mut *mut ::std::os::raw::c_char,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn meta_data_get_signed_int(
+        md: *mut meta_data_t,
+        key: *const ::std::os::raw::c_char,
+        value: *mut i64,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn meta_data_get_unsigned_int(
+        md: *mut meta_data_t,
+        key: *const ::std::os::raw::c_char,
+        value: *mut u64,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn meta_data_get_double(
+        md: *mut meta_data_t,
+        key: *const ::std::os::raw::c_char,
+        value: *mut f64,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn meta_data_get_boolean(
+        md: *mut meta_data_t,
+        key: *const ::std::os::raw::c_char,
+        value: *mut bool,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn meta_data_as_string(
+        md: *mut meta_data_t,
+        key: *const ::std::os::raw::c_char,
+        value: *mut *mut ::std::os::raw::c_char,
+    ) -> ::std::os::raw::c_int;
+}
 pub type counter_t = ::std::os::raw::c_ulonglong;
 pub type gauge_t = f64;
 pub type derive_t = i64;
