@@ -1,12 +1,17 @@
+pub use self::cdtime::{nanos_to_collectd, CdTime};
+pub use self::logger::{collectd_log, log_err, CollectdLoggerBuilder, LogLevel};
+pub use self::oconfig::{ConfigItem, ConfigValue};
 use crate::bindings::{
     data_set_t, hostname_g, plugin_dispatch_values, uc_get_rate, value_list_t, value_t, ARR_LENGTH,
-    DS_TYPE_ABSOLUTE, DS_TYPE_COUNTER, DS_TYPE_DERIVE, DS_TYPE_GAUGE,
+    DS_TYPE_ABSOLUTE, DS_TYPE_COUNTER, DS_TYPE_DERIVE, DS_TYPE_GAUGE, MD_TYPE_BOOLEAN,
+    MD_TYPE_DOUBLE, MD_TYPE_SIGNED_INT, MD_TYPE_STRING, MD_TYPE_UNSIGNED_INT,
 };
 use crate::errors::{ArrayError, CacheRateError, ReceiveError, SubmitError};
 use chrono::prelude::*;
 use chrono::Duration;
 use memchr::memchr;
 use std::borrow::Cow;
+use std::collections::HashMap;
 use std::ffi::CStr;
 use std::fmt;
 use std::os::raw::c_char;
@@ -14,13 +19,29 @@ use std::ptr;
 use std::slice;
 use std::str::Utf8Error;
 
-pub use self::cdtime::{nanos_to_collectd, CdTime};
-pub use self::logger::{collectd_log, log_err, CollectdLoggerBuilder, LogLevel};
-pub use self::oconfig::{ConfigItem, ConfigValue};
-
 mod cdtime;
 mod logger;
 mod oconfig;
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[repr(u32)]
+#[allow(dead_code)]
+enum MetaValueType {
+    String = MD_TYPE_STRING,
+    SignedInt = MD_TYPE_SIGNED_INT,
+    UnsignedInt = MD_TYPE_UNSIGNED_INT,
+    Double = MD_TYPE_DOUBLE,
+    Boolean = MD_TYPE_BOOLEAN,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum MetaValue {
+    String(String),
+    SignedInt(i64),
+    UnsignedInt(u64),
+    Double(f64),
+    Boolean(bool),
+}
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[repr(u32)]
@@ -147,6 +168,9 @@ pub struct ValueList<'a> {
     /// The interval in which new values are to be expected
     pub interval: Duration,
 
+    /// Metadata associated to the reported values
+    pub meta: HashMap<String, MetaValue>,
+
     // Keep the original list and set around for calculating rates on demand
     original_list: *const value_list_t,
     original_set: *const data_set_t,
@@ -249,6 +273,8 @@ impl<'a> ValueList<'a> {
             host,
             time: CdTime::from(list.time).into(),
             interval: CdTime::from(list.interval).into(),
+            //TODO: load metadata
+            meta: HashMap::new(),
             original_list: list,
             original_set: set,
         })
