@@ -449,6 +449,7 @@ impl<'a> ValueListBuilder<'a> {
     }
 }
 
+//TODO: move to its own module metadata, with related types
 fn to_meta_data(meta_hm: &HashMap<String, MetaValue>) -> Result<*mut meta_data_t, SubmitError> {
     let mut meta = ptr::null_mut();
     unsafe {
