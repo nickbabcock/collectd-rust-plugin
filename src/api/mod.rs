@@ -2,9 +2,11 @@ pub use self::cdtime::{nanos_to_collectd, CdTime};
 pub use self::logger::{collectd_log, log_err, CollectdLoggerBuilder, LogLevel};
 pub use self::oconfig::{ConfigItem, ConfigValue};
 use crate::bindings::{
-    data_set_t, hostname_g, plugin_dispatch_values, uc_get_rate, value_list_t, value_t, ARR_LENGTH,
-    DS_TYPE_ABSOLUTE, DS_TYPE_COUNTER, DS_TYPE_DERIVE, DS_TYPE_GAUGE, MD_TYPE_BOOLEAN,
-    MD_TYPE_DOUBLE, MD_TYPE_SIGNED_INT, MD_TYPE_STRING, MD_TYPE_UNSIGNED_INT,
+    data_set_t, hostname_g, meta_data_add_boolean, meta_data_add_double, meta_data_add_signed_int,
+    meta_data_add_string, meta_data_add_unsigned_int, meta_data_create, meta_data_t,
+    plugin_dispatch_values, uc_get_rate, value_list_t, value_t, ARR_LENGTH, DS_TYPE_ABSOLUTE,
+    DS_TYPE_COUNTER, DS_TYPE_DERIVE, DS_TYPE_GAUGE, MD_TYPE_BOOLEAN, MD_TYPE_DOUBLE,
+    MD_TYPE_SIGNED_INT, MD_TYPE_STRING, MD_TYPE_UNSIGNED_INT,
 };
 use crate::errors::{ArrayError, CacheRateError, ReceiveError, SubmitError};
 use chrono::prelude::*;
@@ -12,7 +14,7 @@ use chrono::Duration;
 use memchr::memchr;
 use std::borrow::Cow;
 use std::collections::HashMap;
-use std::ffi::CStr;
+use std::ffi::{CStr, CString};
 use std::fmt;
 use std::os::raw::c_char;
 use std::ptr;
@@ -169,7 +171,7 @@ pub struct ValueList<'a> {
     pub interval: Duration,
 
     /// Metadata associated to the reported values
-    pub meta: HashMap<String, MetaValue>,
+    pub meta: Option<HashMap<String, MetaValue>>,
 
     // Keep the original list and set around for calculating rates on demand
     original_list: *const value_list_t,
@@ -274,7 +276,7 @@ impl<'a> ValueList<'a> {
             time: CdTime::from(list.time).into(),
             interval: CdTime::from(list.interval).into(),
             //TODO: load metadata
-            meta: HashMap::new(),
+            meta: None,
             original_list: list,
             original_set: set,
         })
@@ -291,6 +293,7 @@ struct SubmitValueList<'a> {
     host: Option<&'a str>,
     time: Option<DateTime<Utc>>,
     interval: Option<Duration>,
+    meta: Option<HashMap<String, MetaValue>>,
 }
 
 /// Creates a value list to report values to collectd.
@@ -313,6 +316,7 @@ impl<'a> ValueListBuilder<'a> {
                 host: None,
                 time: None,
                 interval: None,
+                meta: None,
             },
         }
     }
@@ -360,6 +364,17 @@ impl<'a> ValueListBuilder<'a> {
         self
     }
 
+    pub fn metadata(mut self, key: &str, value: MetaValue) -> ValueListBuilder<'a> {
+        if self.list.meta.is_none() {
+            self.list.meta = Some(HashMap::new());
+        }
+        self.list
+            .meta
+            .as_mut()
+            .map(|meta| meta.insert(key.to_string(), value));
+        self
+    }
+
     /// Submits the observed values to collectd and returns errors if encountered
     pub fn submit(self) -> Result<(), SubmitError> {
         let mut v: Vec<value_t> = self.list.values.iter().map(|&x| x.into()).collect();
@@ -404,6 +419,11 @@ impl<'a> ValueListBuilder<'a> {
 
         let type_ = to_array_res(self.list.type_).map_err(|e| SubmitError::Field("type", e))?;
 
+        let mut meta = ptr::null_mut();
+        if let Some(meta_hm) = self.list.meta {
+            meta = to_meta_data(&meta_hm)?;
+        }
+
         let list = value_list_t {
             values: v.as_mut_ptr(),
             values_len: len,
@@ -419,7 +439,7 @@ impl<'a> ValueListBuilder<'a> {
                 .map(CdTime::from)
                 .unwrap_or(CdTime(0))
                 .into(),
-            meta: ptr::null_mut(),
+            meta,
         };
 
         match unsafe { plugin_dispatch_values(&list) } {
@@ -427,6 +447,47 @@ impl<'a> ValueListBuilder<'a> {
             i => Err(SubmitError::Dispatch(i)),
         }
     }
+}
+
+fn to_meta_data(meta_hm: &HashMap<String, MetaValue>) -> Result<*mut meta_data_t, SubmitError> {
+    let mut meta = ptr::null_mut();
+    unsafe {
+        meta = meta_data_create();
+    }
+    for (key, value) in meta_hm.iter() {
+        let c_key = CString::new(key.as_str()).map_err(|e| {
+            SubmitError::Field(
+                "meta key",
+                ArrayError::NullPresent(e.nul_position(), key.to_string()),
+            )
+        })?;
+        match value {
+            MetaValue::String(str) => {
+                let c_value = CString::new(str.as_str()).map_err(|e| {
+                    SubmitError::Field(
+                        "meta value",
+                        ArrayError::NullPresent(e.nul_position(), str.to_string()),
+                    )
+                })?;
+                unsafe {
+                    meta_data_add_string(meta, c_key.as_ptr(), c_value.as_ptr());
+                }
+            }
+            MetaValue::SignedInt(i) => unsafe {
+                meta_data_add_signed_int(meta, c_key.as_ptr(), *i);
+            },
+            MetaValue::UnsignedInt(u) => unsafe {
+                meta_data_add_unsigned_int(meta, c_key.as_ptr(), *u);
+            },
+            MetaValue::Double(d) => unsafe {
+                meta_data_add_double(meta, c_key.as_ptr(), *d);
+            },
+            MetaValue::Boolean(b) => unsafe {
+                meta_data_add_boolean(meta, c_key.as_ptr(), *b);
+            },
+        }
+    }
+    Ok(meta)
 }
 
 /// Collectd stores textual data in fixed sized arrays, so this function will convert a string
