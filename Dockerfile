@@ -19,5 +19,5 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN if [ "${COLLECTD_VERSION}" != "5.7" ]; then wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -; fi
 RUN apt-get update && apt-get install -y llvm-dev libclang-dev clang && rm -rf /var/lib/apt/lists/*
 RUN if [ "${COLLECTD_VERSION}" = "5.4" ]; then cp -r /usr/include/collectd/liboconfig /usr/include/collectd/core/.; fi
-RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
+RUN curl https://sh.rustup.rs -sSf | sh -s -- --profile=minimal -y
 COPY . /tmp
