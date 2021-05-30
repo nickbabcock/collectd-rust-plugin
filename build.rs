@@ -60,7 +60,8 @@ fn detect_collectd_version() -> String {
         .map(|x| {
             x.into_string()
                 .expect("COLLECTD_VERSION to be a valid string")
-        }).unwrap_or_else(|| {
+        })
+        .unwrap_or_else(|| {
             Command::new("collectd")
                 .args(&["-h"])
                 .output()
@@ -71,7 +72,8 @@ fn detect_collectd_version() -> String {
                         .get(1)
                         .map(|x| String::from(x.as_str()))
                         .unwrap()
-                }).unwrap_or_else(|_| String::from("5.7"))
+                })
+                .unwrap_or_else(|_| String::from("5.7"))
         })
 }
 
@@ -113,17 +115,24 @@ fn bindings(loc: PathBuf, version: CollectdVersion) {
         .whitelist_var("DATA_MAX_NAME_LEN")
         .generate()
         .expect("Unable to generate bindings")
-        .write_to_file(loc)
+        .write_to_file(&loc)
         .expect("Couldn't write bindings!");
+
+    if env::var("COLLECTD_OVERWRITE").is_ok() {
+        std::fs::copy(&loc, version_to_path(version)).unwrap();
+    }
 }
 
 #[cfg(not(feature = "bindgen"))]
 fn bindings(loc: PathBuf, version: CollectdVersion) {
     use std::fs;
 
-    let path = match version {
-        CollectdVersion::Collectd57 => "src/bindings-57.rs",
-    };
-
+    let path = version_to_path(version);
     fs::copy(PathBuf::from(path), loc).expect("File to copy");
+}
+
+fn version_to_path(version: CollectdVersion) -> &'static str {
+    match version {
+        CollectdVersion::Collectd57 => "src/bindings-57.rs",
+    }
 }

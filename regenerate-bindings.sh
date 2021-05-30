@@ -7,18 +7,9 @@ generate () {
     docker run --rm collectd-rust-plugin bash -c "
         source ~/.cargo/env &&
         rustup component add rustfmt 2>/dev/null &&
-        cargo --quiet install bindgen &&
         cd /tmp &&
-        bindgen --rust-target 1.33 \
-            --whitelist-type cdtime_t \
-            --whitelist-type data_set_t \
-            --whitelist-function 'plugin_.*' \
-            --whitelist-function 'uc_get_rate' \
-            --whitelist-var 'OCONFIG_TYPE_.*' \
-            --whitelist-var 'LOG_.*' \
-            --whitelist-var 'DS_TYPE_.*' \
-            --whitelist-var DATA_MAX_NAME_LEN \
-            wrapper.h -- -DHAVE_CONFIG_H -DCOLLECTD_$3" > src/bindings-$3.rs
+        COLLECTD_OVERWRITE=1 cargo build --features bindgen >/dev/null &&
+        cat src/bindings-$3.rs" > src/bindings-$3.rs
 }
 
 generate 18.04 5.7 57
