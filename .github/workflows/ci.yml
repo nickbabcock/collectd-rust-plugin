@@ -1,0 +1,46 @@
+name: ci
+on:
+  pull_request:
+  push:
+    branches:
+    - master
+  schedule:
+  - cron: '00 01 * * *'
+
+jobs:
+  test:
+    name: test
+    runs-on: 'ubuntu-latest'
+    env:
+      CARGO: cargo
+      TARGET:
+    strategy:
+      fail-fast: false
+      matrix:
+        build:
+        - regen
+        - no-regen
+        include:
+        - build: stable
+        - build: aarch64
+          target: aarch64-unknown-linux-gnu
+        - build: regen
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v1
+      with:
+        fetch-depth: 1
+
+    - name: Use Cross
+      if: matrix.build == 'aarch64'
+      run: |
+        cargo install cross
+        echo "CARGO=cross" >> $GITHUB_ENV
+        echo "TARGET=--target ${{ matrix.target }}" >> $GITHUB_ENV
+      
+    - name: regenerate-bindings
+      if: matrix.build == 'regen'
+      run: ./regenerate-bindings.sh
+  
+    - name: tests
+      run: ${{ env.CARGO }} test --verbose $TARGET
