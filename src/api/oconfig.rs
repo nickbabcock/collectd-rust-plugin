@@ -33,6 +33,9 @@ pub struct ConfigItem<'a> {
 }
 
 impl<'a> ConfigValue<'a> {
+    /// # Safety
+    ///
+    /// Assumed that the any pointers are non null
     pub unsafe fn from(value: &oconfig_value_t) -> Result<ConfigValue<'_>, ConfigError> {
         match value.value {
             oconfig_value_s__bindgen_ty_1 { string }
@@ -60,6 +63,9 @@ impl<'a> ConfigValue<'a> {
 }
 
 impl<'a> ConfigItem<'a> {
+    /// # Safety
+    ///
+    /// Assumed that the pointer is non-null
     pub unsafe fn from<'b>(item: &'b oconfig_item_t) -> Result<ConfigItem<'b>, ConfigError> {
         let key = CStr::from_ptr(item.key)
             .to_str()

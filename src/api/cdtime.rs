@@ -54,9 +54,9 @@ impl From<cdtime_t> for CdTime {
     }
 }
 
-impl Into<cdtime_t> for CdTime {
-    fn into(self) -> cdtime_t {
-        let CdTime(x) = self;
+impl From<CdTime> for cdtime_t {
+    fn from(d: CdTime) -> Self {
+        let CdTime(x) = d;
         nanos_to_collectd(x)
     }
 }

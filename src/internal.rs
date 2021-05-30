@@ -196,21 +196,15 @@ fn register_all_plugins<T: PluginManager>(config: Option<&[ConfigItem<'_>]>) -> 
     let res = catch_unwind(|| T::plugins(config))
         .map_err(|_| FfiError::Panic)
         .and_then(|reged| reged.map_err(FfiError::Plugin))
-        .and_then(|registration| {
-            match registration {
-                PluginRegistration::Single(pl) => {
-                    plugin_registration(T::name(), pl);
-                }
-                PluginRegistration::Multiple(v) => {
-                    for (id, pl) in v {
-                        let name = format!("{}/{}", T::name(), id);
+        .map(|registration| match registration {
+            PluginRegistration::Single(pl) => plugin_registration(T::name(), pl),
+            PluginRegistration::Multiple(v) => {
+                for (id, pl) in v {
+                    let name = format!("{}/{}", T::name(), id);
 
-                        plugin_registration(name.as_str(), pl);
-                    }
+                    plugin_registration(name.as_str(), pl)
                 }
             }
-
-            Ok(())
         });
 
     if let Err(ref e) = res {
@@ -259,6 +253,9 @@ pub fn plugin_shutdown<T: PluginManager>() -> c_int {
     result
 }
 
+/// # Safety
+///
+/// It is assumed that the config is not a null pointer
 pub unsafe fn plugin_complex_config<T: PluginManager>(
     config_seen: &AtomicBool,
     config: *mut oconfig_item_t,

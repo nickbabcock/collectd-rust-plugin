@@ -89,11 +89,9 @@ impl fmt::Display for Value {
     }
 }
 
-// Interestingly, I couldn't get `From<Value> for value_t` to work, as any attempts would reference
-// value_t's typedef of value_u.
-impl Into<value_t> for Value {
-    fn into(self) -> value_t {
-        match self {
+impl From<Value> for value_t {
+    fn from(x: Value) -> Self {
+        match x {
             Value::Counter(x) => value_t { counter: x },
             Value::Gauge(x) => value_t { gauge: x },
             Value::Derive(x) => value_t { derive: x },
