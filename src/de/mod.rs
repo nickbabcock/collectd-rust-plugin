@@ -524,7 +524,7 @@ mod tests {
         #[derive(Deserialize, PartialEq, Eq, Debug)]
         struct MyStruct {
             my_bool: bool,
-        };
+        }
 
         let items = vec![ConfigItem {
             key: "my_bool",
@@ -541,7 +541,7 @@ mod tests {
         #[derive(Deserialize, PartialEq, Eq, Debug)]
         struct MyStruct {
             my_bool: Option<bool>,
-        };
+        }
 
         let actual = from_collectd(Default::default()).unwrap();
         assert_eq!(MyStruct { my_bool: None }, actual);
@@ -552,7 +552,7 @@ mod tests {
         #[derive(Deserialize, PartialEq, Eq, Debug)]
         struct MyStruct {
             my_int: i8,
-        };
+        }
 
         let items = vec![ConfigItem {
             key: "my_int",
@@ -569,7 +569,7 @@ mod tests {
         #[derive(Deserialize, PartialEq, Eq, Debug)]
         struct MyStruct {
             my_string: String,
-        };
+        }
 
         let items = vec![ConfigItem {
             key: "my_string",
@@ -591,7 +591,7 @@ mod tests {
         #[derive(Deserialize, PartialEq, Eq, Debug)]
         struct MyStruct<'a> {
             my_string: &'a str,
-        };
+        }
 
         let items = vec![ConfigItem {
             key: "my_string",
@@ -609,7 +609,7 @@ mod tests {
         struct MyStruct {
             my_bool: bool,
             my_string: String,
-        };
+        }
 
         let items = vec![
             ConfigItem {
@@ -639,7 +639,7 @@ mod tests {
         #[derive(Deserialize, PartialEq, Eq, Debug)]
         struct MyStruct {
             my_bool: Vec<bool>,
-        };
+        }
 
         let items = vec![ConfigItem {
             key: "my_bool",
@@ -661,7 +661,7 @@ mod tests {
         #[derive(Deserialize, PartialEq, Eq, Debug)]
         struct MyStruct {
             my_bool: Vec<bool>,
-        };
+        }
 
         let items = vec![
             ConfigItem {
@@ -691,7 +691,7 @@ mod tests {
         struct MyStruct {
             my_bool: Vec<bool>,
             my_num: Vec<f64>,
-        };
+        }
 
         let items = vec![
             ConfigItem {
@@ -727,7 +727,7 @@ mod tests {
         struct MyStruct {
             my_bool: Option<bool>,
             my_string: Option<String>,
-        };
+        }
 
         let items = vec![ConfigItem {
             key: "my_bool",
@@ -756,7 +756,7 @@ mod tests {
             debug: LogLevel,
             info: LogLevel,
             notice: LogLevel,
-        };
+        }
 
         let items = vec![
             ConfigItem {
@@ -816,7 +816,7 @@ mod tests {
         #[derive(Deserialize, PartialEq, Eq, Debug)]
         struct MyStruct {
             my_char: char,
-        };
+        }
 
         let items = vec![ConfigItem {
             key: "my_char",
@@ -833,7 +833,7 @@ mod tests {
         #[derive(Deserialize, PartialEq, Eq, Debug)]
         struct MyStruct {
             my_char: char,
-        };
+        }
 
         let items = vec![
             ConfigItem {
@@ -857,12 +857,12 @@ mod tests {
         #[derive(Deserialize, PartialEq, Eq, Debug)]
         struct MyPort {
             port: i32,
-        };
+        }
 
         #[derive(Deserialize, PartialEq, Eq, Debug)]
         struct MyStruct {
             ports: Vec<MyPort>,
-        };
+        }
 
         let items = vec![
             ConfigItem {
@@ -900,12 +900,12 @@ mod tests {
         struct MyAddress {
             port: i32,
             host: String,
-        };
+        }
 
         #[derive(Deserialize, PartialEq, Eq, Debug)]
         struct MyStruct {
             address: Vec<MyAddress>,
-        };
+        }
 
         let items = vec![
             ConfigItem {
@@ -968,7 +968,7 @@ mod tests {
         #[derive(Deserialize, PartialEq, Eq, Debug)]
         struct MyStruct {
             it: MyNew,
-        };
+        }
 
         let items = vec![ConfigItem {
             key: "it",
@@ -994,7 +994,7 @@ mod tests {
         struct MyStruct {
             it: Level,
             sentinel: i32,
-        };
+        }
 
         let items = vec![
             ConfigItem {
@@ -1046,7 +1046,7 @@ mod tests {
         struct MyStruct {
             it: MyEnum,
             sentinel: i32,
-        };
+        }
 
         let items = vec![
             ConfigItem {
