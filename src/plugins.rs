@@ -72,7 +72,7 @@ pub trait PluginManager {
     /// Initialize any socket, files, event loops, or any other resources that will be shared
     /// between multiple plugin instances.
     fn initialize() -> Result<(), Box<dyn error::Error>> {
-        Err(NotImplemented)?
+        Err(NotImplemented.into())
     }
 
     /// Cleanup any resources or glodal data, allocated during initialize()
@@ -95,7 +95,7 @@ pub trait Plugin: Send + Sync + UnwindSafe + RefUnwindSafe {
     /// Customizes how a message of a given level is logged. If the message isn't valid UTF-8, an
     /// allocation is done to replace all invalid characters with the UTF-8 replacement character
     fn log(&self, _lvl: LogLevel, _msg: &str) -> Result<(), Box<dyn error::Error>> {
-        Err(NotImplemented)?
+        Err(NotImplemented.into())
     }
 
     /// This function is called when collectd expects the plugin to report values, which will occur
@@ -104,13 +104,13 @@ pub trait Plugin: Send + Sync + UnwindSafe + RefUnwindSafe {
     /// reporting values will cause collectd to backoff exponentially until a delay of a day is
     /// reached.
     fn read_values(&self) -> Result<(), Box<dyn error::Error>> {
-        Err(NotImplemented)?
+        Err(NotImplemented.into())
     }
 
     /// Collectd is giving you reported values, do with them as you please. If writing values is
     /// expensive, prefer to buffer them in some way and register a `flush` callback to write.
     fn write_values(&self, _list: ValueList<'_>) -> Result<(), Box<dyn error::Error>> {
-        Err(NotImplemented)?
+        Err(NotImplemented.into())
     }
 
     /// Flush values to be written that are older than given duration. If an identifier is given,
@@ -120,7 +120,7 @@ pub trait Plugin: Send + Sync + UnwindSafe + RefUnwindSafe {
         _timeout: Option<Duration>,
         _identifier: Option<&str>,
     ) -> Result<(), Box<dyn error::Error>> {
-        Err(NotImplemented)?
+        Err(NotImplemented.into())
     }
 }
 

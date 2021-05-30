@@ -2,7 +2,7 @@ use collectd_plugin::{
     collectd_plugin, CollectdLoggerBuilder, ConfigItem, Plugin, PluginCapabilities, PluginManager,
     PluginRegistration,
 };
-use failure;
+
 use log::LevelFilter;
 use std::error;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -44,7 +44,7 @@ impl Plugin for MyErrorPlugin {
         if self.state.fetch_xor(true, Ordering::Relaxed) {
             panic!("Oh dear what is wrong!?")
         } else {
-            Err(failure::err_msg("bailing"))?
+            return Err(failure::err_msg("bailing").into());
         }
     }
 }

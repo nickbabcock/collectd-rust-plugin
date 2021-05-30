@@ -369,7 +369,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
             self.pop();
             Ok(res)
         } else {
-            return Err(Error(DeError::ExpectStruct));
+            Err(Error(DeError::ExpectStruct))
         }
     }
 

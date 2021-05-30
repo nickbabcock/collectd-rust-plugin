@@ -42,7 +42,7 @@ extern "C" fn plugin_log(severity: c_int, message: *const c_char, dt: *mut user_
     // important message when a small portion of the message may be illegible.
     let msg = unsafe { CStr::from_ptr(message).to_string_lossy() };
     let res = LogLevel::try_from(severity as u32)
-        .ok_or_else(|| FfiError::UnknownSeverity(severity))
+        .ok_or(FfiError::UnknownSeverity(severity))
         .and_then(|lvl| {
             catch_unwind(|| plugin.log(lvl, Deref::deref(&msg)))
                 .map_err(|_| FfiError::Panic)

@@ -83,7 +83,7 @@ impl PluginManager for GraphiteManager {
                     prefix: x.prefix,
                 };
                 let bx: Box<dyn Plugin> = Box::new(plugin);
-                Ok((x.name.clone(), bx))
+                Ok((x.name, bx))
             })
             .collect();
 

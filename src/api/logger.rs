@@ -8,7 +8,6 @@ use std::error::Error;
 use std::ffi::{CStr, CString};
 use std::fmt::Write as FmtWrite;
 use std::io::{self, Write};
-use std::mem;
 
 /// Bridges the gap between collectd and rust logging. Terminology and filters methods found here
 /// are from env_logger.
@@ -70,7 +69,7 @@ impl CollectdLoggerBuilder {
         let logger = CollectdLogger {
             filter: self.filter.build(),
             plugin: self.plugin,
-            format: mem::replace(&mut self.format, Default::default()).into_boxed_fn(),
+            format: std::mem::take(&mut self.format).into_boxed_fn(),
         };
 
         log::set_max_level(logger.filter());

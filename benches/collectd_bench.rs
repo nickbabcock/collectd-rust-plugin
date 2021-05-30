@@ -70,7 +70,7 @@ fn gen_nul_string(c: &mut Criterion) {
         "gen_nul_string",
         Benchmark::new("cstring", |b| {
             b.iter(|| {
-                let c = CString::new(&"Hello world"[..]).unwrap();
+                let c = CString::new("Hello world").unwrap();
                 let _d = c.as_bytes_with_nul();
             })
         })
