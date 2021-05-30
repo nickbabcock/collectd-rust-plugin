@@ -1,9 +1,8 @@
-ARG UBUNTU_VERSION=16.04
+ARG UBUNTU_VERSION=18.04
 FROM ubuntu:${UBUNTU_VERSION}
 
-# Annoying that UBUNTU_VERSION has to be specified again
-ARG UBUNTU_VERSION=16.04
-ARG COLLECTD_VERSION=5.5
+ARG UBUNTU_VERSION=18.04
+ARG COLLECTD_VERSION=5.7
 
 # So tzdata doesn't prompt
 ENV DEBIAN_FRONTEND=noninteractive
@@ -16,8 +15,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     build-essential \
  && rm -rf /var/lib/apt/lists/*
-RUN if [ "${COLLECTD_VERSION}" != "5.7" ]; then wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -; fi
 RUN apt-get update && apt-get install -y llvm-dev libclang-dev clang && rm -rf /var/lib/apt/lists/*
-RUN if [ "${COLLECTD_VERSION}" = "5.4" ]; then cp -r /usr/include/collectd/liboconfig /usr/include/collectd/core/.; fi
 RUN curl https://sh.rustup.rs -sSf | sh -s -- --profile=minimal -y
 COPY . /tmp

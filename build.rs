@@ -2,8 +2,6 @@ use std::env;
 use std::path::PathBuf;
 
 enum CollectdVersion {
-    Collectd54,
-    Collectd55,
     Collectd57,
 }
 
@@ -15,14 +13,6 @@ fn main() {
             println!("cargo:rustc-cfg=collectd57");
             CollectdVersion::Collectd57
         }
-        "5.6" | "5.5" => {
-            println!("cargo:rustc-cfg=collectd55");
-            CollectdVersion::Collectd55
-        }
-        "5.4" => {
-            println!("cargo:rustc-cfg=collectd54");
-            CollectdVersion::Collectd54
-        }
         x => panic!("Unrecognized collectd version: {}", x),
     };
 
@@ -31,7 +21,7 @@ fn main() {
 
 #[cfg(feature = "stub")]
 fn detect_collectd_version() -> String {
-    String::from("5.5")
+    String::from("5.7")
 }
 
 #[cfg(not(feature = "stub"))]
@@ -107,8 +97,6 @@ fn bindings(loc: PathBuf, version: CollectdVersion) {
             .clang_arg("-DCOLLECTD_PATH");
     } else {
         let arg = match version {
-            CollectdVersion::Collectd54 => "-DCOLLECTD_54",
-            CollectdVersion::Collectd55 => "-DCOLLECTD_55",
             CollectdVersion::Collectd57 => "-DCOLLECTD_57",
         };
 
@@ -136,8 +124,6 @@ fn bindings(loc: PathBuf, version: CollectdVersion) {
     use std::fs;
 
     let path = match version {
-        CollectdVersion::Collectd54 => "src/bindings-54.rs",
-        CollectdVersion::Collectd55 => "src/bindings-55.rs",
         CollectdVersion::Collectd57 => "src/bindings-57.rs",
     };
 

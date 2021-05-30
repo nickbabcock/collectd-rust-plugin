@@ -1,44 +1,44 @@
-error[E0277]: `std::cell::RefCell<std::string::String>` cannot be shared between threads safely
+error[E0277]: `RefCell<std::string::String>` cannot be shared between threads safely
   --> $DIR/non-sync.rs:10:6
    |
 10 | impl Plugin for MyPlugin {
-   |      ^^^^^^ `std::cell::RefCell<std::string::String>` cannot be shared between threads safely
+   |      ^^^^^^ `RefCell<std::string::String>` cannot be shared between threads safely
    |
   ::: $WORKSPACE/src/plugins.rs
    |
    | pub trait Plugin: Send + Sync + UnwindSafe + RefUnwindSafe {
-   |                          ---- required by this bound in `collectd_plugin::Plugin`
+   |                          ---- required by this bound in `Plugin`
    |
-   = help: within `MyPlugin`, the trait `std::marker::Sync` is not implemented for `std::cell::RefCell<std::string::String>`
+   = help: within `MyPlugin`, the trait `Sync` is not implemented for `RefCell<std::string::String>`
    = note: required because it appears within the type `MyPlugin`
 
-error[E0277]: the type `std::cell::UnsafeCell<std::string::String>` may contain interior mutability and a reference may not be safely transferrable across a catch_unwind boundary
+error[E0277]: the type `UnsafeCell<std::string::String>` may contain interior mutability and a reference may not be safely transferrable across a catch_unwind boundary
   --> $DIR/non-sync.rs:10:6
    |
 10 | impl Plugin for MyPlugin {
-   |      ^^^^^^ `std::cell::UnsafeCell<std::string::String>` may contain interior mutability and a reference may not be safely transferrable across a catch_unwind boundary
+   |      ^^^^^^ `UnsafeCell<std::string::String>` may contain interior mutability and a reference may not be safely transferrable across a catch_unwind boundary
    |
   ::: $WORKSPACE/src/plugins.rs
    |
    | pub trait Plugin: Send + Sync + UnwindSafe + RefUnwindSafe {
-   |                                              ------------- required by this bound in `collectd_plugin::Plugin`
+   |                                              ------------- required by this bound in `Plugin`
    |
-   = help: within `MyPlugin`, the trait `std::panic::RefUnwindSafe` is not implemented for `std::cell::UnsafeCell<std::string::String>`
-   = note: required because it appears within the type `std::cell::RefCell<std::string::String>`
+   = help: within `MyPlugin`, the trait `RefUnwindSafe` is not implemented for `UnsafeCell<std::string::String>`
+   = note: required because it appears within the type `RefCell<std::string::String>`
    = note: required because it appears within the type `MyPlugin`
 
-error[E0277]: the type `std::cell::UnsafeCell<isize>` may contain interior mutability and a reference may not be safely transferrable across a catch_unwind boundary
+error[E0277]: the type `UnsafeCell<isize>` may contain interior mutability and a reference may not be safely transferrable across a catch_unwind boundary
   --> $DIR/non-sync.rs:10:6
    |
 10 | impl Plugin for MyPlugin {
-   |      ^^^^^^ `std::cell::UnsafeCell<isize>` may contain interior mutability and a reference may not be safely transferrable across a catch_unwind boundary
+   |      ^^^^^^ `UnsafeCell<isize>` may contain interior mutability and a reference may not be safely transferrable across a catch_unwind boundary
    |
   ::: $WORKSPACE/src/plugins.rs
    |
    | pub trait Plugin: Send + Sync + UnwindSafe + RefUnwindSafe {
-   |                                              ------------- required by this bound in `collectd_plugin::Plugin`
+   |                                              ------------- required by this bound in `Plugin`
    |
-   = help: within `MyPlugin`, the trait `std::panic::RefUnwindSafe` is not implemented for `std::cell::UnsafeCell<isize>`
-   = note: required because it appears within the type `std::cell::Cell<isize>`
-   = note: required because it appears within the type `std::cell::RefCell<std::string::String>`
+   = help: within `MyPlugin`, the trait `RefUnwindSafe` is not implemented for `UnsafeCell<isize>`
+   = note: required because it appears within the type `Cell<isize>`
+   = note: required because it appears within the type `RefCell<std::string::String>`
    = note: required because it appears within the type `MyPlugin`

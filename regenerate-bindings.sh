@@ -21,7 +21,5 @@ generate () {
             wrapper.h -- -DHAVE_CONFIG_H -DCOLLECTD_$3" > src/bindings-$3.rs
 }
 
-generate 14.04 5.4 54
-generate 16.04 5.5 55
 generate 18.04 5.7 57
 
