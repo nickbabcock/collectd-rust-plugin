@@ -14,6 +14,7 @@ jobs:
     env:
       CARGO: cargo
       TARGET:
+      FEATURES:
     strategy:
       fail-fast: false
       matrix:
@@ -22,6 +23,7 @@ jobs:
         - no-regen
         include:
         - build: stable
+        - build: collectd-head
         - build: aarch64
           target: aarch64-unknown-linux-gnu
         - build: regen
@@ -41,6 +43,13 @@ jobs:
     - name: regenerate-bindings
       if: matrix.build == 'regen'
       run: ./regenerate-bindings.sh
+
+    - name: collectd-head
+      if: matrix.build == 'collectd-head'
+      run: |
+        git clone https://github.com/collectd/collectd /tmp/collectd
+        echo "COLLECTD_PATH=/tmp/collectd" >> $GITHUB_ENV
+        echo "FEATURES=--features bindgen" >> $GITHUB_ENV
   
     - name: tests
-      run: ${{ env.CARGO }} test --verbose $TARGET
+      run: ${{ env.CARGO }} test $FEATURES --verbose $TARGET
