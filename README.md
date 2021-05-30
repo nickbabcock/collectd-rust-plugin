@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/nickbabcock/collectd-rust-plugin.svg?branch=master)](https://travis-ci.org/nickbabcock/collectd-rust-plugin) [![](https://docs.rs/collectd-plugin/badge.svg)](https://docs.rs/collectd-plugin) [![Rust](https://img.shields.io/badge/rust-1.33%2B-blue.svg?maxAge=3600)](https://github.com/nickbabcock/collectd-rust-plugin) [![Version](https://img.shields.io/crates/v/collectd-plugin.svg?style=flat-square)](https://crates.io/crates/collectd-plugin)
+[![ci](https://github.com/nickbabcock/collectd-rust-plugin/actions/workflows/ci.yml/badge.svg)](https://github.com/nickbabcock/collectd-rust-plugin/actions/workflows/ci.yml) [![](https://docs.rs/collectd-plugin/badge.svg)](https://docs.rs/collectd-plugin) [![Rust](https://img.shields.io/badge/rust-1.33%2B-blue.svg?maxAge=3600)](https://github.com/nickbabcock/collectd-rust-plugin) [![Version](https://img.shields.io/crates/v/collectd-plugin.svg?style=flat-square)](https://crates.io/crates/collectd-plugin)
 
 # Write a Collectd Plugin in Rust
 
