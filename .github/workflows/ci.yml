@@ -10,7 +10,7 @@ on:
 jobs:
   test:
     name: test
-    runs-on: 'ubuntu-latest'
+    runs-on: ${{ matrix.os }} 
     env:
       CARGO: cargo
       TARGET:
@@ -19,14 +19,23 @@ jobs:
       fail-fast: false
       matrix:
         build:
+        - stable
+        - collectd-head
+        - bindgen
+        - aarch64
         - regen
-        - no-regen
         include:
         - build: stable
+          os: 'ubuntu-latest'
         - build: collectd-head
+          os: 'ubuntu-latest'
+        - build: bindgen
+          os: 'ubuntu-18.04'
         - build: aarch64
           target: aarch64-unknown-linux-gnu
+          os: 'ubuntu-latest'
         - build: regen
+          os: 'ubuntu-latest'
     steps:
     - name: Checkout repository
       uses: actions/checkout@v1
@@ -51,5 +60,11 @@ jobs:
         echo "COLLECTD_PATH=/tmp/collectd" >> $GITHUB_ENV
         echo "FEATURES=--features bindgen" >> $GITHUB_ENV
   
+    - name: bindgen
+      if: matrix.build == 'bindgen'
+      run: |
+        sudo apt-get install -y --no-install-recommends collectd collectd-dev
+        echo "FEATURES=--features bindgen" >> $GITHUB_ENV
+
     - name: tests
       run: ${{ env.CARGO }} test $FEATURES --verbose $TARGET
