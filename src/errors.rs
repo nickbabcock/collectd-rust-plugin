@@ -72,6 +72,7 @@ impl error::Error for ArrayError {
 pub enum ReceiveError {
     /// A plugin submitted a field that contained invalid UTF-8 characters
     Utf8(String, &'static str, Utf8Error),
+    Metadata(String, String, &'static str),
 }
 
 impl fmt::Display for ReceiveError {
@@ -79,6 +80,9 @@ impl fmt::Display for ReceiveError {
         match *self {
             ReceiveError::Utf8(ref plugin, ref field, ref _err) => {
                 write!(f, "plugin: {} submitted bad field: {}", plugin, field)
+            }
+            ReceiveError::Metadata(ref plugin, ref field, ref msg) => {
+                write!(f, "plugin: {}, field: {}: {}", plugin, field, msg)
             }
         }
     }
@@ -92,6 +96,7 @@ impl error::Error for ReceiveError {
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match *self {
             ReceiveError::Utf8(ref _plugin, ref _field, ref err) => Some(err),
+            ReceiveError::Metadata(_, _, _) => None,
         }
     }
 }

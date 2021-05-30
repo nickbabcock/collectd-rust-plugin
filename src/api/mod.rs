@@ -3,20 +3,22 @@ pub use self::logger::{collectd_log, log_err, CollectdLoggerBuilder, LogLevel};
 pub use self::oconfig::{ConfigItem, ConfigValue};
 use crate::bindings::{
     data_set_t, hostname_g, meta_data_add_boolean, meta_data_add_double, meta_data_add_signed_int,
-    meta_data_add_string, meta_data_add_unsigned_int, meta_data_create, meta_data_t,
-    plugin_dispatch_values, uc_get_rate, value_list_t, value_t, ARR_LENGTH, DS_TYPE_ABSOLUTE,
-    DS_TYPE_COUNTER, DS_TYPE_DERIVE, DS_TYPE_GAUGE, MD_TYPE_BOOLEAN, MD_TYPE_DOUBLE,
-    MD_TYPE_SIGNED_INT, MD_TYPE_STRING, MD_TYPE_UNSIGNED_INT,
+    meta_data_add_string, meta_data_add_unsigned_int, meta_data_create, meta_data_t, meta_data_toc, meta_data_get_boolean, meta_data_get_double, meta_data_get_signed_int,
+    meta_data_get_string, meta_data_get_unsigned_int,
+    meta_data_type, plugin_dispatch_values, uc_get_rate, value_list_t, value_t, ARR_LENGTH,
+    DS_TYPE_ABSOLUTE, DS_TYPE_COUNTER, DS_TYPE_DERIVE, DS_TYPE_GAUGE, MD_TYPE_BOOLEAN,
+    MD_TYPE_DOUBLE, MD_TYPE_SIGNED_INT, MD_TYPE_STRING, MD_TYPE_UNSIGNED_INT,
 };
 use crate::errors::{ArrayError, CacheRateError, ReceiveError, SubmitError};
 use chrono::prelude::*;
 use chrono::Duration;
 use memchr::memchr;
+use libc;
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::ffi::{CStr, CString};
 use std::fmt;
-use std::os::raw::c_char;
+use std::os::raw::{c_char, c_void};
 use std::ptr;
 use std::slice;
 use std::str::Utf8Error;
@@ -266,6 +268,8 @@ impl<'a> ValueList<'a> {
         let host =
             from_array(&list.host).map_err(|e| ReceiveError::Utf8(String::from(p), "host", e))?;
 
+        let meta = from_meta_data(p, list.meta)?;
+
         Ok(ValueList {
             values: values?,
             plugin_instance,
@@ -275,8 +279,7 @@ impl<'a> ValueList<'a> {
             host,
             time: CdTime::from(list.time).into(),
             interval: CdTime::from(list.interval).into(),
-            //TODO: load metadata
-            meta: None,
+            meta,
             original_list: list,
             original_set: set,
         })
@@ -368,10 +371,9 @@ impl<'a> ValueListBuilder<'a> {
         if self.list.meta.is_none() {
             self.list.meta = Some(HashMap::new());
         }
-        self.list
-            .meta
-            .as_mut()
-            .map(|meta| meta.insert(key.to_string(), value));
+        if let Some(ref mut meta) = self.list.meta {
+            meta.insert(key.to_string(), value);
+        }
         self
     }
 
@@ -451,7 +453,7 @@ impl<'a> ValueListBuilder<'a> {
 
 //TODO: move to its own module metadata, with related types
 fn to_meta_data(meta_hm: &HashMap<String, MetaValue>) -> Result<*mut meta_data_t, SubmitError> {
-    let mut meta = ptr::null_mut();
+    let meta;
     unsafe {
         meta = meta_data_create();
     }
@@ -489,6 +491,77 @@ fn to_meta_data(meta_hm: &HashMap<String, MetaValue>) -> Result<*mut meta_data_t
         }
     }
     Ok(meta)
+}
+
+fn from_meta_data(
+    p: &str,
+    meta: *mut meta_data_t,
+) -> Result<Option<HashMap<String, MetaValue>>, ReceiveError> {
+    if meta.is_null() {
+        return Ok(None);
+    }
+
+    let mut toc: *mut *mut c_char = ptr::null_mut();
+    let count = unsafe { meta_data_toc(meta, &mut toc as *mut *mut *mut c_char) };
+    if count == 0 {
+        return Ok(None);
+    }
+    let mut meta_hm = HashMap::new();
+    // read meta and convert to hashmap entry
+    for i in 0..(count as isize) {
+        let c_key : &CStr;
+        let key : String;
+        let value_type : u32;
+        unsafe {
+            let index = toc.offset(i);
+            c_key = CStr::from_ptr(*index);
+            key = c_key.to_str().map_err(|e| ReceiveError::Utf8(p.to_string(), "metadata entry", e))?.to_string();
+            value_type = meta_data_type(meta, c_key.as_ptr()) as u32;
+        }
+        match value_type {
+            MD_TYPE_BOOLEAN => {
+                let mut c_value = false;
+                unsafe { meta_data_get_boolean(meta, c_key.as_ptr(), &mut c_value as *mut bool); }
+                meta_hm.insert(key, MetaValue::Boolean(c_value));
+            }
+            MD_TYPE_DOUBLE => {
+                let mut c_value = 0.0;
+                unsafe { meta_data_get_double(meta, c_key.as_ptr(), &mut c_value as *mut f64); }
+                meta_hm.insert(key, MetaValue::Double(c_value));
+            }
+            MD_TYPE_SIGNED_INT => {
+                let mut c_value = 0i64;
+                unsafe { meta_data_get_signed_int(meta, c_key.as_ptr(), &mut c_value as *mut i64); }
+                meta_hm.insert(key, MetaValue::SignedInt(c_value));
+            }
+            MD_TYPE_STRING => {
+                let value : String;
+                unsafe { 
+                    let mut c_value : *mut c_char = ptr::null_mut();
+                    meta_data_get_string(meta, c_key.as_ptr(), &mut c_value as *mut *mut c_char); 
+                    value = CStr::from_ptr(c_value).to_str().map_err(|e| ReceiveError::Utf8(p.to_string(), "metadata value", e))?.to_string();
+                }
+                meta_hm.insert(key, MetaValue::String(value));
+            }
+            MD_TYPE_UNSIGNED_INT => {
+                let mut c_value = 0u64;
+                unsafe { meta_data_get_unsigned_int(meta, c_key.as_ptr(), &mut c_value as *mut u64); }
+                meta_hm.insert(key, MetaValue::UnsignedInt(c_value));
+            }
+            _ => {
+                return Err(ReceiveError::Metadata(p.to_string(), key, "unknown metadata type"));
+            }
+        }
+    }
+    // then free toc strings
+    for i in 0..(count as isize) {
+        unsafe {
+            let index = toc.offset(i);
+            libc::free(*index as *mut c_void);
+        }
+    }
+    unsafe { libc::free(toc as *mut c_void); }
+    Ok(Some(meta_hm))
 }
 
 /// Collectd stores textual data in fixed sized arrays, so this function will convert a string
