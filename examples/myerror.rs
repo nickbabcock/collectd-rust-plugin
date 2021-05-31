@@ -44,7 +44,7 @@ impl Plugin for MyErrorPlugin {
         if self.state.fetch_xor(true, Ordering::Relaxed) {
             panic!("Oh dear what is wrong!?")
         } else {
-            return Err(failure::err_msg("bailing").into());
+            Err(failure::err_msg("bailing").into())
         }
     }
 }

@@ -74,7 +74,7 @@ impl PluginManager for GraphiteManager {
         let config: GraphiteConfig =
             collectd_plugin::de::from_collectd(config.unwrap_or_else(Default::default))?;
 
-        let config: Result<Vec<(String, Box<dyn Plugin>)>, Box<dyn error::Error>> = config
+        let config: Vec<(String, Box<dyn Plugin>)> = config
             .nodes
             .into_iter()
             .map(|x| {
@@ -85,9 +85,9 @@ impl PluginManager for GraphiteManager {
                 let bx: Box<dyn Plugin> = Box::new(plugin);
                 Ok((x.name, bx))
             })
-            .collect();
+            .collect::<Result<Vec<_>, Box<dyn error::Error>>>()?;
 
-        Ok(PluginRegistration::Multiple(config?))
+        Ok(PluginRegistration::Multiple(config))
     }
 }
 
