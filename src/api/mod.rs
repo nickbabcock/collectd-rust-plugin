@@ -487,23 +487,25 @@ fn from_meta_data(
         return Ok(None);
     }
 
-    let mut toc: *mut *mut c_char = ptr::null_mut();
-    let count = unsafe { meta_data_toc(meta, &mut toc as *mut *mut *mut c_char) };
+    let mut c_toc: *mut *mut c_char = ptr::null_mut();
+    let count_or_err = unsafe { meta_data_toc(meta, &mut c_toc as *mut *mut *mut c_char) };
+    if count_or_err < 0 {
+        return Err(ReceiveError::Metadata(p.to_string(), "toc".to_string(), "invalid parameters to meta_data_toc"));
+    }
+    let count = count_or_err as usize;
     if count == 0 {
         return Ok(None);
     }
     let mut meta_hm = HashMap::new();
+    let toc = unsafe { slice::from_raw_parts(c_toc, count) };
     // read meta and convert to hashmap entry
-    for i in 0..(count as isize) {
-        let c_key : &CStr;
-        let key : String;
-        let value_type : u32;
-        unsafe {
-            let index = toc.offset(i);
-            c_key = CStr::from_ptr(*index);
-            key = c_key.to_str().map_err(|e| ReceiveError::Utf8(p.to_string(), "metadata entry", e))?.to_string();
-            value_type = meta_data_type(meta, c_key.as_ptr()) as u32;
-        }
+    for c_key_ptr in toc {
+        let (c_key, key, value_type) = unsafe {
+            let c_key : &CStr = CStr::from_ptr(*c_key_ptr);
+            let key : String = c_key.to_str().map_err(|e| ReceiveError::Utf8(p.to_string(), "metadata key", e))?.to_string();
+            let value_type : u32 = meta_data_type(meta, c_key.as_ptr()) as u32;
+            (c_key, key, value_type)
+        };
         match value_type {
             MD_TYPE_BOOLEAN => {
                 let mut c_value = false;
@@ -521,12 +523,11 @@ fn from_meta_data(
                 meta_hm.insert(key, MetaValue::SignedInt(c_value));
             }
             MD_TYPE_STRING => {
-                let value : String;
-                unsafe { 
+                let value : String = unsafe { 
                     let mut c_value : *mut c_char = ptr::null_mut();
                     meta_data_get_string(meta, c_key.as_ptr(), &mut c_value as *mut *mut c_char); 
-                    value = CStr::from_ptr(c_value).to_str().map_err(|e| ReceiveError::Utf8(p.to_string(), "metadata value", e))?.to_string();
-                }
+                    CStr::from_ptr(c_value).to_str().map_err(|e| ReceiveError::Utf8(p.to_string(), "metadata value", e))?.to_string()
+                };
                 meta_hm.insert(key, MetaValue::String(value));
             }
             MD_TYPE_UNSIGNED_INT => {
@@ -540,13 +541,12 @@ fn from_meta_data(
         }
     }
     // then free toc strings
-    for i in 0..(count as isize) {
+    for c_key_ptr in toc {
         unsafe {
-            let index = toc.offset(i);
-            libc::free(*index as *mut c_void);
+            libc::free(*c_key_ptr as *mut c_void);
         }
     }
-    unsafe { libc::free(toc as *mut c_void); }
+    unsafe { libc::free(c_toc as *mut c_void); }
     Ok(Some(meta_hm))
 }
 
