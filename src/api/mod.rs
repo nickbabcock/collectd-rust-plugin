@@ -453,10 +453,7 @@ impl<'a> ValueListBuilder<'a> {
 
 //TODO: move to its own module metadata, with related types
 fn to_meta_data(meta_hm: &HashMap<String, MetaValue>) -> Result<*mut meta_data_t, SubmitError> {
-    let meta;
-    unsafe {
-        meta = meta_data_create();
-    }
+    let meta = unsafe { meta_data_create() }
     for (key, value) in meta_hm.iter() {
         let c_key = CString::new(key.as_str()).map_err(|e| {
             SubmitError::Field(
