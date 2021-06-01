@@ -27,17 +27,6 @@ mod cdtime;
 mod logger;
 mod oconfig;
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-#[repr(u32)]
-#[allow(dead_code)]
-enum MetaValueType {
-    String = MD_TYPE_STRING,
-    SignedInt = MD_TYPE_SIGNED_INT,
-    UnsignedInt = MD_TYPE_UNSIGNED_INT,
-    Double = MD_TYPE_DOUBLE,
-    Boolean = MD_TYPE_BOOLEAN,
-}
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum MetaValue {
     String(String),
@@ -453,7 +442,7 @@ impl<'a> ValueListBuilder<'a> {
 
 //TODO: move to its own module metadata, with related types
 fn to_meta_data(meta_hm: &HashMap<String, MetaValue>) -> Result<*mut meta_data_t, SubmitError> {
-    let meta = unsafe { meta_data_create() }
+    let meta = unsafe { meta_data_create() };
     for (key, value) in meta_hm.iter() {
         let c_key = CString::new(key.as_str()).map_err(|e| {
             SubmitError::Field(
