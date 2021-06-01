@@ -440,10 +440,11 @@ impl<'a> ValueListBuilder<'a> {
     }
 }
 
-//TODO: move to its own module metadata, with related types
-fn to_meta_data(meta_hm: &HashMap<String, MetaValue>) -> Result<*mut meta_data_t, SubmitError> {
+fn to_meta_data<'a, T>(meta_hm: T) -> Result<*mut meta_data_t, SubmitError> 
+    where T : IntoIterator<Item=(&'a String, &'a MetaValue)>
+{
     let meta = unsafe { meta_data_create() };
-    for (key, value) in meta_hm.iter() {
+    for (key, value) in meta_hm.into_iter() {
         let c_key = CString::new(key.as_str()).map_err(|e| {
             SubmitError::Field(
                 "meta key",
