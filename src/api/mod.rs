@@ -26,6 +26,8 @@ mod cdtime;
 mod logger;
 mod oconfig;
 
+/// The value of a metadata entry associated with a [ValueList].
+/// Metadata can be added using [ValueListBuilder::metadata] method.
 #[derive(Debug, Clone, PartialEq)]
 pub enum MetaValue {
     String(String),
@@ -355,6 +357,10 @@ impl<'a> ValueListBuilder<'a> {
         self
     }
 
+    /// Add a metadata entry. 
+    ///
+    /// Multiple entries can be added by calling this method. If the same key is used, only the last
+    /// entry is kept.
     pub fn metadata(mut self, key: &str, value: MetaValue) -> ValueListBuilder<'a> {
         if self.list.meta.is_none() {
             self.list.meta = Some(HashMap::new());
