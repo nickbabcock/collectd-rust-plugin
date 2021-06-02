@@ -13,7 +13,6 @@ use crate::errors::{ArrayError, CacheRateError, ReceiveError, SubmitError};
 use chrono::prelude::*;
 use chrono::Duration;
 use memchr::memchr;
-use libc;
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::ffi::{CStr, CString};
