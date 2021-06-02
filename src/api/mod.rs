@@ -287,7 +287,7 @@ struct SubmitValueList<'a> {
     host: Option<&'a str>,
     time: Option<DateTime<Utc>>,
     interval: Option<Duration>,
-    meta: Option<HashMap<String, MetaValue>>,
+    meta: Option<HashMap<&'a str, MetaValue>>,
 }
 
 /// Creates a value list to report values to collectd.
@@ -362,12 +362,12 @@ impl<'a> ValueListBuilder<'a> {
     ///
     /// Multiple entries can be added by calling this method. If the same key is used, only the last
     /// entry is kept.
-    pub fn metadata(mut self, key: &str, value: MetaValue) -> ValueListBuilder<'a> {
+    pub fn metadata(mut self, key: &'a str, value: MetaValue) -> ValueListBuilder<'a> {
         if self.list.meta.is_none() {
             self.list.meta = Some(HashMap::new());
         }
         if let Some(ref mut meta) = self.list.meta {
-            meta.insert(key.to_string(), value);
+            meta.insert(key, value);
         }
         self
     }
@@ -448,11 +448,11 @@ impl<'a> ValueListBuilder<'a> {
 
 fn to_meta_data<'a, T>(meta_hm: T) -> Result<*mut meta_data_t, SubmitError>
 where
-    T: IntoIterator<Item = (&'a String, &'a MetaValue)>,
+    T: IntoIterator<Item = (&'a &'a str, &'a MetaValue)>,
 {
     let meta = unsafe { meta_data_create() };
     for (key, value) in meta_hm.into_iter() {
-        let c_key = CString::new(key.as_str()).map_err(|e| {
+        let c_key = CString::new(*key).map_err(|e| {
             SubmitError::Field(
                 "meta key",
                 ArrayError::NullPresent(e.nul_position(), key.to_string()),
