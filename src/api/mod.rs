@@ -3,11 +3,12 @@ pub use self::logger::{collectd_log, log_err, CollectdLoggerBuilder, LogLevel};
 pub use self::oconfig::{ConfigItem, ConfigValue};
 use crate::bindings::{
     data_set_t, hostname_g, meta_data_add_boolean, meta_data_add_double, meta_data_add_signed_int,
-    meta_data_add_string, meta_data_add_unsigned_int, meta_data_create, meta_data_t, meta_data_toc, meta_data_get_boolean, meta_data_get_double, meta_data_get_signed_int,
-    meta_data_get_string, meta_data_get_unsigned_int,
-    meta_data_type, plugin_dispatch_values, uc_get_rate, value_list_t, value_t, ARR_LENGTH,
-    DS_TYPE_ABSOLUTE, DS_TYPE_COUNTER, DS_TYPE_DERIVE, DS_TYPE_GAUGE, MD_TYPE_BOOLEAN,
-    MD_TYPE_DOUBLE, MD_TYPE_SIGNED_INT, MD_TYPE_STRING, MD_TYPE_UNSIGNED_INT,
+    meta_data_add_string, meta_data_add_unsigned_int, meta_data_create, meta_data_get_boolean,
+    meta_data_get_double, meta_data_get_signed_int, meta_data_get_string,
+    meta_data_get_unsigned_int, meta_data_t, meta_data_toc, meta_data_type, plugin_dispatch_values,
+    uc_get_rate, value_list_t, value_t, ARR_LENGTH, DS_TYPE_ABSOLUTE, DS_TYPE_COUNTER,
+    DS_TYPE_DERIVE, DS_TYPE_GAUGE, MD_TYPE_BOOLEAN, MD_TYPE_DOUBLE, MD_TYPE_SIGNED_INT,
+    MD_TYPE_STRING, MD_TYPE_UNSIGNED_INT,
 };
 use crate::errors::{ArrayError, CacheRateError, ReceiveError, SubmitError};
 use chrono::prelude::*;
@@ -357,7 +358,7 @@ impl<'a> ValueListBuilder<'a> {
         self
     }
 
-    /// Add a metadata entry. 
+    /// Add a metadata entry.
     ///
     /// Multiple entries can be added by calling this method. If the same key is used, only the last
     /// entry is kept.
@@ -445,8 +446,9 @@ impl<'a> ValueListBuilder<'a> {
     }
 }
 
-fn to_meta_data<'a, T>(meta_hm: T) -> Result<*mut meta_data_t, SubmitError> 
-    where T : IntoIterator<Item=(&'a String, &'a MetaValue)>
+fn to_meta_data<'a, T>(meta_hm: T) -> Result<*mut meta_data_t, SubmitError>
+where
+    T: IntoIterator<Item = (&'a String, &'a MetaValue)>,
 {
     let meta = unsafe { meta_data_create() };
     for (key, value) in meta_hm.into_iter() {
@@ -496,7 +498,11 @@ fn from_meta_data(
     let mut c_toc: *mut *mut c_char = ptr::null_mut();
     let count_or_err = unsafe { meta_data_toc(meta, &mut c_toc as *mut *mut *mut c_char) };
     if count_or_err < 0 {
-        return Err(ReceiveError::Metadata(p.to_string(), "toc".to_string(), "invalid parameters to meta_data_toc"));
+        return Err(ReceiveError::Metadata(
+            p.to_string(),
+            "toc".to_string(),
+            "invalid parameters to meta_data_toc",
+        ));
     }
     let count = count_or_err as usize;
     if count == 0 {
@@ -507,42 +513,60 @@ fn from_meta_data(
     // read meta and convert to hashmap entry
     for c_key_ptr in toc {
         let (c_key, key, value_type) = unsafe {
-            let c_key : &CStr = CStr::from_ptr(*c_key_ptr);
-            let key : String = c_key.to_str().map_err(|e| ReceiveError::Utf8(p.to_string(), "metadata key", e))?.to_string();
-            let value_type : u32 = meta_data_type(meta, c_key.as_ptr()) as u32;
+            let c_key: &CStr = CStr::from_ptr(*c_key_ptr);
+            let key: String = c_key
+                .to_str()
+                .map_err(|e| ReceiveError::Utf8(p.to_string(), "metadata key", e))?
+                .to_string();
+            let value_type: u32 = meta_data_type(meta, c_key.as_ptr()) as u32;
             (c_key, key, value_type)
         };
         match value_type {
             MD_TYPE_BOOLEAN => {
                 let mut c_value = false;
-                unsafe { meta_data_get_boolean(meta, c_key.as_ptr(), &mut c_value as *mut bool); }
+                unsafe {
+                    meta_data_get_boolean(meta, c_key.as_ptr(), &mut c_value as *mut bool);
+                }
                 meta_hm.insert(key, MetaValue::Boolean(c_value));
             }
             MD_TYPE_DOUBLE => {
                 let mut c_value = 0.0;
-                unsafe { meta_data_get_double(meta, c_key.as_ptr(), &mut c_value as *mut f64); }
+                unsafe {
+                    meta_data_get_double(meta, c_key.as_ptr(), &mut c_value as *mut f64);
+                }
                 meta_hm.insert(key, MetaValue::Double(c_value));
             }
             MD_TYPE_SIGNED_INT => {
                 let mut c_value = 0i64;
-                unsafe { meta_data_get_signed_int(meta, c_key.as_ptr(), &mut c_value as *mut i64); }
+                unsafe {
+                    meta_data_get_signed_int(meta, c_key.as_ptr(), &mut c_value as *mut i64);
+                }
                 meta_hm.insert(key, MetaValue::SignedInt(c_value));
             }
             MD_TYPE_STRING => {
-                let value : String = unsafe { 
-                    let mut c_value : *mut c_char = ptr::null_mut();
-                    meta_data_get_string(meta, c_key.as_ptr(), &mut c_value as *mut *mut c_char); 
-                    CStr::from_ptr(c_value).to_str().map_err(|e| ReceiveError::Utf8(p.to_string(), "metadata value", e))?.to_string()
+                let value: String = unsafe {
+                    let mut c_value: *mut c_char = ptr::null_mut();
+                    meta_data_get_string(meta, c_key.as_ptr(), &mut c_value as *mut *mut c_char);
+                    CStr::from_ptr(c_value)
+                        .to_str()
+                        .map_err(|e| ReceiveError::Utf8(p.to_string(), "metadata value", e))?
+                        .to_string()
                 };
                 meta_hm.insert(key, MetaValue::String(value));
             }
             MD_TYPE_UNSIGNED_INT => {
                 let mut c_value = 0u64;
-                unsafe { meta_data_get_unsigned_int(meta, c_key.as_ptr(), &mut c_value as *mut u64); }
+                unsafe {
+                    meta_data_get_unsigned_int(meta, c_key.as_ptr(), &mut c_value as *mut u64);
+                }
                 meta_hm.insert(key, MetaValue::UnsignedInt(c_value));
             }
             _ => {
-                return Err(ReceiveError::Metadata(p.to_string(), key, "unknown metadata type"));
+                return Err(ReceiveError::Metadata(
+                    p.to_string(),
+                    key,
+                    "unknown metadata type",
+                ));
             }
         }
     }
@@ -552,7 +576,9 @@ fn from_meta_data(
             libc::free(*c_key_ptr as *mut c_void);
         }
     }
-    unsafe { libc::free(c_toc as *mut c_void); }
+    unsafe {
+        libc::free(c_toc as *mut c_void);
+    }
     Ok(Some(meta_hm))
 }
 
