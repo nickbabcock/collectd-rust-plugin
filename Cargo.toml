@@ -61,6 +61,11 @@ path = "examples/load.rs"
 crate-type = ["cdylib"]
 
 [[example]]
+name = "load_with_metadata"
+path = "examples/load_with_metadata.rs"
+crate-type = ["cdylib"]
+
+[[example]]
 name = "write_logrs"
 crate-type = ["cdylib"]
 
