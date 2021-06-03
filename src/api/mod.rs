@@ -773,7 +773,7 @@ mod tests {
                 interval: Duration::seconds(1),
                 original_list: &list_t,
                 original_set: &conv,
-                meta: None,
+                meta: HashMap::new(),
             }
         );
     }
