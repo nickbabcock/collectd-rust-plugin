@@ -164,7 +164,7 @@ pub struct ValueList<'a> {
     pub interval: Duration,
 
     /// Metadata associated to the reported values
-    pub meta: Option<HashMap<String, MetaValue>>,
+    pub meta: HashMap<String, MetaValue>,
 
     // Keep the original list and set around for calculating rates on demand
     original_list: *const value_list_t,
@@ -287,7 +287,7 @@ struct SubmitValueList<'a> {
     host: Option<&'a str>,
     time: Option<DateTime<Utc>>,
     interval: Option<Duration>,
-    meta: Option<HashMap<&'a str, MetaValue>>,
+    meta: HashMap<&'a str, MetaValue>,
 }
 
 /// Creates a value list to report values to collectd.
@@ -310,7 +310,7 @@ impl<'a> ValueListBuilder<'a> {
                 host: None,
                 time: None,
                 interval: None,
-                meta: None,
+                meta: HashMap::new(),
             },
         }
     }
@@ -363,12 +363,7 @@ impl<'a> ValueListBuilder<'a> {
     /// Multiple entries can be added by calling this method. If the same key is used, only the last
     /// entry is kept.
     pub fn metadata(mut self, key: &'a str, value: MetaValue) -> ValueListBuilder<'a> {
-        if self.list.meta.is_none() {
-            self.list.meta = Some(HashMap::new());
-        }
-        if let Some(ref mut meta) = self.list.meta {
-            meta.insert(key, value);
-        }
+        self.list.meta.insert(key, value);
         self
     }
 
@@ -416,10 +411,7 @@ impl<'a> ValueListBuilder<'a> {
 
         let type_ = to_array_res(self.list.type_).map_err(|e| SubmitError::Field("type", e))?;
 
-        let mut meta = ptr::null_mut();
-        if let Some(meta_hm) = self.list.meta {
-            meta = to_meta_data(&meta_hm)?;
-        }
+        let meta = to_meta_data(&self.list.meta)?;
 
         let list = value_list_t {
             values: v.as_mut_ptr(),
@@ -490,9 +482,9 @@ where
 fn from_meta_data(
     p: &str,
     meta: *mut meta_data_t,
-) -> Result<Option<HashMap<String, MetaValue>>, ReceiveError> {
+) -> Result<HashMap<String, MetaValue>, ReceiveError> {
     if meta.is_null() {
-        return Ok(None);
+        return Ok(HashMap::new());
     }
 
     let mut c_toc: *mut *mut c_char = ptr::null_mut();
@@ -506,11 +498,11 @@ fn from_meta_data(
     }
     let count = count_or_err as usize;
     if count == 0 {
-        return Ok(None);
+        return Ok(HashMap::new());
     }
-    let mut meta_hm = HashMap::new();
+
     let toc = unsafe { slice::from_raw_parts(c_toc, count) };
-    // read meta and convert to hashmap entry
+    let mut meta_hm = HashMap::with_capacity(count);
     for c_key_ptr in toc {
         let (c_key, key, value_type) = unsafe {
             let c_key: &CStr = CStr::from_ptr(*c_key_ptr);
@@ -570,7 +562,7 @@ fn from_meta_data(
             }
         }
     }
-    // then free toc strings
+
     for c_key_ptr in toc {
         unsafe {
             libc::free(*c_key_ptr as *mut c_void);
@@ -579,7 +571,7 @@ fn from_meta_data(
     unsafe {
         libc::free(c_toc as *mut c_void);
     }
-    Ok(Some(meta_hm))
+    Ok(meta_hm)
 }
 
 /// Collectd stores textual data in fixed sized arrays, so this function will convert a string
