@@ -502,7 +502,26 @@ fn from_meta_data(
     }
 
     let toc = unsafe { slice::from_raw_parts(c_toc, count) };
-    let mut meta_hm = HashMap::with_capacity(count);
+    let conversion_result = from_meta_data_with_toc(p, meta, toc);
+
+    for c_key_ptr in toc {
+        unsafe {
+            libc::free(*c_key_ptr as *mut c_void);
+        }
+    }
+    unsafe {
+        libc::free(c_toc as *mut c_void);
+    }
+
+    return conversion_result;
+}
+
+fn from_meta_data_with_toc(
+    p: &str,
+    meta: *mut meta_data_t,
+    toc: &[*mut c_char],
+) -> Result<HashMap<String, MetaValue>, ReceiveError> {
+    let mut meta_hm = HashMap::with_capacity(toc.len());
     for c_key_ptr in toc {
         let (c_key, key, value_type) = unsafe {
             let c_key: &CStr = CStr::from_ptr(*c_key_ptr);
@@ -561,15 +580,6 @@ fn from_meta_data(
                 ));
             }
         }
-    }
-
-    for c_key_ptr in toc {
-        unsafe {
-            libc::free(*c_key_ptr as *mut c_void);
-        }
-    }
-    unsafe {
-        libc::free(c_toc as *mut c_void);
     }
     Ok(meta_hm)
 }
