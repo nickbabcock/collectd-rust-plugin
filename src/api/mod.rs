@@ -3,8 +3,8 @@ pub use self::logger::{collectd_log, log_err, CollectdLoggerBuilder, LogLevel};
 pub use self::oconfig::{ConfigItem, ConfigValue};
 use crate::bindings::{
     data_set_t, hostname_g, meta_data_add_boolean, meta_data_add_double, meta_data_add_signed_int,
-    meta_data_add_string, meta_data_add_unsigned_int, meta_data_create, meta_data_get_boolean,
-    meta_data_get_double, meta_data_get_signed_int, meta_data_get_string,
+    meta_data_add_string, meta_data_add_unsigned_int, meta_data_create, meta_data_destroy,
+    meta_data_get_boolean, meta_data_get_double, meta_data_get_signed_int, meta_data_get_string,
     meta_data_get_unsigned_int, meta_data_t, meta_data_toc, meta_data_type, plugin_dispatch_values,
     uc_get_rate, value_list_t, value_t, ARR_LENGTH, DS_TYPE_ABSOLUTE, DS_TYPE_COUNTER,
     DS_TYPE_DERIVE, DS_TYPE_GAUGE, MD_TYPE_BOOLEAN, MD_TYPE_DOUBLE, MD_TYPE_SIGNED_INT,
@@ -443,6 +443,22 @@ where
     T: IntoIterator<Item = (&'a &'a str, &'a MetaValue)>,
 {
     let meta = unsafe { meta_data_create() };
+    let conversion_result = to_meta_data_with_meta(meta_hm, meta);
+    match conversion_result {
+        Ok(()) => Ok(meta),
+        Err(error) => {
+            unsafe {
+                meta_data_destroy(meta);
+            }
+            Err(error)
+        }
+    }
+}
+
+fn to_meta_data_with_meta<'a, T>(meta_hm: T, meta: *mut meta_data_t) -> Result<(), SubmitError>
+where
+    T: IntoIterator<Item = (&'a &'a str, &'a MetaValue)>,
+{
     for (key, value) in meta_hm.into_iter() {
         let c_key = CString::new(*key).map_err(|e| {
             SubmitError::Field(
@@ -476,7 +492,7 @@ where
             },
         }
     }
-    Ok(meta)
+    Ok(())
 }
 
 fn from_meta_data(

@@ -36,6 +36,8 @@ pub mod overrides {
         std::ptr::null_mut()
     }
     #[no_mangle]
+    pub extern "C" fn meta_data_destroy(md: *mut meta_data_t) {}
+    #[no_mangle]
     pub extern "C" fn meta_data_type(
         md: *mut meta_data_t,
         key: *const ::std::os::raw::c_char,
