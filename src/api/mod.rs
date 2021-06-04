@@ -438,9 +438,9 @@ impl<'a> ValueListBuilder<'a> {
     }
 }
 
-fn to_meta_data<'a, T>(meta_hm: T) -> Result<*mut meta_data_t, SubmitError>
+fn to_meta_data<'a, 'b : 'a, T>(meta_hm: T) -> Result<*mut meta_data_t, SubmitError>
 where
-    T: IntoIterator<Item = (&'a &'a str, &'a MetaValue)>,
+    T: IntoIterator<Item = (&'a &'b str, &'a MetaValue)>,
 {
     let meta = unsafe { meta_data_create() };
     let conversion_result = to_meta_data_with_meta(meta_hm, meta);
@@ -455,9 +455,9 @@ where
     }
 }
 
-fn to_meta_data_with_meta<'a, T>(meta_hm: T, meta: *mut meta_data_t) -> Result<(), SubmitError>
+fn to_meta_data_with_meta<'a, 'b : 'a, T>(meta_hm: T, meta: *mut meta_data_t) -> Result<(), SubmitError>
 where
-    T: IntoIterator<Item = (&'a &'a str, &'a MetaValue)>,
+    T: IntoIterator<Item = (&'a &'b str, &'a MetaValue)>,
 {
     for (key, value) in meta_hm.into_iter() {
         let c_key = CString::new(*key).map_err(|e| {
