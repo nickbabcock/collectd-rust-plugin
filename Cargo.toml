@@ -27,6 +27,7 @@ memchr = "2"
 log = "0.4"
 env_logger = { version =  "0.8", default-features = false }
 serde = { version = "1", features = ["derive"], optional = true }
+libc = { version = "0.2" }
 
 [dev-dependencies]
 serde = { version = "1", features = ["derive"] }
@@ -57,6 +58,11 @@ crate-type = ["cdylib"]
 [[example]]
 name = "loadrust"
 path = "examples/load.rs"
+crate-type = ["cdylib"]
+
+[[example]]
+name = "load_with_metadata"
+path = "examples/load_with_metadata.rs"
 crate-type = ["cdylib"]
 
 [[example]]

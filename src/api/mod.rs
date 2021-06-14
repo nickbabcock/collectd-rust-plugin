@@ -1,26 +1,42 @@
+pub use self::cdtime::{nanos_to_collectd, CdTime};
+pub use self::logger::{collectd_log, log_err, CollectdLoggerBuilder, LogLevel};
+pub use self::oconfig::{ConfigItem, ConfigValue};
 use crate::bindings::{
-    data_set_t, hostname_g, plugin_dispatch_values, uc_get_rate, value_list_t, value_t, ARR_LENGTH,
-    DS_TYPE_ABSOLUTE, DS_TYPE_COUNTER, DS_TYPE_DERIVE, DS_TYPE_GAUGE,
+    data_set_t, hostname_g, meta_data_add_boolean, meta_data_add_double, meta_data_add_signed_int,
+    meta_data_add_string, meta_data_add_unsigned_int, meta_data_create, meta_data_destroy,
+    meta_data_get_boolean, meta_data_get_double, meta_data_get_signed_int, meta_data_get_string,
+    meta_data_get_unsigned_int, meta_data_t, meta_data_toc, meta_data_type, plugin_dispatch_values,
+    uc_get_rate, value_list_t, value_t, ARR_LENGTH, DS_TYPE_ABSOLUTE, DS_TYPE_COUNTER,
+    DS_TYPE_DERIVE, DS_TYPE_GAUGE, MD_TYPE_BOOLEAN, MD_TYPE_DOUBLE, MD_TYPE_SIGNED_INT,
+    MD_TYPE_STRING, MD_TYPE_UNSIGNED_INT,
 };
 use crate::errors::{ArrayError, CacheRateError, ReceiveError, SubmitError};
 use chrono::prelude::*;
 use chrono::Duration;
 use memchr::memchr;
 use std::borrow::Cow;
-use std::ffi::CStr;
+use std::collections::HashMap;
+use std::ffi::{CStr, CString};
 use std::fmt;
-use std::os::raw::c_char;
+use std::os::raw::{c_char, c_void};
 use std::ptr;
 use std::slice;
 use std::str::Utf8Error;
 
-pub use self::cdtime::{nanos_to_collectd, CdTime};
-pub use self::logger::{collectd_log, log_err, CollectdLoggerBuilder, LogLevel};
-pub use self::oconfig::{ConfigItem, ConfigValue};
-
 mod cdtime;
 mod logger;
 mod oconfig;
+
+/// The value of a metadata entry associated with a [ValueList].
+/// Metadata can be added using [ValueListBuilder::metadata] method.
+#[derive(Debug, Clone, PartialEq)]
+pub enum MetaValue {
+    String(String),
+    SignedInt(i64),
+    UnsignedInt(u64),
+    Double(f64),
+    Boolean(bool),
+}
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[repr(u32)]
@@ -147,6 +163,9 @@ pub struct ValueList<'a> {
     /// The interval in which new values are to be expected
     pub interval: Duration,
 
+    /// Metadata associated to the reported values
+    pub meta: HashMap<String, MetaValue>,
+
     // Keep the original list and set around for calculating rates on demand
     original_list: *const value_list_t,
     original_set: *const data_set_t,
@@ -240,6 +259,8 @@ impl<'a> ValueList<'a> {
         let host =
             from_array(&list.host).map_err(|e| ReceiveError::Utf8(String::from(p), "host", e))?;
 
+        let meta = from_meta_data(p, list.meta)?;
+
         Ok(ValueList {
             values: values?,
             plugin_instance,
@@ -249,6 +270,7 @@ impl<'a> ValueList<'a> {
             host,
             time: CdTime::from(list.time).into(),
             interval: CdTime::from(list.interval).into(),
+            meta,
             original_list: list,
             original_set: set,
         })
@@ -265,6 +287,7 @@ struct SubmitValueList<'a> {
     host: Option<&'a str>,
     time: Option<DateTime<Utc>>,
     interval: Option<Duration>,
+    meta: HashMap<&'a str, MetaValue>,
 }
 
 /// Creates a value list to report values to collectd.
@@ -287,6 +310,7 @@ impl<'a> ValueListBuilder<'a> {
                 host: None,
                 time: None,
                 interval: None,
+                meta: HashMap::new(),
             },
         }
     }
@@ -334,6 +358,15 @@ impl<'a> ValueListBuilder<'a> {
         self
     }
 
+    /// Add a metadata entry.
+    ///
+    /// Multiple entries can be added by calling this method. If the same key is used, only the last
+    /// entry is kept.
+    pub fn metadata(mut self, key: &'a str, value: MetaValue) -> ValueListBuilder<'a> {
+        self.list.meta.insert(key, value);
+        self
+    }
+
     /// Submits the observed values to collectd and returns errors if encountered
     pub fn submit(self) -> Result<(), SubmitError> {
         let mut v: Vec<value_t> = self.list.values.iter().map(|&x| x.into()).collect();
@@ -378,6 +411,8 @@ impl<'a> ValueListBuilder<'a> {
 
         let type_ = to_array_res(self.list.type_).map_err(|e| SubmitError::Field("type", e))?;
 
+        let meta = to_meta_data(&self.list.meta)?;
+
         let list = value_list_t {
             values: v.as_mut_ptr(),
             values_len: len,
@@ -393,7 +428,7 @@ impl<'a> ValueListBuilder<'a> {
                 .map(CdTime::from)
                 .unwrap_or(CdTime(0))
                 .into(),
-            meta: ptr::null_mut(),
+            meta,
         };
 
         match unsafe { plugin_dispatch_values(&list) } {
@@ -401,6 +436,168 @@ impl<'a> ValueListBuilder<'a> {
             i => Err(SubmitError::Dispatch(i)),
         }
     }
+}
+
+fn to_meta_data<'a, 'b : 'a, T>(meta_hm: T) -> Result<*mut meta_data_t, SubmitError>
+where
+    T: IntoIterator<Item = (&'a &'b str, &'a MetaValue)>,
+{
+    let meta = unsafe { meta_data_create() };
+    let conversion_result = to_meta_data_with_meta(meta_hm, meta);
+    match conversion_result {
+        Ok(()) => Ok(meta),
+        Err(error) => {
+            unsafe {
+                meta_data_destroy(meta);
+            }
+            Err(error)
+        }
+    }
+}
+
+fn to_meta_data_with_meta<'a, 'b : 'a, T>(meta_hm: T, meta: *mut meta_data_t) -> Result<(), SubmitError>
+where
+    T: IntoIterator<Item = (&'a &'b str, &'a MetaValue)>,
+{
+    for (key, value) in meta_hm.into_iter() {
+        let c_key = CString::new(*key).map_err(|e| {
+            SubmitError::Field(
+                "meta key",
+                ArrayError::NullPresent(e.nul_position(), key.to_string()),
+            )
+        })?;
+        match value {
+            MetaValue::String(str) => {
+                let c_value = CString::new(str.as_str()).map_err(|e| {
+                    SubmitError::Field(
+                        "meta value",
+                        ArrayError::NullPresent(e.nul_position(), str.to_string()),
+                    )
+                })?;
+                unsafe {
+                    meta_data_add_string(meta, c_key.as_ptr(), c_value.as_ptr());
+                }
+            }
+            MetaValue::SignedInt(i) => unsafe {
+                meta_data_add_signed_int(meta, c_key.as_ptr(), *i);
+            },
+            MetaValue::UnsignedInt(u) => unsafe {
+                meta_data_add_unsigned_int(meta, c_key.as_ptr(), *u);
+            },
+            MetaValue::Double(d) => unsafe {
+                meta_data_add_double(meta, c_key.as_ptr(), *d);
+            },
+            MetaValue::Boolean(b) => unsafe {
+                meta_data_add_boolean(meta, c_key.as_ptr(), *b);
+            },
+        }
+    }
+    Ok(())
+}
+
+fn from_meta_data(
+    p: &str,
+    meta: *mut meta_data_t,
+) -> Result<HashMap<String, MetaValue>, ReceiveError> {
+    if meta.is_null() {
+        return Ok(HashMap::new());
+    }
+
+    let mut c_toc: *mut *mut c_char = ptr::null_mut();
+    let count_or_err = unsafe { meta_data_toc(meta, &mut c_toc as *mut *mut *mut c_char) };
+    if count_or_err < 0 {
+        return Err(ReceiveError::Metadata(
+            p.to_string(),
+            "toc".to_string(),
+            "invalid parameters to meta_data_toc",
+        ));
+    }
+    let count = count_or_err as usize;
+    if count == 0 {
+        return Ok(HashMap::new());
+    }
+
+    let toc = unsafe { slice::from_raw_parts(c_toc, count) };
+    let conversion_result = from_meta_data_with_toc(p, meta, toc);
+
+    for c_key_ptr in toc {
+        unsafe {
+            libc::free(*c_key_ptr as *mut c_void);
+        }
+    }
+    unsafe {
+        libc::free(c_toc as *mut c_void);
+    }
+
+    return conversion_result;
+}
+
+fn from_meta_data_with_toc(
+    p: &str,
+    meta: *mut meta_data_t,
+    toc: &[*mut c_char],
+) -> Result<HashMap<String, MetaValue>, ReceiveError> {
+    let mut meta_hm = HashMap::with_capacity(toc.len());
+    for c_key_ptr in toc {
+        let (c_key, key, value_type) = unsafe {
+            let c_key: &CStr = CStr::from_ptr(*c_key_ptr);
+            let key: String = c_key
+                .to_str()
+                .map_err(|e| ReceiveError::Utf8(p.to_string(), "metadata key", e))?
+                .to_string();
+            let value_type: u32 = meta_data_type(meta, c_key.as_ptr()) as u32;
+            (c_key, key, value_type)
+        };
+        match value_type {
+            MD_TYPE_BOOLEAN => {
+                let mut c_value = false;
+                unsafe {
+                    meta_data_get_boolean(meta, c_key.as_ptr(), &mut c_value as *mut bool);
+                }
+                meta_hm.insert(key, MetaValue::Boolean(c_value));
+            }
+            MD_TYPE_DOUBLE => {
+                let mut c_value = 0.0;
+                unsafe {
+                    meta_data_get_double(meta, c_key.as_ptr(), &mut c_value as *mut f64);
+                }
+                meta_hm.insert(key, MetaValue::Double(c_value));
+            }
+            MD_TYPE_SIGNED_INT => {
+                let mut c_value = 0i64;
+                unsafe {
+                    meta_data_get_signed_int(meta, c_key.as_ptr(), &mut c_value as *mut i64);
+                }
+                meta_hm.insert(key, MetaValue::SignedInt(c_value));
+            }
+            MD_TYPE_STRING => {
+                let value: String = unsafe {
+                    let mut c_value: *mut c_char = ptr::null_mut();
+                    meta_data_get_string(meta, c_key.as_ptr(), &mut c_value as *mut *mut c_char);
+                    CStr::from_ptr(c_value)
+                        .to_str()
+                        .map_err(|e| ReceiveError::Utf8(p.to_string(), "metadata value", e))?
+                        .to_string()
+                };
+                meta_hm.insert(key, MetaValue::String(value));
+            }
+            MD_TYPE_UNSIGNED_INT => {
+                let mut c_value = 0u64;
+                unsafe {
+                    meta_data_get_unsigned_int(meta, c_key.as_ptr(), &mut c_value as *mut u64);
+                }
+                meta_hm.insert(key, MetaValue::UnsignedInt(c_value));
+            }
+            _ => {
+                return Err(ReceiveError::Metadata(
+                    p.to_string(),
+                    key,
+                    "unknown metadata type",
+                ));
+            }
+        }
+    }
+    Ok(meta_hm)
 }
 
 /// Collectd stores textual data in fixed sized arrays, so this function will convert a string
@@ -576,6 +773,7 @@ mod tests {
                 interval: Duration::seconds(1),
                 original_list: &list_t,
                 original_set: &conv,
+                meta: HashMap::new(),
             }
         );
     }
