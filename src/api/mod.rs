@@ -2,7 +2,7 @@ pub use self::cdtime::{nanos_to_collectd, CdTime};
 pub use self::logger::{collectd_log, log_err, CollectdLoggerBuilder, LogLevel};
 pub use self::oconfig::{ConfigItem, ConfigValue};
 use crate::bindings::{
-    data_set_t, hostname_g, meta_data_add_boolean, meta_data_add_double, meta_data_add_signed_int,
+    data_set_t, meta_data_add_boolean, meta_data_add_double, meta_data_add_signed_int,
     meta_data_add_string, meta_data_add_unsigned_int, meta_data_create, meta_data_destroy,
     meta_data_get_boolean, meta_data_get_double, meta_data_get_signed_int, meta_data_get_string,
     meta_data_get_unsigned_int, meta_data_t, meta_data_toc, meta_data_type, plugin_dispatch_values,
@@ -386,26 +386,17 @@ impl<'a> ValueListBuilder<'a> {
             .list
             .host
             .map(|x| to_array_res(x).map_err(|e| SubmitError::Field("host", e)))
-            .unwrap_or_else(|| {
-                // If a custom host is not provided by the plugin, we default to the global
-                // hostname. In versions prior to collectd 5.7, it was required to propagate the
-                // global hostname (hostname_g) in the submission. In collectd 5.7, one could
-                // submit an empty array or hostname_g and they would equate to the same thing. In
-                // collectd 5.8, hostname_g had the type signature changed so it could no longer be
-                // submitted and would cause garbage to be read (and thus could have very much
-                // unintended side effects)
-                if cfg!(collectd57) {
-                    Ok([0 as c_char; ARR_LENGTH])
-                } else {
-                    unsafe { Ok(hostname_g) }
-                }
-            })?;
+            .transpose()?;
 
-        #[cfg(collectd57)]
+        // If a custom host is not provided by the plugin, we default to the global
+        // hostname. In versions prior to collectd 5.7, it was required to propagate the
+        // global hostname (hostname_g) in the submission. In collectd 5.7, one could
+        // submit an empty array or hostname_g and they would equate to the same thing. In
+        // collectd 5.8, hostname_g had the type signature changed so it could no longer be
+        // submitted and would cause garbage to be read (and thus could have very much
+        // unintended side effects)
+        let host = host.unwrap_or([0 as c_char; ARR_LENGTH]);
         let len = v.len() as u64;
-
-        #[cfg(not(collectd57))]
-        let len = v.len() as i32;
 
         let plugin = to_array_res(self.list.plugin).map_err(|e| SubmitError::Field("plugin", e))?;
 
@@ -643,24 +634,12 @@ pub fn empty_to_none(s: &str) -> Option<&str> {
     }
 }
 
-#[cfg(collectd57)]
 pub fn length(len: u64) -> usize {
     len as usize
 }
 
-#[cfg(not(collectd57))]
-pub fn length(len: i32) -> usize {
-    len as usize
-}
-
-#[cfg(collectd57)]
 pub fn get_default_interval() -> u64 {
     0
-}
-
-#[cfg(not(collectd57))]
-pub fn get_default_interval<T>() -> *const T {
-    ptr::null()
 }
 
 #[cfg(test)]
