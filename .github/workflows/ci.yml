@@ -68,3 +68,8 @@ jobs:
 
     - name: tests
       run: ${{ env.CARGO }} test $FEATURES --verbose $TARGET
+
+    - name: test benchmarks
+      if: matrix.build == 'stable'
+      run: |
+        cargo bench --no-run --features stub
