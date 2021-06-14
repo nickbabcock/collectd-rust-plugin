@@ -438,7 +438,7 @@ impl<'a> ValueListBuilder<'a> {
     }
 }
 
-fn to_meta_data<'a, 'b : 'a, T>(meta_hm: T) -> Result<*mut meta_data_t, SubmitError>
+fn to_meta_data<'a, 'b: 'a, T>(meta_hm: T) -> Result<*mut meta_data_t, SubmitError>
 where
     T: IntoIterator<Item = (&'a &'b str, &'a MetaValue)>,
 {
@@ -455,7 +455,10 @@ where
     }
 }
 
-fn to_meta_data_with_meta<'a, 'b : 'a, T>(meta_hm: T, meta: *mut meta_data_t) -> Result<(), SubmitError>
+fn to_meta_data_with_meta<'a, 'b: 'a, T>(
+    meta_hm: T,
+    meta: *mut meta_data_t,
+) -> Result<(), SubmitError>
 where
     T: IntoIterator<Item = (&'a &'b str, &'a MetaValue)>,
 {
@@ -529,7 +532,7 @@ fn from_meta_data(
         libc::free(c_toc as *mut c_void);
     }
 
-    return conversion_result;
+    conversion_result
 }
 
 fn from_meta_data_with_toc(
