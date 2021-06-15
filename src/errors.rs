@@ -71,17 +71,43 @@ impl error::Error for ArrayError {
 #[derive(Debug, Clone)]
 pub enum ReceiveError {
     /// A plugin submitted a field that contained invalid UTF-8 characters
-    Utf8(String, &'static str, Utf8Error),
-    Metadata(String, String, &'static str),
+    Utf8 {
+        /// plugin where the error originates
+        plugin: String,
+
+        /// the field that contained the utf8 error
+        field: &'static str,
+
+        /// the inner utf-8 error
+        err: Utf8Error,
+    },
+    Metadata {
+        /// plugin where the error originates
+        plugin: String,
+
+        /// metadata key or field where the error occurred
+        field: String,
+
+        /// Stringly typed error message
+        msg: &'static str,
+    },
 }
 
 impl fmt::Display for ReceiveError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
-            ReceiveError::Utf8(ref plugin, ref field, ref _err) => {
+            ReceiveError::Utf8 {
+                ref plugin,
+                ref field,
+                ..
+            } => {
                 write!(f, "plugin: {} submitted bad field: {}", plugin, field)
             }
-            ReceiveError::Metadata(ref plugin, ref field, ref msg) => {
+            ReceiveError::Metadata {
+                ref plugin,
+                ref field,
+                msg,
+            } => {
                 write!(f, "plugin: {}, field: {}: {}", plugin, field, msg)
             }
         }
@@ -95,8 +121,8 @@ impl error::Error for ReceiveError {
 
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match *self {
-            ReceiveError::Utf8(ref _plugin, ref _field, ref err) => Some(err),
-            ReceiveError::Metadata(_, _, _) => None,
+            ReceiveError::Utf8 { ref err, .. } => Some(err),
+            ReceiveError::Metadata { .. } => None,
         }
     }
 }
@@ -107,7 +133,14 @@ pub enum SubmitError {
     /// Contains the exit status that collectd returns when a submission fails
     Dispatch(i32),
 
-    Field(&'static str, ArrayError),
+    /// Error submitting a field
+    Field {
+        /// Name of field where error occurred
+        name: &'static str,
+
+        /// The underlying error
+        err: ArrayError,
+    },
 }
 
 impl fmt::Display for SubmitError {
@@ -116,7 +149,7 @@ impl fmt::Display for SubmitError {
             SubmitError::Dispatch(code) => {
                 write!(f, "plugin_dispatch_values returned an error: {}", code)
             }
-            SubmitError::Field(ref field, ref _err) => write!(f, "error submitting {}", field),
+            SubmitError::Field { name, .. } => write!(f, "error submitting {}", name),
         }
     }
 }
@@ -129,7 +162,7 @@ impl error::Error for SubmitError {
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match *self {
             SubmitError::Dispatch(_code) => None,
-            SubmitError::Field(_field, ref err) => Some(err),
+            SubmitError::Field { ref err, .. } => Some(err),
         }
     }
 }

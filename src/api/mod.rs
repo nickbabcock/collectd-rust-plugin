@@ -213,8 +213,7 @@ impl<'a> ValueList<'a> {
         set: &'b data_set_t,
         list: &'b value_list_t,
     ) -> Result<ValueList<'b>, ReceiveError> {
-        let p = from_array(&list.plugin)
-            .map_err(|e| ReceiveError::Utf8(String::from(""), "plugin name", e))?;
+        let plugin = receive_array(&list.plugin, "", "plugin name")?;
         let ds_len = length(set.ds_num);
         let list_len = length(list.values_len);
 
@@ -230,9 +229,7 @@ impl<'a> ValueList<'a> {
                         ValueType::Absolute => Value::Absolute(val.absolute),
                     };
 
-                    let name = from_array(&source.name)
-                        .map_err(|e| ReceiveError::Utf8(String::from(p), "data source name", e))?;
-
+                    let name = receive_array(&source.name, plugin, "data source name")?;
                     Ok(ValueReport {
                         name,
                         value: v,
@@ -245,26 +242,22 @@ impl<'a> ValueList<'a> {
         assert!(list.time > 0);
         assert!(list.interval > 0);
 
-        let plugin_instance = from_array(&list.plugin_instance)
-            .map_err(|e| ReceiveError::Utf8(String::from(p), "plugin_instance", e))
-            .map(empty_to_none)?;
+        let plugin_instance =
+            receive_array(&list.plugin_instance, plugin, "plugin_instance").map(empty_to_none)?;
 
-        let type_ =
-            from_array(&list.type_).map_err(|e| ReceiveError::Utf8(String::from(p), "type", e))?;
+        let type_ = receive_array(&list.type_, plugin, "type")?;
 
-        let type_instance = from_array(&list.type_instance)
-            .map_err(|e| ReceiveError::Utf8(String::from(p), "type instance", e))
-            .map(empty_to_none)?;
+        let type_instance =
+            receive_array(&list.type_instance, plugin, "type_instance").map(empty_to_none)?;
 
-        let host =
-            from_array(&list.host).map_err(|e| ReceiveError::Utf8(String::from(p), "host", e))?;
+        let host = receive_array(&list.host, plugin, "host")?;
 
-        let meta = from_meta_data(p, list.meta)?;
+        let meta = from_meta_data(plugin, list.meta)?;
 
         Ok(ValueList {
             values: values?,
             plugin_instance,
-            plugin: p,
+            plugin,
             type_,
             type_instance,
             host,
@@ -373,19 +366,19 @@ impl<'a> ValueListBuilder<'a> {
         let plugin_instance = self
             .list
             .plugin_instance
-            .map(|x| to_array_res(x).map_err(|e| SubmitError::Field("plugin_instance", e)))
+            .map(|x| submit_array_res(x, "plugin_instance"))
             .unwrap_or_else(|| Ok([0 as c_char; ARR_LENGTH]))?;
 
         let type_instance = self
             .list
             .type_instance
-            .map(|x| to_array_res(x).map_err(|e| SubmitError::Field("type_instance", e)))
+            .map(|x| submit_array_res(x, "type_instance"))
             .unwrap_or_else(|| Ok([0 as c_char; ARR_LENGTH]))?;
 
         let host = self
             .list
             .host
-            .map(|x| to_array_res(x).map_err(|e| SubmitError::Field("host", e)))
+            .map(|x| submit_array_res(x, "host"))
             .transpose()?;
 
         // If a custom host is not provided by the plugin, we default to the global
@@ -398,9 +391,9 @@ impl<'a> ValueListBuilder<'a> {
         let host = host.unwrap_or([0 as c_char; ARR_LENGTH]);
         let len = v.len() as u64;
 
-        let plugin = to_array_res(self.list.plugin).map_err(|e| SubmitError::Field("plugin", e))?;
+        let plugin = submit_array_res(self.list.plugin, "plugin")?;
 
-        let type_ = to_array_res(self.list.type_).map_err(|e| SubmitError::Field("type", e))?;
+        let type_ = submit_array_res(self.list.type_, "type")?;
 
         let meta = to_meta_data(&self.list.meta)?;
 
@@ -454,19 +447,15 @@ where
     T: IntoIterator<Item = (&'a &'b str, &'a MetaValue)>,
 {
     for (key, value) in meta_hm.into_iter() {
-        let c_key = CString::new(*key).map_err(|e| {
-            SubmitError::Field(
-                "meta key",
-                ArrayError::NullPresent(e.nul_position(), key.to_string()),
-            )
+        let c_key = CString::new(*key).map_err(|e| SubmitError::Field {
+            name: "meta key",
+            err: ArrayError::NullPresent(e.nul_position(), key.to_string()),
         })?;
         match value {
             MetaValue::String(str) => {
-                let c_value = CString::new(str.as_str()).map_err(|e| {
-                    SubmitError::Field(
-                        "meta value",
-                        ArrayError::NullPresent(e.nul_position(), str.to_string()),
-                    )
+                let c_value = CString::new(str.as_str()).map_err(|e| SubmitError::Field {
+                    name: "meta value",
+                    err: ArrayError::NullPresent(e.nul_position(), str.to_string()),
                 })?;
                 unsafe {
                     meta_data_add_string(meta, c_key.as_ptr(), c_value.as_ptr());
@@ -490,7 +479,7 @@ where
 }
 
 fn from_meta_data(
-    p: &str,
+    plugin: &str,
     meta: *mut meta_data_t,
 ) -> Result<HashMap<String, MetaValue>, ReceiveError> {
     if meta.is_null() {
@@ -500,11 +489,11 @@ fn from_meta_data(
     let mut c_toc: *mut *mut c_char = ptr::null_mut();
     let count_or_err = unsafe { meta_data_toc(meta, &mut c_toc as *mut *mut *mut c_char) };
     if count_or_err < 0 {
-        return Err(ReceiveError::Metadata(
-            p.to_string(),
-            "toc".to_string(),
-            "invalid parameters to meta_data_toc",
-        ));
+        return Err(ReceiveError::Metadata {
+            plugin: plugin.to_string(),
+            field: "toc".to_string(),
+            msg: "invalid parameters to meta_data_toc",
+        });
     }
     let count = count_or_err as usize;
     if count == 0 {
@@ -512,7 +501,7 @@ fn from_meta_data(
     }
 
     let toc = unsafe { slice::from_raw_parts(c_toc, count) };
-    let conversion_result = from_meta_data_with_toc(p, meta, toc);
+    let conversion_result = from_meta_data_with_toc(plugin, meta, toc);
 
     for c_key_ptr in toc {
         unsafe {
@@ -527,7 +516,7 @@ fn from_meta_data(
 }
 
 fn from_meta_data_with_toc(
-    p: &str,
+    plugin: &str,
     meta: *mut meta_data_t,
     toc: &[*mut c_char],
 ) -> Result<HashMap<String, MetaValue>, ReceiveError> {
@@ -537,7 +526,11 @@ fn from_meta_data_with_toc(
             let c_key: &CStr = CStr::from_ptr(*c_key_ptr);
             let key: String = c_key
                 .to_str()
-                .map_err(|e| ReceiveError::Utf8(p.to_string(), "metadata key", e))?
+                .map_err(|e| ReceiveError::Utf8 {
+                    plugin: plugin.to_string(),
+                    field: "metadata key",
+                    err: e,
+                })?
                 .to_string();
             let value_type: u32 = meta_data_type(meta, c_key.as_ptr()) as u32;
             (c_key, key, value_type)
@@ -570,7 +563,11 @@ fn from_meta_data_with_toc(
                     meta_data_get_string(meta, c_key.as_ptr(), &mut c_value as *mut *mut c_char);
                     CStr::from_ptr(c_value)
                         .to_str()
-                        .map_err(|e| ReceiveError::Utf8(p.to_string(), "metadata value", e))?
+                        .map_err(|e| ReceiveError::Utf8 {
+                            plugin: plugin.to_string(),
+                            field: "metadata value",
+                            err: e,
+                        })?
                         .to_string()
                 };
                 meta_hm.insert(key, MetaValue::String(value));
@@ -583,15 +580,19 @@ fn from_meta_data_with_toc(
                 meta_hm.insert(key, MetaValue::UnsignedInt(c_value));
             }
             _ => {
-                return Err(ReceiveError::Metadata(
-                    p.to_string(),
-                    key,
-                    "unknown metadata type",
-                ));
+                return Err(ReceiveError::Metadata {
+                    plugin: plugin.to_string(),
+                    field: key,
+                    msg: "unknown metadata type",
+                });
             }
         }
     }
     Ok(meta_hm)
+}
+
+fn submit_array_res(s: &str, name: &'static str) -> Result<[c_char; ARR_LENGTH], SubmitError> {
+    to_array_res(s).map_err(|e| SubmitError::Field { name, err: e })
 }
 
 /// Collectd stores textual data in fixed sized arrays, so this function will convert a string
@@ -615,6 +616,18 @@ fn to_array_res(s: &str) -> Result<[c_char; ARR_LENGTH], ArrayError> {
     let mut arr = [0; ARR_LENGTH];
     arr[0..bytes.len()].copy_from_slice(bytes);
     Ok(unsafe { ::std::mem::transmute(arr) })
+}
+
+fn receive_array<'a>(
+    s: &'a [c_char; ARR_LENGTH],
+    plugin: &str,
+    field: &'static str,
+) -> Result<&'a str, ReceiveError> {
+    from_array(s).map_err(|e| ReceiveError::Utf8 {
+        plugin: String::from(plugin),
+        field,
+        err: e,
+    })
 }
 
 /// Turns a fixed size character array into string slice, if possible
