@@ -2,16 +2,6 @@
 
 set -euo pipefail
 
-source $HOME/.cargo/env
-cargo test --all --no-default-features
-cargo test --all
-
-# 2020-04-25: collectd-dev package is broken on 20.04 as it references
-# non-existent utils directory
-if [ "$UBUNTU_VERSION" != "20.04" ]; then
-    cargo test --all --features "bindgen"
-fi
-
 cp target/debug/examples/libloadrust.so /usr/lib/collectd/loadrust.so
 cp target/debug/examples/libwrite_logrs.so /usr/lib/collectd/write_logrs.so
 cp target/debug/examples/libmyerror.so /usr/lib/collectd/myerror.so
@@ -39,10 +29,10 @@ LoadPlugin myerror
 </Plugin>
 EOF
 
-service collectd start
+systemctl restart collectd
 sleep 25
-service collectd status
-service collectd stop
+systemctl status collectd
+systemctl stop collectd
 
 grep_test() {
     echo grep "$1" "$2"
