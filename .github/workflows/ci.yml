@@ -73,3 +73,9 @@ jobs:
       if: matrix.build == 'stable'
       run: |
         cargo bench --no-run --features stub
+
+    - name: e2e test
+      if: matrix.build == 'stable'
+      run: |
+        sudo apt-get install collectd
+        sudo ./ci/test.sh
