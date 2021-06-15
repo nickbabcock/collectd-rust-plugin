@@ -1,3 +1,11 @@
+## 0.14.0 - 2021-06-15
+
+- Submit and receive metadata values through `ValueListBuilder::metadata` and `ValueList::meta` respectively
+- Only collectd 5.7+ is supported (ie: 5.4 and 5.5 API versions have been dropped). This means that `COLLECTD_VERSION` has a default fallback and is no longer required.
+- Collectd 5.12 now supported
+- Some error structs migrated to named fields and away from tuple structs
+- `env_logger` updated to 0.8
+
 ## 0.13.0 - 2020-05-09
 
 - Add `PluginManager::shutdown` to clean up resources allocated in `PluginManager::initialize`
