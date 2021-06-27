@@ -10,7 +10,11 @@ error[E0277]: `RefCell<std::string::String>` cannot be shared between threads sa
    |                          ---- required by this bound in `Plugin`
    |
    = help: within `MyPlugin`, the trait `Sync` is not implemented for `RefCell<std::string::String>`
-   = note: required because it appears within the type `MyPlugin`
+note: required because it appears within the type `MyPlugin`
+  --> $DIR/non-sync.rs:6:12
+   |
+6  | pub struct MyPlugin {
+   |            ^^^^^^^^
 
 error[E0277]: the type `UnsafeCell<std::string::String>` may contain interior mutability and a reference may not be safely transferrable across a catch_unwind boundary
   --> $DIR/non-sync.rs:10:6
@@ -25,7 +29,11 @@ error[E0277]: the type `UnsafeCell<std::string::String>` may contain interior mu
    |
    = help: within `MyPlugin`, the trait `RefUnwindSafe` is not implemented for `UnsafeCell<std::string::String>`
    = note: required because it appears within the type `RefCell<std::string::String>`
-   = note: required because it appears within the type `MyPlugin`
+note: required because it appears within the type `MyPlugin`
+  --> $DIR/non-sync.rs:6:12
+   |
+6  | pub struct MyPlugin {
+   |            ^^^^^^^^
 
 error[E0277]: the type `UnsafeCell<isize>` may contain interior mutability and a reference may not be safely transferrable across a catch_unwind boundary
   --> $DIR/non-sync.rs:10:6
@@ -41,4 +49,8 @@ error[E0277]: the type `UnsafeCell<isize>` may contain interior mutability and a
    = help: within `MyPlugin`, the trait `RefUnwindSafe` is not implemented for `UnsafeCell<isize>`
    = note: required because it appears within the type `Cell<isize>`
    = note: required because it appears within the type `RefCell<std::string::String>`
-   = note: required because it appears within the type `MyPlugin`
+note: required because it appears within the type `MyPlugin`
+  --> $DIR/non-sync.rs:6:12
+   |
+6  | pub struct MyPlugin {
+   |            ^^^^^^^^
