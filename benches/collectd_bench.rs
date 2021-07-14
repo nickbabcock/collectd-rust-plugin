@@ -2,7 +2,7 @@ use collectd_plugin::bindings::{
     data_set_t, data_source_t, value_list_t, value_t, ARR_LENGTH, DS_TYPE_GAUGE,
 };
 use collectd_plugin::{Value, ValueList, ValueListBuilder};
-use criterion::{criterion_group, criterion_main, Benchmark, Criterion};
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use std::ffi::CString;
 use std::os::raw::c_char;
 use std::ptr;
@@ -66,18 +66,17 @@ fn gen_nul_string(c: &mut Criterion) {
     // While not behaviorally the same, both of these functions
     // will detect a null for the use case of preparing a
     // rust string to be sent to collectd
-    c.bench(
-        "gen_nul_string",
-        Benchmark::new("cstring", |b| {
-            b.iter(|| {
-                let c = CString::new("Hello world").unwrap();
-                let _d = c.as_bytes_with_nul();
-            })
+    let mut group = c.benchmark_group("gen_nul_string");
+    group.bench_function("cstring", |b| {
+        b.iter(|| {
+            let c = CString::new("Hello world").unwrap();
+            let _d = c.as_bytes_with_nul();
         })
-        .with_function("memchr", |b| {
-            b.iter(|| memchr::memchr(0, &"Hello world"[..].as_bytes()))
-        }),
-    );
+    });
+    group.bench_function("memchr", |b| {
+        b.iter(|| memchr::memchr(0, &"Hello world"[..].as_bytes()))
+    });
+    group.finish();
 }
 
 criterion_group!(benches, convert_to_value_list, submit_value, gen_nul_string);
