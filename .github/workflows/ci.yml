@@ -41,6 +41,7 @@ jobs:
       uses: actions/checkout@v1
       with:
         fetch-depth: 1
+    - uses: dtolnay/rust-toolchain@stable
 
     - name: Use Cross
       if: matrix.build == 'aarch64'
