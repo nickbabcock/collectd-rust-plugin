@@ -274,7 +274,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         }
     }
 
-    fn deserialize_seq<V>(mut self, visitor: V) -> DeResult<V::Value>
+    fn deserialize_seq<V>(self, visitor: V) -> DeResult<V::Value>
     where
         V: Visitor<'de>,
     {
@@ -284,11 +284,11 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
             return Err(de::Error::custom("expected an item when deserializing seq"));
         };
 
-        visitor.visit_seq(SeqSeparated::new(&mut self, len))
+        visitor.visit_seq(SeqSeparated::new(self, len))
     }
 
     fn deserialize_struct<V>(
-        mut self,
+        self,
         _name: &'static str,
         _fields: &'static [&'static str],
         visitor: V,
@@ -316,7 +316,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
             _ => None,
         };
 
-        let res = visitor.visit_map(FieldSeparated::new(&mut self, t.unwrap_or(0)))?;
+        let res = visitor.visit_map(FieldSeparated::new(self, t.unwrap_or(0)))?;
         if to_pop {
             self.pop();
         }
