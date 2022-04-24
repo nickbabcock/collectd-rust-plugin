@@ -2,10 +2,10 @@
 
 # Write a Collectd Plugin in Rust
 
-[Collectd](https://collectd.org/) is a ubiquitous system statistics collection daemon.
-`collectd_plugin` leverages collectd's ability to dynamically load plugins and
-creates an ergonomic, yet extremely low cost abstraction API to interface with
-collectd.
+[Collectd](https://collectd.org/) is a ubiquitous system statistics collection
+daemon. This Rust library leverages collectd's ability to dynamically load
+plugins and creates an ergonomic, yet extremely low cost abstraction API to
+interface with collectd. Works with collectd 5.7+.
 
 Features:
 
@@ -26,14 +26,6 @@ collectd-plugin = "0.14.0"
 ```
 
 [Serde](https://github.com/serde-rs/serde) support is enabled by default for configuration parsing.
-
-Works with any collectd version 5.4+, but all users will need to specify the collectd api version they want to target via the `COLLECTD_VERSION` environment variable (or rely on `$(collectd -h)` or `COLLECTD_PATH` variable).
-
-| `COLLECTED_VERSION` |  Compatible Range |
-|---------------------|-------------------|
-| 5.4                 | [5.4, 5.5)        |
-| 5.5                 | [5.5, 5.7)        |
-| 5.7                 | [5.7,)            |
 
 ## Quickstart
 
