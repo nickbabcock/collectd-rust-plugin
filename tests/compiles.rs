@@ -1,6 +1,8 @@
 #[rustversion::attr(not(stable), ignore)]
 #[test]
 fn ui() {
-    let t = trybuild::TestCases::new();
-    t.compile_fail("tests/compile-fail/*.rs");
+    if std::env::var("CI").is_ok() {
+        let t = trybuild::TestCases::new();
+        t.compile_fail("tests/compile-fail/*.rs");
+    }
 }

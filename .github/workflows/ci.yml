@@ -21,7 +21,6 @@ jobs:
         build:
         - stable
         - collectd-head
-        - bindgen
         - aarch64
         - regen
         include:
@@ -29,8 +28,6 @@ jobs:
           os: 'ubuntu-latest'
         - build: collectd-head
           os: 'ubuntu-latest'
-        - build: bindgen
-          os: 'ubuntu-18.04'
         - build: aarch64
           target: aarch64-unknown-linux-gnu
           os: 'ubuntu-latest'
@@ -38,9 +35,7 @@ jobs:
           os: 'ubuntu-latest'
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v1
-      with:
-        fetch-depth: 1
+      uses: actions/checkout@v4
     - uses: dtolnay/rust-toolchain@stable
 
     - name: Use Cross
@@ -61,12 +56,6 @@ jobs:
         echo "COLLECTD_PATH=/tmp/collectd" >> $GITHUB_ENV
         echo "FEATURES=--features bindgen" >> $GITHUB_ENV
   
-    - name: bindgen
-      if: matrix.build == 'bindgen'
-      run: |
-        sudo apt-get install -y --no-install-recommends collectd collectd-dev
-        echo "FEATURES=--features bindgen" >> $GITHUB_ENV
-
     - name: tests
       run: ${{ env.CARGO }} test $FEATURES --verbose $TARGET
 
