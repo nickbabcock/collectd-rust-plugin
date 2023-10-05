@@ -26,9 +26,6 @@ error[E0277]: the type `UnsafeCell<std::string::String>` may contain interior mu
    = help: within `MyPlugin`, the trait `RefUnwindSafe` is not implemented for `UnsafeCell<std::string::String>`
 note: required because it appears within the type `RefCell<String>`
   --> $RUST/core/src/cell.rs
-   |
-   | pub struct RefCell<T: ?Sized> {
-   |            ^^^^^^^
 note: required because it appears within the type `MyPlugin`
   --> tests/compile-fail/non-sync.rs:6:12
    |
@@ -49,14 +46,8 @@ error[E0277]: the type `UnsafeCell<isize>` may contain interior mutability and a
    = help: within `MyPlugin`, the trait `RefUnwindSafe` is not implemented for `UnsafeCell<isize>`
 note: required because it appears within the type `Cell<isize>`
   --> $RUST/core/src/cell.rs
-   |
-   | pub struct Cell<T: ?Sized> {
-   |            ^^^^
 note: required because it appears within the type `RefCell<String>`
   --> $RUST/core/src/cell.rs
-   |
-   | pub struct RefCell<T: ?Sized> {
-   |            ^^^^^^^
 note: required because it appears within the type `MyPlugin`
   --> tests/compile-fail/non-sync.rs:6:12
    |
