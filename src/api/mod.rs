@@ -389,7 +389,7 @@ impl<'a> ValueListBuilder<'a> {
         // submitted and would cause garbage to be read (and thus could have very much
         // unintended side effects)
         let host = host.unwrap_or([0 as c_char; ARR_LENGTH]);
-        let len = v.len() as u64;
+        let len = v.len();
 
         let plugin = submit_array_res(self.list.plugin, "plugin")?;
 
@@ -647,8 +647,8 @@ pub fn empty_to_none(s: &str) -> Option<&str> {
     }
 }
 
-pub fn length(len: u64) -> usize {
-    len as usize
+pub fn length(len: usize) -> usize {
+    len
 }
 
 pub fn get_default_interval() -> u64 {
