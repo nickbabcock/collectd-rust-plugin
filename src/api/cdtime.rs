@@ -31,7 +31,9 @@ impl From<CdTime> for DateTime<Utc> {
         let CdTime(ns) = v;
         let secs = ns / 1_000_000_000;
         let left = ns % 1_000_000_000;
-        Utc.timestamp(secs as i64, left as u32)
+        Utc.timestamp_opt(secs as i64, left as u32)
+            .latest()
+            .unwrap_or_default()
     }
 }
 
@@ -103,13 +105,14 @@ mod tests {
     fn test_collectd_to_datetime() {
         let v: cdtime_t = nanos_to_collectd(1_000_000_000);
         let dt: DateTime<Utc> = CdTime::from(v).into();
-        assert_eq!(Utc.ymd(1970, 1, 1).and_hms(0, 0, 1), dt);
+        let res = Utc.with_ymd_and_hms(1970, 1, 1, 0, 0, 1);
+        assert_eq!(res.unwrap(), dt);
     }
 
     #[test]
     fn test_datetime_to_collectd() {
-        let dt = Utc.ymd(1970, 1, 1).and_hms(0, 0, 1);
-        let cd = CdTime::from(dt);
+        let res = Utc.with_ymd_and_hms(1970, 1, 1, 0, 0, 1);
+        let cd = CdTime::from(res.unwrap());
         assert_eq!(cd.0, 1_000_000_000);
     }
 }

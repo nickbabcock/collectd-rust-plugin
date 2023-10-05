@@ -764,7 +764,7 @@ mod tests {
                 type_: "ho",
                 type_instance: None,
                 host: "ho",
-                time: Utc.ymd(1970, 1, 1).and_hms(0, 0, 1),
+                time: Utc.with_ymd_and_hms(1970, 1, 1, 0, 0, 1).unwrap(),
                 interval: Duration::seconds(1),
                 original_list: &list_t,
                 original_set: &conv,
