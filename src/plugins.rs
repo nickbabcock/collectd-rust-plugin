@@ -7,7 +7,7 @@ use std::panic::{RefUnwindSafe, UnwindSafe};
 
 bitflags! {
     /// Bitflags of capabilities that a plugin advertises to collectd.
-    #[derive(Default)]
+    #[derive(Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct PluginCapabilities: u32 {
         const READ =   0b0000_0001;
         const LOG =    0b0000_0010;
