@@ -5,7 +5,6 @@ pub use self::errors::*;
 pub use self::level::*;
 
 use self::deconfig::*;
-use self::errors::Error;
 use crate::api::ConfigItem;
 use serde::de::{self, Deserialize, DeserializeSeed, MapAccess, SeqAccess, Visitor};
 use serde::forward_to_deserialize_any;
