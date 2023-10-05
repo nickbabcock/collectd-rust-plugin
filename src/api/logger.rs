@@ -200,7 +200,7 @@ impl CollectdLogger {
 /// Logs an error with a description and all the causes. If rust's logging mechanism has been
 /// registered, it is the preferred mechanism. If the Rust logging is not configured (and
 /// considering that an error message should be logged) we log it directly to collectd
-pub fn log_err<'a>(desc: &str, err: &FfiError<'a>) {
+pub fn log_err(desc: &str, err: &FfiError<'_>) {
     let mut msg = format!("{} error: {}", desc, err);
 
     // We join all the causes into a single string. Some thoughts

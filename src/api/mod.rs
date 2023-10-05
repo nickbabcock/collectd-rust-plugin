@@ -181,10 +181,10 @@ impl<'a> ValueList<'a> {
     pub fn rates(&self) -> Result<Cow<'_, Vec<ValueReport<'a>>>, CacheRateError> {
         // As an optimization step, if we know all values are gauges there is no need to call out
         // to uc_get_rate as no values will be changed
-        let all_gauges = self.values.iter().all(|x| match x.value {
-            Value::Gauge(_) => true,
-            _ => false,
-        });
+        let all_gauges = self
+            .values
+            .iter()
+            .all(|x| matches!(x.value, Value::Gauge(_)));
 
         if all_gauges {
             return Ok(Cow::Borrowed(&self.values));

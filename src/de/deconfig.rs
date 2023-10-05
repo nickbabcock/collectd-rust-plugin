@@ -20,14 +20,14 @@ pub fn from_config<'a>(s: &'a [ConfigItem<'a>]) -> Vec<(&'a str, Vec<DeConfig<'a
         if !item.values.is_empty() {
             props
                 .entry(item.key)
-                .or_insert_with(Vec::new)
+                .or_default()
                 .extend(item.values.iter().map(value_to_config));
         }
 
         if !item.children.is_empty() {
             props
                 .entry(item.key)
-                .or_insert_with(Vec::new)
+                .or_default()
                 .push(de_config_item(&item.children[..]));
         }
     }
