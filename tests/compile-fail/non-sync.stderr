@@ -1,56 +1,69 @@
 error[E0277]: `RefCell<std::string::String>` cannot be shared between threads safely
-  --> tests/compile-fail/non-sync.rs:10:6
+  --> tests/compile-fail/non-sync.rs:10:17
    |
 10 | impl Plugin for MyPlugin {
-   |      ^^^^^^ `RefCell<std::string::String>` cannot be shared between threads safely
+   |                 ^^^^^^^^ `RefCell<std::string::String>` cannot be shared between threads safely
    |
    = help: within `MyPlugin`, the trait `Sync` is not implemented for `RefCell<std::string::String>`
+   = note: if you want to do aliasing and mutation between multiple threads, use `std::sync::RwLock` instead
 note: required because it appears within the type `MyPlugin`
   --> tests/compile-fail/non-sync.rs:6:12
    |
 6  | pub struct MyPlugin {
    |            ^^^^^^^^
 note: required by a bound in `Plugin`
-  --> src/plugins.rs:88:26
+  --> src/plugins.rs
    |
-88 | pub trait Plugin: Send + Sync + UnwindSafe + RefUnwindSafe {
+   | pub trait Plugin: Send + Sync + UnwindSafe + RefUnwindSafe {
    |                          ^^^^ required by this bound in `Plugin`
 
 error[E0277]: the type `UnsafeCell<std::string::String>` may contain interior mutability and a reference may not be safely transferrable across a catch_unwind boundary
-  --> tests/compile-fail/non-sync.rs:10:6
+  --> tests/compile-fail/non-sync.rs:10:17
    |
 10 | impl Plugin for MyPlugin {
-   |      ^^^^^^ `UnsafeCell<std::string::String>` may contain interior mutability and a reference may not be safely transferrable across a catch_unwind boundary
+   |                 ^^^^^^^^ `UnsafeCell<std::string::String>` may contain interior mutability and a reference may not be safely transferrable across a catch_unwind boundary
    |
    = help: within `MyPlugin`, the trait `RefUnwindSafe` is not implemented for `UnsafeCell<std::string::String>`
-   = note: required because it appears within the type `RefCell<std::string::String>`
+note: required because it appears within the type `RefCell<String>`
+  --> $RUST/core/src/cell.rs
+   |
+   | pub struct RefCell<T: ?Sized> {
+   |            ^^^^^^^
 note: required because it appears within the type `MyPlugin`
   --> tests/compile-fail/non-sync.rs:6:12
    |
 6  | pub struct MyPlugin {
    |            ^^^^^^^^
 note: required by a bound in `Plugin`
-  --> src/plugins.rs:88:46
+  --> src/plugins.rs
    |
-88 | pub trait Plugin: Send + Sync + UnwindSafe + RefUnwindSafe {
+   | pub trait Plugin: Send + Sync + UnwindSafe + RefUnwindSafe {
    |                                              ^^^^^^^^^^^^^ required by this bound in `Plugin`
 
 error[E0277]: the type `UnsafeCell<isize>` may contain interior mutability and a reference may not be safely transferrable across a catch_unwind boundary
-  --> tests/compile-fail/non-sync.rs:10:6
+  --> tests/compile-fail/non-sync.rs:10:17
    |
 10 | impl Plugin for MyPlugin {
-   |      ^^^^^^ `UnsafeCell<isize>` may contain interior mutability and a reference may not be safely transferrable across a catch_unwind boundary
+   |                 ^^^^^^^^ `UnsafeCell<isize>` may contain interior mutability and a reference may not be safely transferrable across a catch_unwind boundary
    |
    = help: within `MyPlugin`, the trait `RefUnwindSafe` is not implemented for `UnsafeCell<isize>`
-   = note: required because it appears within the type `Cell<isize>`
-   = note: required because it appears within the type `RefCell<std::string::String>`
+note: required because it appears within the type `Cell<isize>`
+  --> $RUST/core/src/cell.rs
+   |
+   | pub struct Cell<T: ?Sized> {
+   |            ^^^^
+note: required because it appears within the type `RefCell<String>`
+  --> $RUST/core/src/cell.rs
+   |
+   | pub struct RefCell<T: ?Sized> {
+   |            ^^^^^^^
 note: required because it appears within the type `MyPlugin`
   --> tests/compile-fail/non-sync.rs:6:12
    |
 6  | pub struct MyPlugin {
    |            ^^^^^^^^
 note: required by a bound in `Plugin`
-  --> src/plugins.rs:88:46
+  --> src/plugins.rs
    |
-88 | pub trait Plugin: Send + Sync + UnwindSafe + RefUnwindSafe {
+   | pub trait Plugin: Send + Sync + UnwindSafe + RefUnwindSafe {
    |                                              ^^^^^^^^^^^^^ required by this bound in `Plugin`
