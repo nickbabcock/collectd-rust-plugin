@@ -133,7 +133,7 @@ impl Plugin for MyErrorPlugin {
     }
 
     fn read_values(&self) -> Result<(), Box<error::Error>> {
-        if self.state.fetch_xor(true, Ordering::Relaxed) {
+        if self.state.fetch_xor(true, Ordering::SeqCst) {
             panic!("Oh dear what is wrong!?")
         } else {
             Err(failure::err_msg("bailing"))?

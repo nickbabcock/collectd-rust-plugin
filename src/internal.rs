@@ -214,7 +214,7 @@ fn register_all_plugins<T: PluginManager>(config: Option<&[ConfigItem<'_>]>) -> 
 }
 
 pub fn plugin_init<T: PluginManager>(config_seen: &AtomicBool) -> c_int {
-    let mut result = if !config_seen.swap(true, Ordering::Relaxed) {
+    let mut result = if !config_seen.swap(true, Ordering::SeqCst) {
         register_all_plugins::<T>(None)
     } else {
         0
@@ -262,7 +262,7 @@ pub unsafe fn plugin_complex_config<T: PluginManager>(
 ) -> c_int {
     // If we've already seen the config, let's error out as one shouldn't use multiple
     // sections of configuration (group them under nodes like write_graphite)
-    if config_seen.swap(true, Ordering::Relaxed) {
+    if config_seen.swap(true, Ordering::SeqCst) {
         log_err("config", &FfiError::MultipleConfig);
         return -1;
     }
