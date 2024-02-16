@@ -37,6 +37,8 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
     - uses: dtolnay/rust-toolchain@stable
+      with:
+        components: rust-src
 
     - name: Use Cross
       if: matrix.build == 'aarch64'
