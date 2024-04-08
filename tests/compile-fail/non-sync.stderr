@@ -4,7 +4,7 @@ error[E0277]: `RefCell<std::string::String>` cannot be shared between threads sa
 10 | impl Plugin for MyPlugin {
    |                 ^^^^^^^^ `RefCell<std::string::String>` cannot be shared between threads safely
    |
-   = help: within `MyPlugin`, the trait `Sync` is not implemented for `RefCell<std::string::String>`
+   = help: within `MyPlugin`, the trait `Sync` is not implemented for `RefCell<std::string::String>`, which is required by `MyPlugin: Sync`
    = note: if you want to do aliasing and mutation between multiple threads, use `std::sync::RwLock` instead
 note: required because it appears within the type `MyPlugin`
   --> tests/compile-fail/non-sync.rs:6:12
@@ -23,7 +23,7 @@ error[E0277]: the type `UnsafeCell<std::string::String>` may contain interior mu
 10 | impl Plugin for MyPlugin {
    |                 ^^^^^^^^ `UnsafeCell<std::string::String>` may contain interior mutability and a reference may not be safely transferrable across a catch_unwind boundary
    |
-   = help: within `MyPlugin`, the trait `RefUnwindSafe` is not implemented for `UnsafeCell<std::string::String>`
+   = help: within `MyPlugin`, the trait `RefUnwindSafe` is not implemented for `UnsafeCell<std::string::String>`, which is required by `MyPlugin: RefUnwindSafe`
 note: required because it appears within the type `RefCell<std::string::String>`
   --> $RUST/core/src/cell.rs
    |
@@ -46,7 +46,7 @@ error[E0277]: the type `UnsafeCell<isize>` may contain interior mutability and a
 10 | impl Plugin for MyPlugin {
    |                 ^^^^^^^^ `UnsafeCell<isize>` may contain interior mutability and a reference may not be safely transferrable across a catch_unwind boundary
    |
-   = help: within `MyPlugin`, the trait `RefUnwindSafe` is not implemented for `UnsafeCell<isize>`
+   = help: within `MyPlugin`, the trait `RefUnwindSafe` is not implemented for `UnsafeCell<isize>`, which is required by `MyPlugin: RefUnwindSafe`
 note: required because it appears within the type `Cell<isize>`
   --> $RUST/core/src/cell.rs
    |
