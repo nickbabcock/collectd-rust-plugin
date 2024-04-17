@@ -69,5 +69,5 @@ jobs:
     - name: e2e test
       if: matrix.build == 'stable'
       run: |
-        sudo apt-get install collectd openjdk-11-jre-headless-
+        sudo apt-get install collectd openjdk-11-jre-headless- libvirt0-
         sudo ./ci/test.sh
