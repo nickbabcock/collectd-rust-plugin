@@ -9,8 +9,9 @@ pub struct MyPlugin {
 
 impl Plugin for MyPlugin {
     fn read_values(&self) -> Result<(), Box<dyn error::Error>> {
-        let mut n = self.names.borrow_mut();
+        let mut n = self.name.borrow_mut();
         n.pop();
+        Ok(())
     }
 }
 
