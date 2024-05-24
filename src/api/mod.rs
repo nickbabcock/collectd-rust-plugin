@@ -217,7 +217,7 @@ impl<'a> ValueList<'a> {
         let ds_len = length(set.ds_num);
         let list_len = length(list.values_len);
 
-        let values: Result<Vec<ValueReport<'_>>, ReceiveError> =
+        let values = if !list.values.is_null() && !set.ds.is_null() {
             unsafe { slice::from_raw_parts(list.values, list_len) }
                 .iter()
                 .zip(unsafe { slice::from_raw_parts(set.ds, ds_len) })
@@ -237,7 +237,10 @@ impl<'a> ValueList<'a> {
                         max: source.max,
                     })
                 })
-                .collect();
+                .collect::<Result<Vec<_>, _>>()?
+        } else {
+            Vec::new()
+        };
 
         assert!(list.time > 0);
         assert!(list.interval > 0);
@@ -255,7 +258,7 @@ impl<'a> ValueList<'a> {
         let meta = from_meta_data(plugin, list.meta)?;
 
         Ok(ValueList {
-            values: values?,
+            values,
             plugin_instance,
             plugin,
             type_,
@@ -496,7 +499,7 @@ fn from_meta_data(
         });
     }
     let count = count_or_err as usize;
-    if count == 0 {
+    if count == 0 || c_toc.is_null() {
         return Ok(HashMap::new());
     }
 
