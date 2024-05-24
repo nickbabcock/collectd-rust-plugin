@@ -71,22 +71,28 @@ impl<'a> ConfigItem<'a> {
             .to_str()
             .map_err(ConfigError::StringDecode)?;
 
-        let values: Result<Vec<ConfigValue<'b>>, ConfigError> =
-            slice::from_raw_parts(item.values, item.values_num as usize)
+        let values = if !item.values.is_null() {
+            slice::from_raw_parts(item.values, item.values_num.max(0) as usize)
                 .iter()
                 .map(|x| ConfigValue::from(x))
-                .collect();
+                .collect::<Result<Vec<_>, _>>()?
+        } else {
+            Vec::new()
+        };
 
-        let children: Result<Vec<ConfigItem<'b>>, ConfigError> =
-            slice::from_raw_parts(item.children, item.children_num as usize)
+        let children = if !item.children.is_null() {
+            slice::from_raw_parts(item.children, item.children_num.max(0) as usize)
                 .iter()
                 .map(|x| ConfigItem::from(x))
-                .collect();
+                .collect::<Result<Vec<_>, _>>()?
+        } else {
+            Vec::new()
+        };
 
         Ok(ConfigItem {
             key,
-            values: values?,
-            children: children?,
+            values,
+            children,
         })
     }
 }
