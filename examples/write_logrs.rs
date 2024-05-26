@@ -5,10 +5,9 @@ use collectd_plugin::{
     collectd_log, collectd_log_raw, collectd_plugin, CollectdLoggerBuilder, ConfigItem, LogLevel,
     Plugin, PluginCapabilities, PluginManager, PluginRegistration, ValueList,
 };
-use itertools::Itertools;
 use log::{info, LevelFilter};
 use serde::Deserialize;
-use std::error;
+use std::{error, fmt::Write};
 
 fn true_default() -> bool {
     true
@@ -64,10 +63,16 @@ impl Plugin for LogWritePlugin {
             Ok(::std::borrow::Cow::Borrowed(&list.values))
         }?;
 
-        let values = values
-            .iter()
-            .map(|v| format!("{} - {}", v.name, v.value))
-            .join(", ");
+        // Join values into comma separated output
+        let mut out = String::new();
+        for (ind, v) in values.iter().enumerate() {
+            if ind != 0 {
+                out.push_str(", ");
+            }
+            out.push_str(v.name);
+            out.push_str(" - ");
+            write!(&mut out, "{}", v.value).expect("string write to succeed");
+        }
 
         info!(
             "plugin_instance: {}, plugin: {}, type: {}, type_instance: {}, host: {}, time: {}, interval: {} seconds, values: {}",
@@ -78,7 +83,7 @@ impl Plugin for LogWritePlugin {
             list.host,
             list.time,
             list.interval.num_seconds(),
-            values,
+            out,
         );
 
         Ok(())
