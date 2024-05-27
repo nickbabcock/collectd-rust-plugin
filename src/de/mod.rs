@@ -2,7 +2,6 @@ mod deconfig;
 mod errors;
 mod level;
 pub use self::errors::*;
-pub use self::level::*;
 
 use self::deconfig::*;
 use crate::api::ConfigItem;

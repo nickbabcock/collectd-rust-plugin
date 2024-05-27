@@ -126,11 +126,6 @@ fn plugin_registration(name: &str, plugin: Box<dyn Plugin>) {
 
     let s = CString::new(name).expect("Plugin name to not contain nulls");
 
-    // Plugin registration differs only a tiny bit between collectd-57 and older
-    // versions. The one difference is that user_data_t went from mutable to not
-    // mutable. The code duplication is annoying, but it's better to have it
-    // encapsulated in a single crate instead of many others.
-    #[cfg_attr(feature = "cargo-clippy", allow(clippy::unnecessary_mut_passed))]
     unsafe {
         let plugin_ptr = Box::into_raw(pl) as *mut c_void;
 
@@ -156,7 +151,7 @@ fn plugin_registration(name: &str, plugin: Box<dyn Plugin>) {
                 s.as_ptr(),
                 Some(plugin_read),
                 get_default_interval(),
-                &mut data,
+                &data,
             );
         }
 
