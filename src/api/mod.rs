@@ -1,4 +1,4 @@
-pub use self::cdtime::{nanos_to_collectd, CdTime};
+pub use self::cdtime::CdTime;
 pub use self::logger::{collectd_log, log_err, CollectdLoggerBuilder, LogLevel};
 pub use self::oconfig::{ConfigItem, ConfigValue};
 use crate::bindings::{

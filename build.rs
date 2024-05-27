@@ -60,7 +60,7 @@ fn detect_collectd_version() -> String {
         })
         .unwrap_or_else(|| {
             Command::new("collectd")
-                .args(&["-h"])
+                .args(["-h"])
                 .output()
                 .map(|x| String::from_utf8(x.stdout).expect("Collectd output to be utf8"))
                 .map(|x| {
