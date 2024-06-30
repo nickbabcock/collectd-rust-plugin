@@ -44,7 +44,7 @@ impl Plugin for MyErrorPlugin {
         if self.state.fetch_xor(true, Ordering::SeqCst) {
             panic!("Oh dear what is wrong!?")
         } else {
-            Err(failure::err_msg("bailing").into())
+            Err(anyhow::anyhow!("bailing").into())
         }
     }
 }

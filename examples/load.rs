@@ -4,7 +4,6 @@ use collectd_plugin::{
     collectd_plugin, ConfigItem, Plugin, PluginCapabilities, PluginManager, PluginRegistration,
     Value, ValueListBuilder,
 };
-use failure::Error;
 use serde::Deserialize;
 use std::error;
 
@@ -64,12 +63,12 @@ impl PluginManager for LoadManager {
 /// Returns load averages (short, mid, and long term). This implementation is not as cross platform
 /// as collectd's, as getloadavg is not in POSIX, but getloadavg has been in glibc since 2000 and
 /// found in BSD and Solaris, so I'd wager that this should cover 99.9% of use cases.
-fn get_load() -> Result<[f64; 3], Error> {
+fn get_load() -> anyhow::Result<[f64; 3]> {
     let mut load: [f64; 3] = [0.0; 3];
 
     unsafe {
         if libc::getloadavg(load.as_mut_ptr(), 3) != 3 {
-            Err(failure::err_msg("load: getloadavg failed"))
+            Err(anyhow::anyhow!("load: getloadavg failed"))
         } else {
             Ok(load)
         }
