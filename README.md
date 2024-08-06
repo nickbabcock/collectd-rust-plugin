@@ -1,4 +1,4 @@
-[![ci](https://github.com/nickbabcock/collectd-rust-plugin/actions/workflows/ci.yml/badge.svg)](https://github.com/nickbabcock/collectd-rust-plugin/actions/workflows/ci.yml) [![](https://docs.rs/collectd-plugin/badge.svg)](https://docs.rs/collectd-plugin) [![Rust](https://img.shields.io/badge/rust-1.33%2B-blue.svg?maxAge=3600)](https://github.com/nickbabcock/collectd-rust-plugin) [![Version](https://img.shields.io/crates/v/collectd-plugin.svg?style=flat-square)](https://crates.io/crates/collectd-plugin)
+[![ci](https://github.com/nickbabcock/collectd-rust-plugin/actions/workflows/ci.yml/badge.svg)](https://github.com/nickbabcock/collectd-rust-plugin/actions/workflows/ci.yml) [![](https://docs.rs/collectd-plugin/badge.svg)](https://docs.rs/collectd-plugin) [![Version](https://img.shields.io/crates/v/collectd-plugin.svg?style=flat-square)](https://crates.io/crates/collectd-plugin)
 
 # Write a Collectd Plugin in Rust
 
@@ -119,11 +119,11 @@ bindgen = ["collectd-plugin/bindgen"]
 default = []
 ```
 
-- A collectd version is required to build. There are several ways one can specify it:
-  - Via environment variable: `COLLECTD_VERSION` = `5.4`, `5.5`, or `5.7`.
-  - Via environment variable: `COLLECTD_PATH` points to the [root git directory for collectd](https://github.com/collectd/collectd). This option makes the most sense when coupled with the `bindgen` feature.
-  - Auto detection by executing `collectd -h`.
-- The bindgen feature is optional (it will re-compute the Rust bindings from C code, which shouldn't be necessary). Make sure you have an appropriate version of clang installed and `collectd-dev` (if not using `COLLECTD_PATH`)
+- `collectd-rust-plugin` assumes a `5.7`-compatible API (`5.7` works up to at least `5.12`). This can be configured via any of the following:
+  - Specify the `bindgen` feature with `COLLECTD_PATH` pointing at the [root git directory for collectd](https://github.com/collectd/collectd)
+    - The `bindgen` feature also works if `collectd-dev` is installed
+  - `COLLECTD_VERSION` may be used in the future when `collectd-rust-plugin` reintroduces support for compiling against different collectd versions that are not API-compatible
+  - When collectd is present on the system, the version is derived from executing `collectd -h`
 - collectd expects plugins to not be prefixed with `lib`, so `cp target/debug/libmyplugin.so /usr/lib/collectd/myplugin.so`
 - Add `LoadPlugin myplugin` to collectd.conf
 
