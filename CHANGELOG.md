@@ -1,3 +1,13 @@
+## 0.15.0 - 2024-08-06
+
+- Fix null collectd values causing a panic
+- Fix 32-bit compilation errors
+- Prefer `SeqCst` ordering in abundance of caution
+- Update dependencies:
+  - Bindgen from 58.1 to 69.1
+  - Bitflags from 1.0 to 2.4
+  - env_logger from 0.8 to 0.10
+
 ## 0.14.0 - 2021-06-15
 
 - Submit and receive metadata values through `ValueListBuilder::metadata` and `ValueList::meta` respectively
