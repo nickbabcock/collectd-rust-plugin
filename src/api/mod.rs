@@ -222,7 +222,7 @@ impl<'a> ValueList<'a> {
                 .iter()
                 .zip(unsafe { slice::from_raw_parts(set.ds, ds_len) })
                 .map(|(val, source)| unsafe {
-                    let v = match ::std::mem::transmute(source.type_) {
+                    let v = match ::std::mem::transmute::<i32, ValueType>(source.type_) {
                         ValueType::Gauge => Value::Gauge(val.gauge),
                         ValueType::Counter => Value::Counter(val.counter),
                         ValueType::Derive => Value::Derive(val.derive),
@@ -618,7 +618,7 @@ fn to_array_res(s: &str) -> Result<[c_char; ARR_LENGTH], ArrayError> {
 
     let mut arr = [0; ARR_LENGTH];
     arr[0..bytes.len()].copy_from_slice(bytes);
-    Ok(unsafe { ::std::mem::transmute(arr) })
+    Ok(unsafe { ::std::mem::transmute::<[u8; ARR_LENGTH], [c_char; ARR_LENGTH]>(arr) })
 }
 
 fn receive_array<'a>(

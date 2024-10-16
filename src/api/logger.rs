@@ -254,15 +254,15 @@ pub fn collectd_log(lvl: LogLevel, message: &str) {
 /// prefer `collectd_log_raw`:
 ///
 /// - Collectd was not compiled with `COLLECTD_DEBUG` (chances are, your collectd is compiled with
-/// debugging enabled) and you are logging a debug message.
+///   debugging enabled) and you are logging a debug message.
 /// - The performance price of string formatting in rust instead of C is too large (this shouldn't
-/// be the case)
+///   be the case)
 ///
 /// Undefined behavior can result from any of the following:
 ///
 /// - If the format string is not null terminated
 /// - If any string arguments are not null terminated. Use `CString::as_ptr()` to ensure null
-/// termination
+///   termination
 /// - Malformed format string or mismatched arguments
 ///
 /// This expects an already null terminated byte string. In the future once the byte equivalent of
