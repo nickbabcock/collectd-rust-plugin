@@ -1,7 +1,7 @@
 use crate::bindings::{plugin_log, LOG_DEBUG, LOG_ERR, LOG_INFO, LOG_NOTICE, LOG_WARNING};
 use crate::errors::FfiError;
 use crate::plugins::PluginManager;
-use env_logger::filter;
+use env_logger::{Builder, Logger};
 use log::{self, error, log_enabled, Level, LevelFilter, Metadata, Record, SetLoggerError};
 use std::cell::Cell;
 use std::error::Error;
@@ -46,7 +46,7 @@ use std::io::{self, Write};
 /// ```
 #[derive(Default)]
 pub struct CollectdLoggerBuilder {
-    filter: filter::Builder,
+    filter: Builder,
     plugin: Option<&'static str>,
     format: Format,
 }
@@ -83,27 +83,27 @@ impl CollectdLoggerBuilder {
         self
     }
 
-    /// See [`env_logger::filter::Builder::filter_level`](https://docs.rs/env_logger/0.7.1/env_logger/filter/struct.Builder.html#method.filter_level)
+    /// See [`env_logger::Builder::filter_level`](https://docs.rs/env_logger/0.11.0/env_logger/struct.Builder.html#method.filter_level)
     pub fn filter_level(&mut self, level: LevelFilter) -> &mut Self {
         self.filter.filter_level(level);
         self
     }
 
-    /// See: [`env_logger::filter::Builder::filter_module`](https://docs.rs/env_logger/0.7.1/env_logger/filter/struct.Builder.html#method.filter_module)
+    /// See: [`env_logger::Builder::filter_module`](https://docs.rs/env_logger/0.11.0/env_logger/struct.Builder.html#method.filter_module)
     pub fn filter_module(&mut self, module: &str, level: LevelFilter) -> &mut Self {
         self.filter.filter_module(module, level);
         self
     }
 
-    /// See: [`env_logger::filter::Builder::filter`](https://docs.rs/env_logger/0.7.1/env_logger/filter/struct.Builder.html#method.filter)
+    /// See: [`env_logger::Builder::filter`](https://docs.rs/env_logger/0.11.0/env_logger/struct.Builder.html#method.filter)
     pub fn filter(&mut self, module: Option<&str>, level: LevelFilter) -> &mut Self {
         self.filter.filter(module, level);
         self
     }
 
-    /// See: [`env_logger::filter::Builder::parse`](https://docs.rs/env_logger/0.7.1/env_logger/filter/struct.Builder.html#method.parse)
+    /// See: [`env_logger::Builder::parse_filters`](https://docs.rs/env_logger/0.11.0/env_logger/struct.Builder.html#method.parse_filters)
     pub fn parse(&mut self, filters: &str) -> &mut Self {
-        self.filter.parse(filters);
+        self.filter.parse_filters(filters);
         self
     }
 
@@ -139,7 +139,7 @@ impl Format {
 }
 
 struct CollectdLogger {
-    filter: filter::Filter,
+    filter: Logger,
     plugin: Option<&'static str>,
     format: Box<FormatFn>,
 }
