@@ -4,7 +4,7 @@ use std::fmt;
 
 struct LogLevelVisitor;
 
-impl<'de> Visitor<'de> for LogLevelVisitor {
+impl Visitor<'_> for LogLevelVisitor {
     type Value = LogLevel;
 
     fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {

@@ -1,6 +1,6 @@
 use std::error;
 use std::fmt;
-use std::panic::PanicInfo;
+use std::panic::PanicHookInfo;
 use std::str::Utf8Error;
 
 /// Error that occurred while translating the collectd config to rust structures.
@@ -207,7 +207,7 @@ impl error::Error for CacheRateError {
 #[derive(Debug)]
 pub enum FfiError<'a> {
     /// Error for implementing Rust's panic hook
-    PanicHook(&'a PanicInfo<'a>),
+    PanicHook(&'a PanicHookInfo<'a>),
 
     /// Represents a plugin that panicked. A plugin that panics has a logic bug that should be
     /// fixed so that the plugin can better log and recover, else collectd decides
@@ -230,7 +230,7 @@ pub enum FfiError<'a> {
     Utf8(&'static str, Utf8Error),
 }
 
-impl<'a> fmt::Display for FfiError<'a> {
+impl fmt::Display for FfiError<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             FfiError::Collectd(_) => write!(f, "unexpected collectd behavior"),
@@ -257,7 +257,7 @@ impl<'a> fmt::Display for FfiError<'a> {
     }
 }
 
-impl<'a> error::Error for FfiError<'a> {
+impl error::Error for FfiError<'_> {
     fn description(&self) -> &str {
         "collectd plugin error"
     }
