@@ -153,7 +153,7 @@ impl log::Log for CollectdLogger {
         if self.matches(record) {
             // Log records are written to a thread local storage before being submitted to
             // collectd. The buffers are cleared afterwards
-            thread_local!(static LOG_BUF: Cell<Vec<u8>> = Cell::new(Vec::new()));
+            thread_local!(static LOG_BUF: Cell<Vec<u8>> = const { Cell::new(Vec::new()) });
             LOG_BUF.with(|cell| {
                 // Replaces the cell's contents with the default value, which is an empty vector.
                 // Should be very cheap to move in and out of

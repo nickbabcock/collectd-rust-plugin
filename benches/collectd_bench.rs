@@ -2,7 +2,7 @@ use collectd_plugin::bindings::{
     data_set_t, data_source_t, value_list_t, value_t, ARR_LENGTH, DS_TYPE_GAUGE,
 };
 use collectd_plugin::{Value, ValueList, ValueListBuilder};
-use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
+use criterion::{criterion_group, criterion_main, Criterion};
 use std::ffi::CString;
 use std::os::raw::c_char;
 use std::ptr;

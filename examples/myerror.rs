@@ -8,9 +8,6 @@ use std::error;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 #[derive(Default)]
-struct MyErrorManager;
-
-#[derive(Default)]
 struct MyErrorPlugin {
     state: AtomicBool,
 }

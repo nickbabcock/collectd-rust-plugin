@@ -32,7 +32,7 @@ pub struct ConfigItem<'a> {
     pub children: Vec<ConfigItem<'a>>,
 }
 
-impl<'a> ConfigValue<'a> {
+impl ConfigValue<'_> {
     /// # Safety
     ///
     /// Assumed that the any pointers are non null
@@ -62,7 +62,7 @@ impl<'a> ConfigValue<'a> {
     }
 }
 
-impl<'a> ConfigItem<'a> {
+impl ConfigItem<'_> {
     /// # Safety
     ///
     /// Assumed that the pointer is non-null
