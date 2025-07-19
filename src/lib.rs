@@ -106,8 +106,8 @@ mod errors;
 mod plugins;
 
 pub use crate::api::{
-    collectd_log, CdTime, CollectdLoggerBuilder, ConfigItem, ConfigValue, LogLevel, MetaValue,
-    Value, ValueList, ValueListBuilder, ValueReport,
+    collectd_log, CdTime, CollectdLogger, CollectdLoggerBuilder, ConfigItem, ConfigValue, LogLevel,
+    MetaValue, Value, ValueList, ValueListBuilder, ValueReport,
 };
 pub use crate::errors::{CacheRateError, ConfigError, ReceiveError, SubmitError};
 pub use crate::plugins::{

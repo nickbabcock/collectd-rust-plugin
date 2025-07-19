@@ -25,7 +25,6 @@ chrono = "0.4.0"
 bitflags = "2.4"
 memchr = "2"
 log = "0.4"
-env_logger = { version =  "0.11", default-features = false }
 serde = { version = "1", features = ["derive"], optional = true }
 libc = { version = "0.2" }
 
@@ -34,6 +33,7 @@ serde = { version = "1", features = ["derive"] }
 serde_test = "1.0"
 criterion = "0.5"
 log = { version = "0.4", features = ["serde"] }
+env_logger = "0.11"
 num_cpus = "1.0"
 anyhow = "1.0"
 libc = "0.2"
@@ -42,7 +42,6 @@ doc-comment = "0.3"
 
 [features]
 stub = []
-regex_log_filter = ["env_logger/regex"]
 default = ["serde"]
 
 [[example]]
@@ -69,6 +68,10 @@ crate-type = ["cdylib"]
 
 [[example]]
 name = "write_graphite"
+crate-type = ["cdylib"]
+
+[[example]]
+name = "env_logger"
 crate-type = ["cdylib"]
 
 [[bench]]

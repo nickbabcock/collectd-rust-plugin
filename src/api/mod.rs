@@ -1,5 +1,5 @@
 pub use self::cdtime::CdTime;
-pub use self::logger::{collectd_log, log_err, CollectdLoggerBuilder, LogLevel};
+pub use self::logger::{collectd_log, log_err, CollectdLogger, CollectdLoggerBuilder, LogLevel};
 pub use self::oconfig::{ConfigItem, ConfigValue};
 use crate::bindings::{
     data_set_t, meta_data_add_boolean, meta_data_add_double, meta_data_add_signed_int,
