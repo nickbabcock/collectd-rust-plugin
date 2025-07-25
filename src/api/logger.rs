@@ -1,119 +1,113 @@
 use crate::bindings::{plugin_log, LOG_DEBUG, LOG_ERR, LOG_INFO, LOG_NOTICE, LOG_WARNING};
 use crate::errors::FfiError;
-use crate::plugins::PluginManager;
-use env_logger::{Builder, Logger};
-use log::{self, error, log_enabled, Level, LevelFilter, Metadata, Record, SetLoggerError};
+use log::{error, log_enabled, Level, LevelFilter, Metadata, Record, SetLoggerError};
 use std::cell::Cell;
 use std::error::Error;
 use std::ffi::{CStr, CString};
 use std::fmt::Write as FmtWrite;
 use std::io::{self, Write};
 
-/// Bridges the gap between collectd and rust logging. Terminology and filters methods found here
-/// are from env_logger.
-///
+/// A builder for configuring and installing a collectd logger.
+/// 
 /// It is recommended to instantiate the logger in `PluginManager::plugins`.
 ///
 /// The use case of multiple rust plugins that instantiate a global logger is supported. Each
 /// plugin will have its own copy of a global logger. Thus plugins won't interefere with others and
 /// their logging.
-///
-/// # Example
-///
-/// ```
-/// # fn main() {
-/// use collectd_plugin::{ConfigItem, PluginManager, PluginRegistration, CollectdLoggerBuilder};
-/// use log::LevelFilter;
-/// use std::error;
-///
-/// #[derive(Default)]
-/// struct MyPlugin;
-/// impl PluginManager for MyPlugin {
-///     fn name() -> &'static str {
-///         "myplugin"
-///     }
-///
-///     fn plugins(_config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Box<error::Error>> {
-///        CollectdLoggerBuilder::new()
-///            .prefix_plugin::<Self>()
-///            .filter_level(LevelFilter::Info)
-///            .try_init()
-///            .expect("really the only thing that should create a logger");
-///         unimplemented!()
-///     }
-/// }
-/// # }
-/// ```
-#[derive(Default)]
 pub struct CollectdLoggerBuilder {
-    filter: Builder,
     plugin: Option<&'static str>,
-    format: Format,
+    filter_level: LevelFilter,
+    format: Box<FormatFn>,
 }
 
 type FormatFn = dyn Fn(&mut dyn Write, &Record<'_>) -> io::Result<()> + Sync + Send;
 
 impl CollectdLoggerBuilder {
-    /// Initializes the log builder with defaults
+    /// Creates a new CollectdLoggerBuilder that will forward log messages to collectd.
+    ///
+    /// By default, accepts all log levels and uses the default format.
+    /// See [`CollectdLoggerBuilder::filter_level`] to filter and [`CollectdLoggerBuilder::format`] for custom formatting.
     pub fn new() -> Self {
-        Default::default()
+        Self {
+            plugin: None,
+            filter_level: LevelFilter::Trace,
+            format: Format::default().into_boxed_fn(),
+        }
     }
 
-    /// Initializes the global logger with the built collectd logger.
+    /// Sets a prefix using the plugin manager's name.
+    pub fn prefix_plugin<T: crate::plugins::PluginManager>(mut self) -> Self {
+        self.plugin = Some(T::name());
+        self
+    }
+
+    /// Sets the log level filter - only messages at this level and above will be forwarded to collectd.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use collectd_plugin::CollectdLogger;
+    /// use log::LevelFilter;
+    ///
+    /// CollectdLogger::new()
+    ///     .prefix("myplugin")
+    ///     .filter_level(LevelFilter::Info)
+    ///     .try_init()?;
+    ///
+    /// log::debug!("This will be filtered out");
+    /// log::info!("This will go to collectd");
+    /// ```
+    pub fn filter_level(mut self, level: LevelFilter) -> Self {
+        self.filter_level = level;
+        self
+    }
+
+    /// Sets the format function for formatting the log output.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use collectd_plugin::CollectdLoggerBuilder;
+    /// use std::io::Write;
+    ///
+    /// CollectdLoggerBuilder::new()
+    ///     .prefix("myplugin")
+    ///     .format(|buf, record| {
+    ///         write!(buf, "[{}] {}", record.level(), record.args())
+    ///     })
+    ///     .try_init()?;
+    /// ```
+    pub fn format<F>(mut self, format: F) -> Self
+    where
+        F: Fn(&mut dyn Write, &Record<'_>) -> io::Result<()> + Sync + Send + 'static,
+    {
+        self.format = Box::new(format);
+        self
+    }
+
+    /// The returned logger implements the `Log` trait and can be installed
+    /// manually or nested within another logger.
+    pub fn build(self) -> CollectdLogger {
+        CollectdLogger {
+            plugin: self.plugin,
+            filter_level: self.filter_level,
+            format: self.format,
+        }
+    }
+
+    /// Initializes this logger as the global logger.
+    ///
+    /// All log messages will go to collectd via `plugin_log`. This is the only
+    /// appropriate destination for logs in collectd plugins.
     ///
     /// # Errors
     ///
     /// This function will fail if it is called more than once, or if another
     /// library has already initialized a global logger.
-    pub fn try_init(&mut self) -> Result<(), SetLoggerError> {
-        let logger = CollectdLogger {
-            filter: self.filter.build(),
-            plugin: self.plugin,
-            format: std::mem::take(&mut self.format).into_boxed_fn(),
-        };
-
-        log::set_max_level(logger.filter());
+    pub fn try_init(self) -> Result<(), SetLoggerError> {
+        let logger = self.build();
+        log::set_max_level(logger.filter_level);
         log::set_boxed_logger(Box::new(logger))
-    }
-
-    /// Prefixes all log messages with a plugin's name. This is recommended to aid debugging and
-    /// gain insight into collectd logs.
-    pub fn prefix_plugin<T: PluginManager>(&mut self) -> &mut Self {
-        self.plugin = Some(T::name());
-        self
-    }
-
-    /// See [`env_logger::Builder::filter_level`](https://docs.rs/env_logger/0.11.0/env_logger/struct.Builder.html#method.filter_level)
-    pub fn filter_level(&mut self, level: LevelFilter) -> &mut Self {
-        self.filter.filter_level(level);
-        self
-    }
-
-    /// See: [`env_logger::Builder::filter_module`](https://docs.rs/env_logger/0.11.0/env_logger/struct.Builder.html#method.filter_module)
-    pub fn filter_module(&mut self, module: &str, level: LevelFilter) -> &mut Self {
-        self.filter.filter_module(module, level);
-        self
-    }
-
-    /// See: [`env_logger::Builder::filter`](https://docs.rs/env_logger/0.11.0/env_logger/struct.Builder.html#method.filter)
-    pub fn filter(&mut self, module: Option<&str>, level: LevelFilter) -> &mut Self {
-        self.filter.filter(module, level);
-        self
-    }
-
-    /// See: [`env_logger::Builder::parse_filters`](https://docs.rs/env_logger/0.11.0/env_logger/struct.Builder.html#method.parse_filters)
-    pub fn parse(&mut self, filters: &str) -> &mut Self {
-        self.filter.parse_filters(filters);
-        self
-    }
-
-    /// Sets the format function for formatting the log output.
-    pub fn format<F>(&mut self, format: F) -> &mut Self
-    where
-        F: Fn(&mut dyn Write, &Record<'_>) -> io::Result<()> + Sync + Send + 'static,
-    {
-        self.format.custom_format = Some(Box::new(format));
-        self
     }
 }
 
@@ -138,63 +132,53 @@ impl Format {
     }
 }
 
-struct CollectdLogger {
-    filter: Logger,
+/// The actual logger implementation that sends messages to collectd.
+pub struct CollectdLogger {
     plugin: Option<&'static str>,
+    filter_level: LevelFilter,
     format: Box<FormatFn>,
 }
 
 impl log::Log for CollectdLogger {
     fn enabled(&self, metadata: &Metadata<'_>) -> bool {
-        self.filter.enabled(metadata)
+        metadata.level() <= self.filter_level
     }
 
     fn log(&self, record: &Record<'_>) {
-        if self.matches(record) {
-            // Log records are written to a thread local storage before being submitted to
-            // collectd. The buffers are cleared afterwards
-            thread_local!(static LOG_BUF: Cell<Vec<u8>> = const { Cell::new(Vec::new()) });
-            LOG_BUF.with(|cell| {
-                // Replaces the cell's contents with the default value, which is an empty vector.
-                // Should be very cheap to move in and out of
-                let mut write_buffer = cell.take();
-                if let Some(plugin) = self.plugin {
-                    // writing the formatting to the vec shouldn't fail unless we ran out of
-                    // memory, but in that case, we have a host of other problems.
-                    let _ = write!(write_buffer, "{}: ", plugin);
-                }
-
-                if (self.format)(&mut write_buffer, record).is_ok() {
-                    let lvl = LogLevel::from(record.level());
-
-                    // Force a trailing NUL so that we can use fast path
-                    write_buffer.push(b'\0');
-                    {
-                        let cs = unsafe { CStr::from_bytes_with_nul_unchecked(&write_buffer[..]) };
-                        unsafe { plugin_log(lvl as i32, cs.as_ptr()) };
-                    }
-                }
-
-                write_buffer.clear();
-                cell.set(write_buffer);
-            });
+        if !self.enabled(record.metadata()) {
+            return;
         }
+
+        // Log records are written to a thread local storage before being submitted to
+        // collectd. The buffers are cleared afterwards
+        thread_local!(static LOG_BUF: Cell<Vec<u8>> = const { Cell::new(Vec::new()) });
+        LOG_BUF.with(|cell| {
+            // Replaces the cell's contents with the default value, which is an empty vector.
+            // Should be very cheap to move in and out of
+            let mut write_buffer = cell.take();
+            if let Some(plugin) = self.plugin {
+                // writing the formatting to the vec shouldn't fail unless we ran out of
+                // memory, but in that case, we have a host of other problems.
+                let _ = write!(write_buffer, "{}: ", plugin);
+            }
+
+            if (self.format)(&mut write_buffer, record).is_ok() {
+                let lvl = LogLevel::from(record.level());
+
+                // Force a trailing NUL so that we can use fast path
+                write_buffer.push(b'\0');
+                {
+                    let cs = unsafe { CStr::from_bytes_with_nul_unchecked(&write_buffer[..]) };
+                    unsafe { plugin_log(lvl as i32, cs.as_ptr()) };
+                }
+            }
+
+            write_buffer.clear();
+            cell.set(write_buffer);
+        });
     }
 
     fn flush(&self) {}
-}
-
-impl CollectdLogger {
-    /// Checks if this record matches the configured filter.
-    pub fn matches(&self, record: &Record<'_>) -> bool {
-        self.filter.matches(record)
-    }
-
-    /// Returns the maximum `LevelFilter` that this env logger instance is
-    /// configured to output.
-    pub fn filter(&self) -> LevelFilter {
-        self.filter.filter()
-    }
 }
 
 /// Logs an error with a description and all the causes. If rust's logging mechanism has been
@@ -223,18 +207,15 @@ pub fn log_err(desc: &str, err: &FfiError<'_>) {
 }
 
 /// Sends message and log level to collectd. This bypasses any configuration setup via
-/// [`CollectdLoggerBuilder`], so collectd configuration soley determines if a level is logged
+/// the global logger, so collectd configuration soley determines if a level is logged
 /// and where it is delivered. Messages that are too long are truncated (1024 was the max length as
 /// of collectd-5.7).
 ///
-/// In general, prefer [`CollectdLoggerBuilder`] and direct all logging as one normally would
-/// through the `log` crate.
+/// In general, prefer using the `log` crate macros with `CollectdLogger`.
 ///
 /// # Panics
 ///
 /// If a message containing a null character is given as a message this function will panic.
-///
-/// [`CollectdLoggerBuilder`]: struct.CollectdLoggerBuilder.html
 pub fn collectd_log(lvl: LogLevel, message: &str) {
     let cs = CString::new(message).expect("Collectd log to not contain nulls");
     unsafe {
@@ -250,7 +231,7 @@ pub fn collectd_log(lvl: LogLevel, message: &str) {
 /// collectd_log_raw!(LogLevel::Info, b"test %d\0", 10);
 /// ```
 ///
-/// Since this is a low level wrapper, prefer `CollectdLoggerBuilder` or even `collectd_log`. The only times you would
+/// Since this is a low level wrapper, prefer using the `log` crate with `CollectdLogger`. The only times you would
 /// prefer `collectd_log_raw`:
 ///
 /// - Collectd was not compiled with `COLLECTD_DEBUG` (chances are, your collectd is compiled with
