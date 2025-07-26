@@ -1,3 +1,46 @@
+## 0.16.0 - 2025-07-25
+
+### Breaking Changes
+
+Removed `env_logger` as a direct dependency (and `regex_log_filter` feature) and simplified the logging API
+
+There is no change if your logging code looked like:
+
+```rust
+CollectdLoggerBuilder::new()
+    .prefix_plugin::<MyPlugin>()
+    .filter_level(LevelFilter::Info)
+    .try_init()?;
+```
+
+Advanced logging features no longer work.
+
+```rust
+// Before (v0.15.0) - This no longer works
+CollectdLoggerBuilder::new()
+    .prefix_plugin::<MyPlugin>()
+    .filter_module("my_module", LevelFilter::Debug)
+    .parse("debug,other_crate=warn")
+    .try_init()?;
+
+// After (v0.16.0) - Use env_logger with CollectdLogger
+let env_filter = env_logger::Builder::from_default_env()
+    .filter_level(LevelFilter::Info)
+    .filter_module("my_module", LevelFilter::Debug)
+    .build();
+
+let collectd_logger = CollectdLoggerBuilder::new()
+    .prefix_plugin::<MyPlugin>()
+    .build();
+
+let filtered_logger = FilteredCollectdLogger {
+    env_logger: env_filter,
+    collectd_logger,
+};
+
+log::set_boxed_logger(Box::new(filtered_logger))?;
+```
+
 ## 0.15.0 - 2024-08-06
 
 - Fix null collectd values causing a panic
