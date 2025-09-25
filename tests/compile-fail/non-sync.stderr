@@ -9,7 +9,7 @@ error[E0277]: `RefCell<std::string::String>` cannot be shared between threads sa
 note: required because it appears within the type `MyPlugin`
   --> tests/compile-fail/non-sync.rs:6:12
    |
-6  | pub struct MyPlugin {
+ 6 | pub struct MyPlugin {
    |            ^^^^^^^^
 note: required by a bound in `Plugin`
   --> src/plugins.rs
@@ -32,7 +32,7 @@ note: required because it appears within the type `RefCell<std::string::String>`
 note: required because it appears within the type `MyPlugin`
   --> tests/compile-fail/non-sync.rs:6:12
    |
-6  | pub struct MyPlugin {
+ 6 | pub struct MyPlugin {
    |            ^^^^^^^^
 note: required by a bound in `Plugin`
   --> src/plugins.rs
@@ -60,7 +60,7 @@ note: required because it appears within the type `RefCell<std::string::String>`
 note: required because it appears within the type `MyPlugin`
   --> tests/compile-fail/non-sync.rs:6:12
    |
-6  | pub struct MyPlugin {
+ 6 | pub struct MyPlugin {
    |            ^^^^^^^^
 note: required by a bound in `Plugin`
   --> src/plugins.rs
