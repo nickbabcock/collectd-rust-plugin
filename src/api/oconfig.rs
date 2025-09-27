@@ -66,7 +66,7 @@ impl ConfigItem<'_> {
     /// # Safety
     ///
     /// Assumed that the pointer is non-null
-    pub unsafe fn from(item: &oconfig_item_t) -> Result<ConfigItem, ConfigError> {
+    pub unsafe fn from(item: &oconfig_item_t) -> Result<ConfigItem<'_>, ConfigError> {
         let key = CStr::from_ptr(item.key)
             .to_str()
             .map_err(ConfigError::StringDecode)?;
