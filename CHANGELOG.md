@@ -1,3 +1,10 @@
+## Unreleased
+
+- Fix compilation when no other dependency enables the `std` feature of `log`
+- Update `bindgen` to 0.72 to support libclang 22 and later
+- Declare the minimum supported Rust version as 1.81
+- Update to the 2021 edition
+
 ## 0.16.0 - 2025-07-25
 
 ### Breaking Changes
