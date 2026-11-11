@@ -77,5 +77,30 @@ jobs:
     - name: e2e test
       if: matrix.build == 'stable'
       run: |
-        sudo apt-get install collectd openjdk-21-jre-headless- libvirt0-
+        sudo apt-get update
+        sudo apt-get install --no-install-recommends collectd
         sudo ./ci/test.sh
+
+  # Check the crate with the minimum supported Rust version in Cargo.toml.
+  # Remove the dev-dependencies, because users of the crate do not get them.
+  msrv:
+    name: msrv
+    runs-on: ubuntu-latest
+    env:
+      COLLECTD_PATH: /tmp/collectd
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v7
+    - uses: dtolnay/rust-toolchain@stable
+    - uses: taiki-e/install-action@cargo-hack
+
+    - name: Clone collectd
+      run: git clone --depth 1 --branch collectd-5.12.0 https://github.com/collectd/collectd /tmp/collectd
+
+    - name: Select dependency versions that support the minimum Rust version
+      run: cargo hack --no-dev-deps generate-lockfile
+      env:
+        CARGO_RESOLVER_INCOMPATIBLE_RUST_VERSIONS: fallback
+
+    - name: Check with the minimum Rust version
+      run: cargo hack check --rust-version --no-dev-deps --each-feature

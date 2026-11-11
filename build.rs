@@ -101,7 +101,8 @@ fn bindings(loc: PathBuf, version: CollectdVersion) {
     }
 
     builder
-        .rust_target(bindgen::RustTarget::Stable_1_33)
+        // Keep this value the same as `rust-version` in Cargo.toml.
+        .rust_target(bindgen::RustTarget::stable(81, 0).expect("bindgen supports Rust 1.81"))
         .allowlist_type("cdtime_t")
         .allowlist_type("data_set_t")
         .allowlist_type("meta_data_t")

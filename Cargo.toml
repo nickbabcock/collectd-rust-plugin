@@ -8,20 +8,21 @@ readme = "README.md"
 keywords = ["collectd", "plugin"]
 categories = ["external-ffi-bindings"]
 license = "MIT"
-edition = "2018"
+edition = "2021"
+rust-version = "1.81"
 
 [package.metadata.docs.rs]
 features = ["stub"]
 
 [build-dependencies]
 regex = "1"
-bindgen = { version = "0.69.1", optional = true }
+bindgen = { version = "0.72", optional = true }
 
 [dependencies]
 chrono = "0.4.0"
 bitflags = "2.4"
 memchr = "2"
-log = "0.4"
+log = { version = "0.4", features = ["std"] }
 serde = { version = "1", features = ["derive"], optional = true }
 libc = { version = "0.2" }
 

@@ -58,7 +58,7 @@
 //!     // Our plugin might have configuration section in collectd.conf, which will be passed here if
 //!     // present. Our contrived plugin doesn't care about configuration so it returns only a single
 //!     // plugin (itself).
-//!     fn plugins(_config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Box<error::Error>> {
+//!     fn plugins(_config: Option<&[ConfigItem]>) -> Result<PluginRegistration, Box<dyn error::Error>> {
 //!         Ok(PluginRegistration::Single(Box::new(MyPlugin)))
 //!     }
 //! }
@@ -69,7 +69,7 @@
 //!         PluginCapabilities::READ
 //!     }
 //!
-//!     fn read_values(&self) -> Result<(), Box<error::Error>> {
+//!     fn read_values(&self) -> Result<(), Box<dyn error::Error>> {
 //!         // Create a list of values to submit to collectd. We'll be sending in a vector representing the
 //!         // "load" type. Short-term load is first (15.0) followed by mid-term and long-term. The number
 //!         // of values that you submit at a time depends on types.db in collectd configurations
