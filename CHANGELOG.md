@@ -1,4 +1,4 @@
-## Unreleased
+## 0.16.1 - 2026-11-12
 
 - Fix compilation when no other dependency enables the `std` feature of `log`
 - Update `bindgen` to 0.73 to support libclang 22 and later
