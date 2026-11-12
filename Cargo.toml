@@ -16,7 +16,7 @@ features = ["stub"]
 
 [build-dependencies]
 regex = "1"
-bindgen = { version = "0.72", optional = true }
+bindgen = { version = "0.73", optional = true }
 
 [dependencies]
 chrono = "0.4.0"
