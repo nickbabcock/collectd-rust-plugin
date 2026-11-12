@@ -114,6 +114,8 @@ fn bindings(loc: PathBuf, version: CollectdVersion) {
         .allowlist_var("DS_TYPE_.*")
         .allowlist_var("DATA_MAX_NAME_LEN")
         .allowlist_var("MD_TYPE_.*")
+        // Generate the bindings again when a header file changes.
+        .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
         .generate()
         .expect("Unable to generate bindings")
         .write_to_file(&loc)
@@ -129,6 +131,9 @@ fn bindings(loc: PathBuf, version: CollectdVersion) {
     use std::fs;
 
     let path = version_to_path(version);
+
+    // Copy the bindings again when the file changes.
+    println!("cargo:rerun-if-changed={}", path);
     fs::copy(PathBuf::from(path), loc).expect("File to copy");
 }
 
