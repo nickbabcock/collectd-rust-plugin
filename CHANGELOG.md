@@ -1,7 +1,10 @@
 ## Unreleased
 
 - Fix compilation when no other dependency enables the `std` feature of `log`
-- Update `bindgen` to 0.72 to support libclang 22 and later
+- Update `bindgen` to 0.73 to support libclang 22 and later
+- `bindings::meta_data_s` no longer implements `Copy` or `Clone`
+- `value_list_s`, `data_source_s`, `data_set_s`, and `notification_s` in `bindings` now implement `Debug`
+- Rebuild the bindings when their source files change
 - Declare the minimum supported Rust version as 1.81
 - Update to the 2021 edition
 
