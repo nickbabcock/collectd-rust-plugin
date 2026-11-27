@@ -72,6 +72,10 @@ crate-type = ["cdylib"]
 name = "env_logger"
 crate-type = ["cdylib"]
 
+[[example]]
+name = "lifecycle"
+crate-type = ["cdylib"]
+
 [[bench]]
 name = "collectd_bench"
 harness = false

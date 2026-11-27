@@ -5,6 +5,7 @@ set -euo pipefail
 cp target/debug/examples/libloadrust.so /usr/lib/collectd/loadrust.so
 cp target/debug/examples/libwrite_logrs.so /usr/lib/collectd/write_logrs.so
 cp target/debug/examples/libmyerror.so /usr/lib/collectd/myerror.so
+cp target/debug/examples/liblifecycle.so /usr/lib/collectd/lifecycle.so
 
 cat <<EOF | tee /etc/collectd/collectd.conf
 Hostname "localhost"
@@ -13,6 +14,7 @@ LoadPlugin write_logrs
 LoadPlugin csv
 LoadPlugin logfile
 LoadPlugin myerror
+LoadPlugin lifecycle
 
 <Plugin logfile>
     LogLevel info
@@ -33,6 +35,14 @@ systemctl restart collectd
 sleep 25
 systemctl status collectd
 systemctl stop collectd
+
+# A crash during shutdown shows up as a non-zero exit status
+EXIT_STATUS=$(systemctl show collectd -p ExecMainStatus --value)
+if [[ "$EXIT_STATUS" != "0" ]]; then
+    echo "collectd exited with status $EXIT_STATUS"
+    cat /var/lib/collectd/log
+    exit 1
+fi
 
 grep_test() {
     echo grep "$1" "$2"
@@ -65,5 +75,14 @@ grep_test 'myerror: collectd_plugin::api::logger: read error: plugin encountered
 grep_test 'read-function of plugin `myerror'"'"' failed.' /var/lib/collectd/log
 grep_test 'myerror: collectd_plugin::api::logger: read error: plugin panicked' /var/lib/collectd/log
 grep_test 'myerror: collectd_plugin::api::logger: panic hook error: plugin panicked: (examples/myerror.rs: 42): Oh dear what is wrong!?' /var/lib/collectd/log
+
+grep_test 'lifecycle: flush called' /var/lib/collectd/log
+grep_test 'lifecycle: dropped all' /var/lib/collectd/log
+grep_test 'lifecycle: dropped log' /var/lib/collectd/log
+
+if grep -E 'called after drop|called after it was dropped' /var/lib/collectd/log; then
+    echo "A plugin was called after it was dropped"
+    exit 1
+fi
 
 exit $?

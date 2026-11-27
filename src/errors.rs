@@ -228,6 +228,19 @@ pub enum FfiError<'a> {
 
     /// Collectd gave us field that contains invalid UTF-8 characters
     Utf8(&'static str, Utf8Error),
+
+    /// Collectd did not accept the registration of a plugin callback
+    Register {
+        callback: &'static str,
+        plugin: String,
+        code: i32,
+    },
+
+    /// A plugin name contains a null character
+    PluginName(String),
+
+    /// Collectd called a plugin that has already been dropped
+    Dropped,
 }
 
 impl fmt::Display for FfiError<'_> {
@@ -253,6 +266,19 @@ impl fmt::Display for FfiError<'_> {
             }
             FfiError::Plugin(_) => write!(f, "plugin encountered an error"),
             FfiError::Utf8(field, ref _e) => write!(f, "UTF-8 error for field: {}", field),
+            FfiError::Register {
+                callback,
+                ref plugin,
+                code,
+            } => write!(
+                f,
+                "unable to register {} callback for plugin {} (code: {})",
+                callback, plugin, code
+            ),
+            FfiError::Dropped => write!(f, "plugin was called after it was dropped"),
+            FfiError::PluginName(ref name) => {
+                write!(f, "plugin name contains a null character: {}", name)
+            }
         }
     }
 }

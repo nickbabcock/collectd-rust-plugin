@@ -132,6 +132,10 @@ macro_rules! collectd_plugin {
         static CONFIG_SEEN: ::std::sync::atomic::AtomicBool =
             ::std::sync::atomic::AtomicBool::new(false);
 
+        // The plugins created by the plugin manager. They are dropped at shutdown
+        static COLLECTD_PLUGIN_STORE: $crate::internal::PluginStore =
+            $crate::internal::PluginStore::new(::std::vec::Vec::new());
+
         // This is the main entry point that collectd looks for. Our plugin manager will register
         // callbacks for configuration related to our name. It also registers a callback for
         // initialization for when configuration is absent or a single plugin wants to hold global
@@ -158,17 +162,21 @@ macro_rules! collectd_plugin {
         }
 
         extern "C" fn collectd_plugin_init() -> ::std::os::raw::c_int {
-            $crate::internal::plugin_init::<$type>(&CONFIG_SEEN)
+            $crate::internal::plugin_init::<$type>(&CONFIG_SEEN, &COLLECTD_PLUGIN_STORE)
         }
 
         extern "C" fn collectd_plugin_shutdown() -> ::std::os::raw::c_int {
-            $crate::internal::plugin_shutdown::<$type>()
+            $crate::internal::plugin_shutdown::<$type>(&COLLECTD_PLUGIN_STORE)
         }
 
         unsafe extern "C" fn collectd_plugin_complex_config(
             config: *mut $crate::bindings::oconfig_item_t,
         ) -> ::std::os::raw::c_int {
-            $crate::internal::plugin_complex_config::<$type>(&CONFIG_SEEN, config)
+            $crate::internal::plugin_complex_config::<$type>(
+                &CONFIG_SEEN,
+                &COLLECTD_PLUGIN_STORE,
+                config,
+            )
         }
     };
 }
