@@ -38,16 +38,6 @@ pub enum MetaValue {
     Boolean(bool),
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-#[repr(u32)]
-#[allow(dead_code)]
-enum ValueType {
-    Counter = DS_TYPE_COUNTER,
-    Gauge = DS_TYPE_GAUGE,
-    Derive = DS_TYPE_DERIVE,
-    Absolute = DS_TYPE_ABSOLUTE,
-}
-
 /// The value that a plugin reports can be any one of the following types
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Value {
@@ -225,11 +215,17 @@ impl<'a> ValueList<'a> {
                 .iter()
                 .zip(unsafe { slice::from_raw_parts(set.ds, ds_len) })
                 .map(|(val, source)| unsafe {
-                    let v = match ::std::mem::transmute::<i32, ValueType>(source.type_) {
-                        ValueType::Gauge => Value::Gauge(val.gauge),
-                        ValueType::Counter => Value::Counter(val.counter),
-                        ValueType::Derive => Value::Derive(val.derive),
-                        ValueType::Absolute => Value::Absolute(val.absolute),
+                    let v = match u32::try_from(source.type_) {
+                        Ok(DS_TYPE_GAUGE) => Value::Gauge(val.gauge),
+                        Ok(DS_TYPE_COUNTER) => Value::Counter(val.counter),
+                        Ok(DS_TYPE_DERIVE) => Value::Derive(val.derive),
+                        Ok(DS_TYPE_ABSOLUTE) => Value::Absolute(val.absolute),
+                        _ => {
+                            return Err(ReceiveError::DataSourceType {
+                                plugin: plugin.to_string(),
+                                type_: source.type_,
+                            })
+                        }
                     };
 
                     let name = receive_array(&source.name, plugin, "data source name")?;
@@ -244,9 +240,6 @@ impl<'a> ValueList<'a> {
         } else {
             Vec::new()
         };
-
-        assert!(list.time > 0);
-        assert!(list.interval > 0);
 
         let plugin_instance =
             receive_array(&list.plugin_instance, plugin, "plugin_instance").map(empty_to_none)?;
@@ -469,28 +462,29 @@ where
             name: "meta key",
             err: ArrayError::NullPresent(e.nul_position(), key.to_string()),
         })?;
-        match value {
+        let code = match value {
             MetaValue::String(str) => {
                 let c_value = CString::new(str.as_str()).map_err(|e| SubmitError::Field {
                     name: "meta value",
                     err: ArrayError::NullPresent(e.nul_position(), str.to_string()),
                 })?;
-                unsafe {
-                    meta_data_add_string(meta, c_key.as_ptr(), c_value.as_ptr());
-                }
+                unsafe { meta_data_add_string(meta, c_key.as_ptr(), c_value.as_ptr()) }
             }
             MetaValue::SignedInt(i) => unsafe {
-                meta_data_add_signed_int(meta, c_key.as_ptr(), *i);
+                meta_data_add_signed_int(meta, c_key.as_ptr(), *i)
             },
             MetaValue::UnsignedInt(u) => unsafe {
-                meta_data_add_unsigned_int(meta, c_key.as_ptr(), *u);
+                meta_data_add_unsigned_int(meta, c_key.as_ptr(), *u)
             },
-            MetaValue::Double(d) => unsafe {
-                meta_data_add_double(meta, c_key.as_ptr(), *d);
-            },
-            MetaValue::Boolean(b) => unsafe {
-                meta_data_add_boolean(meta, c_key.as_ptr(), *b);
-            },
+            MetaValue::Double(d) => unsafe { meta_data_add_double(meta, c_key.as_ptr(), *d) },
+            MetaValue::Boolean(b) => unsafe { meta_data_add_boolean(meta, c_key.as_ptr(), *b) },
+        };
+
+        if code != 0 {
+            return Err(SubmitError::Metadata {
+                key: key.to_string(),
+                code,
+            });
         }
     }
     Ok(())
@@ -556,22 +550,30 @@ fn from_meta_data_with_toc(
         match value_type {
             MD_TYPE_BOOLEAN => {
                 let mut c_value = false;
-                unsafe {
-                    meta_data_get_boolean(meta, c_key.as_ptr(), &mut c_value as *mut bool);
+                let res = unsafe {
+                    meta_data_get_boolean(meta, c_key.as_ptr(), &mut c_value as *mut bool)
+                };
+                if res != 0 {
+                    return Err(metadata_get_error(plugin, key));
                 }
                 meta_hm.insert(key, MetaValue::Boolean(c_value));
             }
             MD_TYPE_DOUBLE => {
                 let mut c_value = 0.0;
-                unsafe {
-                    meta_data_get_double(meta, c_key.as_ptr(), &mut c_value as *mut f64);
+                let res =
+                    unsafe { meta_data_get_double(meta, c_key.as_ptr(), &mut c_value as *mut f64) };
+                if res != 0 {
+                    return Err(metadata_get_error(plugin, key));
                 }
                 meta_hm.insert(key, MetaValue::Double(c_value));
             }
             MD_TYPE_SIGNED_INT => {
                 let mut c_value = 0i64;
-                unsafe {
-                    meta_data_get_signed_int(meta, c_key.as_ptr(), &mut c_value as *mut i64);
+                let res = unsafe {
+                    meta_data_get_signed_int(meta, c_key.as_ptr(), &mut c_value as *mut i64)
+                };
+                if res != 0 {
+                    return Err(metadata_get_error(plugin, key));
                 }
                 meta_hm.insert(key, MetaValue::SignedInt(c_value));
             }
@@ -581,11 +583,7 @@ fn from_meta_data_with_toc(
                     meta_data_get_string(meta, c_key.as_ptr(), &mut c_value as *mut *mut c_char)
                 };
                 if res != 0 || c_value.is_null() {
-                    return Err(ReceiveError::Metadata {
-                        plugin: plugin.to_string(),
-                        field: key,
-                        msg: "failed to get metadata string",
-                    });
+                    return Err(metadata_get_error(plugin, key));
                 }
                 let value = unsafe {
                     let res = CStr::from_ptr(c_value)
@@ -603,8 +601,11 @@ fn from_meta_data_with_toc(
             }
             MD_TYPE_UNSIGNED_INT => {
                 let mut c_value = 0u64;
-                unsafe {
-                    meta_data_get_unsigned_int(meta, c_key.as_ptr(), &mut c_value as *mut u64);
+                let res = unsafe {
+                    meta_data_get_unsigned_int(meta, c_key.as_ptr(), &mut c_value as *mut u64)
+                };
+                if res != 0 {
+                    return Err(metadata_get_error(plugin, key));
                 }
                 meta_hm.insert(key, MetaValue::UnsignedInt(c_value));
             }
@@ -618,6 +619,14 @@ fn from_meta_data_with_toc(
         }
     }
     Ok(meta_hm)
+}
+
+fn metadata_get_error(plugin: &str, key: String) -> ReceiveError {
+    ReceiveError::Metadata {
+        plugin: plugin.to_string(),
+        field: key,
+        msg: "failed to get metadata value",
+    }
 }
 
 fn submit_array_res(s: &str, name: &'static str) -> Result<[c_char; ARR_LENGTH], SubmitError> {
@@ -661,10 +670,12 @@ fn receive_array<'a>(
 
 /// Turns a fixed size character array into string slice, if possible
 pub fn from_array(s: &[c_char; ARR_LENGTH]) -> Result<&str, Utf8Error> {
-    unsafe {
-        let a = s as *const [c_char; ARR_LENGTH] as *const c_char;
-        CStr::from_ptr(a).to_str()
-    }
+    let bytes = unsafe { &*(s as *const [c_char; ARR_LENGTH] as *const [u8; ARR_LENGTH]) };
+
+    // Collectd always ends the text with a null character, but don't read past the end of the
+    // array if it doesn't
+    let len = memchr(0, bytes).unwrap_or(ARR_LENGTH);
+    std::str::from_utf8(&bytes[..len])
 }
 
 /// Returns if the string is empty or not
@@ -800,5 +811,59 @@ mod tests {
                 meta: HashMap::new(),
             }
         );
+    }
+
+    fn text(s: &str) -> [c_char; ARR_LENGTH] {
+        let mut arr: [c_char; ARR_LENGTH] = [0; ARR_LENGTH];
+        for (dst, src) in arr.iter_mut().zip(s.bytes()) {
+            *dst = src as c_char;
+        }
+        arr
+    }
+
+    #[test]
+    fn test_from_array_without_null() {
+        let arr: [c_char; ARR_LENGTH] = [b'a' as c_char; ARR_LENGTH];
+        assert_eq!(Ok("a".repeat(ARR_LENGTH).as_str()), from_array(&arr));
+    }
+
+    #[test]
+    fn test_recv_unknown_data_source_type() {
+        let mut ds = vec![data_source_t {
+            name: text("value"),
+            type_: 99,
+            min: 0.0,
+            max: 1.0,
+        }];
+        let set = data_set_t {
+            type_: text("gauge"),
+            ds_num: 1,
+            ds: ds.as_mut_ptr(),
+        };
+        let mut vs = vec![value_t { gauge: 3.0 }];
+        let list = value_list_t {
+            values: vs.as_mut_ptr(),
+            values_len: 1,
+            time: 0,
+            interval: 0,
+            host: text("host"),
+            plugin: text("plugin"),
+            plugin_instance: text(""),
+            type_: text("gauge"),
+            type_instance: text(""),
+            meta: ptr::null_mut(),
+        };
+
+        let err = ValueList::from(&set, &list).unwrap_err();
+        assert!(matches!(
+            err,
+            ReceiveError::DataSourceType { type_: 99, .. }
+        ));
+
+        // A zero time and interval are converted instead of panicking
+        ds[0].type_ = DS_TYPE_GAUGE as i32;
+        let actual = ValueList::from(&set, &list).unwrap();
+        assert_eq!(actual.time, DateTime::UNIX_EPOCH);
+        assert_eq!(actual.interval, Duration::zero());
     }
 }

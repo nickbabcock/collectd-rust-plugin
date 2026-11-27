@@ -91,6 +91,15 @@ pub enum ReceiveError {
         /// Stringly typed error message
         msg: &'static str,
     },
+
+    /// A data source has a type that is not known
+    DataSourceType {
+        /// plugin where the error originates
+        plugin: String,
+
+        /// the unknown type
+        type_: i32,
+    },
 }
 
 impl fmt::Display for ReceiveError {
@@ -110,6 +119,9 @@ impl fmt::Display for ReceiveError {
             } => {
                 write!(f, "plugin: {}, field: {}: {}", plugin, field, msg)
             }
+            ReceiveError::DataSourceType { ref plugin, type_ } => {
+                write!(f, "plugin: {}, unknown data source type: {}", plugin, type_)
+            }
         }
     }
 }
@@ -122,7 +134,7 @@ impl error::Error for ReceiveError {
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match *self {
             ReceiveError::Utf8 { ref err, .. } => Some(err),
-            ReceiveError::Metadata { .. } => None,
+            ReceiveError::Metadata { .. } | ReceiveError::DataSourceType { .. } => None,
         }
     }
 }
@@ -141,6 +153,15 @@ pub enum SubmitError {
         /// The underlying error
         err: ArrayError,
     },
+
+    /// Collectd did not accept a metadata entry
+    Metadata {
+        /// Key of the entry
+        key: String,
+
+        /// The error code that collectd returned
+        code: i32,
+    },
 }
 
 impl fmt::Display for SubmitError {
@@ -150,6 +171,9 @@ impl fmt::Display for SubmitError {
                 write!(f, "plugin_dispatch_values returned an error: {}", code)
             }
             SubmitError::Field { name, .. } => write!(f, "error submitting {}", name),
+            SubmitError::Metadata { ref key, code } => {
+                write!(f, "unable to add metadata {} (code: {})", key, code)
+            }
         }
     }
 }
@@ -161,7 +185,7 @@ impl error::Error for SubmitError {
 
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match *self {
-            SubmitError::Dispatch(_code) => None,
+            SubmitError::Dispatch(_) | SubmitError::Metadata { .. } => None,
             SubmitError::Field { ref err, .. } => Some(err),
         }
     }

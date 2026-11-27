@@ -18,11 +18,16 @@ use chrono::Duration;
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct CdTime(pub u64);
 
+/// Times before 1970 become 1970, as collectd can't represent them.
 impl<Tz: TimeZone> From<DateTime<Tz>> for CdTime {
     fn from(dt: DateTime<Tz>) -> Self {
-        let sec_nanos = (dt.timestamp() as u64) * 1_000_000_000;
-        let nanos = u64::from(dt.timestamp_subsec_nanos());
-        CdTime(sec_nanos + nanos)
+        match u64::try_from(dt.timestamp()) {
+            Ok(secs) => {
+                let nanos = u64::from(dt.timestamp_subsec_nanos());
+                CdTime(secs.saturating_mul(1_000_000_000).saturating_add(nanos))
+            }
+            Err(_) => CdTime(0),
+        }
     }
 }
 
@@ -37,16 +42,23 @@ impl From<CdTime> for DateTime<Utc> {
     }
 }
 
+/// Negative durations become zero. Durations too long to fit in nanoseconds (about 292 years)
+/// are cut down to the longest one that fits.
 impl From<Duration> for CdTime {
     fn from(d: Duration) -> Self {
-        CdTime(d.num_nanoseconds().unwrap() as u64)
+        let nanos = d
+            .num_nanoseconds()
+            .unwrap_or(if d < Duration::zero() { 0 } else { i64::MAX });
+        CdTime(u64::try_from(nanos).unwrap_or(0))
     }
 }
 
+/// Durations too long to fit in nanoseconds (about 292 years) are cut down to the longest one
+/// that fits.
 impl From<CdTime> for Duration {
     fn from(v: CdTime) -> Self {
         let CdTime(ns) = v;
-        Duration::nanoseconds(ns as i64)
+        Duration::nanoseconds(i64::try_from(ns).unwrap_or(i64::MAX))
     }
 }
 
@@ -65,8 +77,14 @@ impl From<CdTime> for cdtime_t {
 
 /// Convert epoch nanoseconds into collectd's 2<sup>-30</sup> second resolution
 pub fn nanos_to_collectd(nanos: u64) -> cdtime_t {
-    ((nanos / 1_000_000_000) << 30)
-        | ((((nanos % 1_000_000_000) << 30) + 500_000_000) / 1_000_000_000)
+    let secs = nanos / 1_000_000_000;
+
+    // Collectd stores seconds in 34 bits. Later times become the latest time collectd can hold.
+    if secs >= 1 << 34 {
+        return cdtime_t::MAX;
+    }
+
+    (secs << 30) | ((((nanos % 1_000_000_000) << 30) + 500_000_000) / 1_000_000_000)
 }
 
 /// Convert collectd's 2^-30 second resolution into epoch nanoseconds
@@ -107,6 +125,23 @@ mod tests {
         let dt: DateTime<Utc> = CdTime::from(v).into();
         let res = Utc.with_ymd_and_hms(1970, 1, 1, 0, 0, 1);
         assert_eq!(res.unwrap(), dt);
+    }
+
+    #[test]
+    fn test_out_of_range_to_collectd() {
+        let before_1970 = Utc.with_ymd_and_hms(1969, 12, 31, 23, 59, 59).unwrap();
+        assert_eq!(CdTime::from(before_1970), CdTime(0));
+
+        assert_eq!(CdTime::from(Duration::seconds(-1)), CdTime(0));
+        assert_eq!(CdTime::from(Duration::MIN), CdTime(0));
+        assert_eq!(CdTime::from(Duration::MAX), CdTime(i64::MAX as u64));
+
+        let far_future = Utc.with_ymd_and_hms(3000, 1, 1, 0, 0, 0).unwrap();
+        assert_eq!(cdtime_t::from(CdTime::from(far_future)), cdtime_t::MAX);
+        assert_eq!(nanos_to_collectd(u64::MAX), cdtime_t::MAX);
+
+        let longest = Duration::nanoseconds(i64::MAX);
+        assert_eq!(Duration::from(CdTime(u64::MAX)), longest);
     }
 
     #[test]
