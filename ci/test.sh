@@ -53,8 +53,12 @@ grep_test() {
 
 grep_test 'epoch,shortterm,midterm,longterm' /var/lib/collectd/csv/localhost/loadrust/load*
 grep_test 'A raw log with argument: 10' /var/lib/collectd/log
+grep_test 'A raw log with arguments: 10 20' /var/lib/collectd/log
 grep_test 'collectd logging configuration: Some' /var/lib/collectd/log
 grep_test 'write_logrs: write_logrs: rust logging configuration: Some' /var/lib/collectd/log
+grep_test 'write_logrs: write_logrs: percent check: 100%s %n done' /var/lib/collectd/log
+grep_test 'raw percent check: 100%s %n done' /var/lib/collectd/log
+grep_test 'null check: kept$' /var/lib/collectd/log
 grep_test 'write_logrs: write_logrs: flushing: timeout: no timeout, identifier: no identifier' /var/lib/collectd/log
 grep_test 'write_logrs: write_logrs: yes drop is called' /var/lib/collectd/log
 grep_test 'myerror: collectd_plugin::api::logger: read error: plugin encountered an error; bailing' /var/lib/collectd/log

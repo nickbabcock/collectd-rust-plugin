@@ -3,7 +3,7 @@ use crate::errors::FfiError;
 use log::{error, log_enabled, Level, LevelFilter, Metadata, Record, SetLoggerError};
 use std::cell::Cell;
 use std::error::Error;
-use std::ffi::{CStr, CString};
+use std::ffi::CStr;
 use std::fmt::Write as FmtWrite;
 use std::io::{self, Write};
 
@@ -165,12 +165,8 @@ impl log::Log for CollectdLogger {
             if (self.format)(&mut write_buffer, record).is_ok() {
                 let lvl = LogLevel::from(record.level());
 
-                // Force a trailing NUL so that we can use fast path
                 write_buffer.push(b'\0');
-                {
-                    let cs = unsafe { CStr::from_bytes_with_nul_unchecked(&write_buffer[..]) };
-                    unsafe { plugin_log(lvl as i32, cs.as_ptr()) };
-                }
+                log_nul_terminated(lvl, &write_buffer);
             }
 
             write_buffer.clear();
@@ -213,15 +209,22 @@ pub fn log_err(desc: &str, err: &FfiError<'_>) {
 ///
 /// In general, prefer using the `log` crate macros with `CollectdLogger`.
 ///
-/// # Panics
-///
-/// If a message containing a null character is given as a message this function will panic.
+/// If the message contains a null character, the message is cut short at that character.
 pub fn collectd_log(lvl: LogLevel, message: &str) {
-    let cs = CString::new(message).expect("Collectd log to not contain nulls");
-    unsafe {
-        // Collectd will allocate another string behind the scenes before passing to plugins that
-        // registered a log hook, so passing it a string slice is fine.
-        plugin_log(lvl as i32, cs.as_ptr());
+    let mut buf = Vec::with_capacity(message.len() + 1);
+    buf.extend_from_slice(message.as_bytes());
+    buf.push(b'\0');
+    log_nul_terminated(lvl, &buf);
+}
+
+/// Sends a null terminated message to collectd. If the message contains an earlier null
+/// character, the message is cut short at that character.
+fn log_nul_terminated(lvl: LogLevel, buf: &[u8]) {
+    if let Ok(cs) = CStr::from_bytes_until_nul(buf) {
+        // collectd treats its second argument as a printf format string, so the message is
+        // passed as the argument to "%s". Otherwise a `%` in the message would make collectd
+        // read arguments that were never passed.
+        unsafe { plugin_log(lvl as i32, c"%s".as_ptr(), cs.as_ptr()) };
     }
 }
 
@@ -266,7 +269,7 @@ macro_rules! collectd_log_raw {
         let level: $crate::LogLevel = $lvl;
         let level = level as i32;
         unsafe {
-            $crate::bindings::plugin_log(level, ($fmt).as_ptr() as *const ::std::os::raw::c_char, $($arg)*);
+            $crate::bindings::plugin_log(level, ($fmt).as_ptr() as *const ::std::os::raw::c_char, $($arg),*);
         }
     });
 }

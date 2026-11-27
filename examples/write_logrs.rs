@@ -42,9 +42,13 @@ impl PluginManager for LogWritePlugin {
             .expect("really the only thing that should create a logger");
 
         collectd_log_raw!(LogLevel::Info, b"A raw log with argument: %d\0", 10);
+        collectd_log_raw!(LogLevel::Info, b"A raw log with arguments: %d %d\0", 10, 20);
         let line = format!("collectd logging configuration: {:?}", config);
         collectd_log(LogLevel::Info, &line);
         info!("rust logging configuration: {:?}", config);
+        info!("percent check: 100%s %n done");
+        collectd_log(LogLevel::Info, "raw percent check: 100%s %n done");
+        collectd_log(LogLevel::Info, "null check: kept\0dropped");
         let plugin: LogWritePlugin =
             collectd_plugin::de::from_collectd(config.unwrap_or_else(Default::default))?;
         Ok(PluginRegistration::Single(Box::new(plugin)))
