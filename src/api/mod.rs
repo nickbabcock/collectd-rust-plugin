@@ -203,6 +203,9 @@ impl<'a> ValueList<'a> {
                     },
                 })
                 .collect();
+            unsafe {
+                libc::free(ptr as *mut c_void);
+            }
             Ok(Cow::Owned(nv))
         } else {
             Err(CacheRateError)
@@ -398,7 +401,11 @@ impl<'a> ValueListBuilder<'a> {
 
         let type_ = submit_array_res(self.list.type_, "type")?;
 
-        let meta = to_meta_data(&self.list.meta)?;
+        let meta = if self.list.meta.is_empty() {
+            ptr::null_mut()
+        } else {
+            to_meta_data(&self.list.meta)?
+        };
 
         let list = value_list_t {
             values: v.as_mut_ptr(),
@@ -418,10 +425,18 @@ impl<'a> ValueListBuilder<'a> {
             meta,
         };
 
-        match unsafe { plugin_dispatch_values(&list) } {
+        let res = match unsafe { plugin_dispatch_values(&list) } {
             0 => Ok(()),
             i => Err(SubmitError::Dispatch(i)),
+        };
+
+        if !meta.is_null() {
+            unsafe {
+                meta_data_destroy(meta);
+            }
         }
+
+        res
     }
 }
 
@@ -561,17 +576,28 @@ fn from_meta_data_with_toc(
                 meta_hm.insert(key, MetaValue::SignedInt(c_value));
             }
             MD_TYPE_STRING => {
-                let value: String = unsafe {
-                    let mut c_value: *mut c_char = ptr::null_mut();
-                    meta_data_get_string(meta, c_key.as_ptr(), &mut c_value as *mut *mut c_char);
-                    CStr::from_ptr(c_value)
+                let mut c_value: *mut c_char = ptr::null_mut();
+                let res = unsafe {
+                    meta_data_get_string(meta, c_key.as_ptr(), &mut c_value as *mut *mut c_char)
+                };
+                if res != 0 || c_value.is_null() {
+                    return Err(ReceiveError::Metadata {
+                        plugin: plugin.to_string(),
+                        field: key,
+                        msg: "failed to get metadata string",
+                    });
+                }
+                let value = unsafe {
+                    let res = CStr::from_ptr(c_value)
                         .to_str()
+                        .map(str::to_owned)
                         .map_err(|e| ReceiveError::Utf8 {
                             plugin: plugin.to_string(),
                             field: "metadata value",
                             err: e,
-                        })?
-                        .to_string()
+                        });
+                    libc::free(c_value as *mut c_void);
+                    res?
                 };
                 meta_hm.insert(key, MetaValue::String(value));
             }
