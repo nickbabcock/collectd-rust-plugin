@@ -6,6 +6,7 @@ cp target/debug/examples/libloadrust.so /usr/lib/collectd/loadrust.so
 cp target/debug/examples/libwrite_logrs.so /usr/lib/collectd/write_logrs.so
 cp target/debug/examples/libmyerror.so /usr/lib/collectd/myerror.so
 cp target/debug/examples/liblifecycle.so /usr/lib/collectd/lifecycle.so
+cp target/debug/examples/libload_with_metadata.so /usr/lib/collectd/load_with_metadata.so
 
 cat <<EOF | tee /etc/collectd/collectd.conf
 Hostname "localhost"
@@ -15,6 +16,7 @@ LoadPlugin csv
 LoadPlugin logfile
 LoadPlugin myerror
 LoadPlugin lifecycle
+LoadPlugin load_with_metadata
 
 <Plugin logfile>
     LogLevel info
@@ -75,6 +77,8 @@ grep_test 'myerror: collectd_plugin::api::logger: read error: plugin encountered
 grep_test 'read-function of plugin `myerror'"'"' failed.' /var/lib/collectd/log
 grep_test 'myerror: collectd_plugin::api::logger: read error: plugin panicked' /var/lib/collectd/log
 grep_test 'myerror: collectd_plugin::api::logger: panic hook error: plugin panicked: (examples/myerror.rs: 42): Oh dear what is wrong!?' /var/lib/collectd/log
+
+grep_test 'write_logrs: write_logrs: plugin: load_with_metadata, metadata: {"environment": String("prod"), "version": UnsignedInt(5)}' /var/lib/collectd/log
 
 grep_test 'lifecycle: flush called' /var/lib/collectd/log
 grep_test 'lifecycle: dropped all' /var/lib/collectd/log

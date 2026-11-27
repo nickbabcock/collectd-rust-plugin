@@ -7,7 +7,7 @@ use collectd_plugin::{
 };
 use log::{info, LevelFilter};
 use serde::Deserialize;
-use std::{error, fmt::Write};
+use std::{collections::BTreeMap, error, fmt::Write};
 
 fn true_default() -> bool {
     true
@@ -89,6 +89,12 @@ impl Plugin for LogWritePlugin {
             list.interval.num_seconds(),
             out,
         );
+
+        if !list.meta.is_empty() {
+            // Sort the entries so the log line is always the same
+            let meta: BTreeMap<_, _> = list.meta.iter().collect();
+            info!("plugin: {}, metadata: {:?}", list.plugin, meta);
+        }
 
         Ok(())
     }
